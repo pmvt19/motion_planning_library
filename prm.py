@@ -7,6 +7,7 @@ import time
 from heapq import heappop, heappush
 from state import NumpyState
 from utils import smooth_path
+from path import Path
 
 class PRM():
     def __init__(self, env, num_samples=10, num_neighbors=10, validate_edges=False):
@@ -68,7 +69,7 @@ class PRM():
         # Solve with A* or Dijkstra's Algorithm
         path = self.graph.dijkstra_search(start=start.value, end=target.value)
         if path:
-            path = [self.env.make_state(p) for p in path]
+            path = Path([self.env.make_state(p) for p in path])
         # Return final Path
         return path
     
@@ -126,11 +127,11 @@ if __name__ == "__main__":
     # seed = 13 # Connected Graph Fails to Find Path
     print(f"Seed: {seed}")
     np.random.seed(seed)
-    # env = Environment2d()
+    env = Environment2d()
     # env = RandomSamplePassage()
-    env = CarParkingEnv()
+    # env = CarParkingEnv()
     start_time = time.time()
-    prm = PRM(env=env, num_samples=5000, num_neighbors=20, validate_edges=True)
+    prm = PRM(env=env, num_samples=100, num_neighbors=10, validate_edges=True)
     # prm = LazyPRM(env=env, num_samples=100)
     prm.create_graph()
     
@@ -143,9 +144,9 @@ if __name__ == "__main__":
     # target = (9,9)
     # start = env.make_state(np.array([0,0]))
     # target = env.make_state(np.array([9,9]))
-    # start, target = env.sample_task()
-    start = env.make_state(np.array([2.0, 2.75, 0]))
-    target = env.make_state(np.array([-3.0, -2.25, 0]))
+    start, target = env.sample_task()
+    # start = env.make_state(np.array([2.0, 2.75, 0]))
+    # target = env.make_state(np.array([-3.0, -2.25, 0]))
     
     path = prm.search(start, target)
 

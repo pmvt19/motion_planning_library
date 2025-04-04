@@ -252,9 +252,6 @@ class CarParkingEnv(Environment):
 
         self.state_dim = 3
         self.control_dim = 2
-
-        
-
     
     def create_parking_space(self, x_loc=0, y_loc=0, space_width=3):
         # space_width = 3 
@@ -449,17 +446,28 @@ class CarParkingEnv(Environment):
         new_state = np.copy(state.value) + x_dot
         return self.make_state(new_state)
     
-    def extend_state(self, state: AngularNumpyState, time: float, do_collision_checking=True):
-        controls = self.sample_controls()
-        num_iterations = int(time // self.dt)
+    def simulate(self, starting_state: AngularNumpyState, control_seq: list):
+        state = starting_state
+        state_seqs = [state]
+        for control, time in control_seq:
+            state, _, _ = self.extend_state(state, time, control, do_collision_checking=False)
+            state_seqs.append(state)
+        return state_seqs
+    
+    def extend_state(self, state: AngularNumpyState, time: float, controls=None, do_collision_checking=True):
+        if controls is None:
+            controls = self.sample_controls()
+        num_iterations = int(time / self.dt)
         list_of_states = [state]
         running_time = 0
+
         for i in range(num_iterations):
             state = self.simulate_forward(state, controls)
             if do_collision_checking and not self.is_valid(state):
                 break
             running_time += self.dt
             list_of_states.append(state)
+
         return list_of_states[-1], controls, running_time
     
     def get_fixed_task(self):
@@ -474,6 +482,9 @@ if __name__ == '__main__':
     env = CarParkingEnv()
     state = env.make_state(np.array([6.0, 7.0, np.pi/np.sqrt(2)]))
     controls = env.sample_controls()
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), env.make_state(np.array([5,-5,45.0])))
+    plt.show()
 
     print(state.value, controls.value)
 

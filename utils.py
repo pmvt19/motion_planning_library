@@ -1,9 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from state import NumpyState, AngularNumpyState
+from path import Path
+from copy import deepcopy
 # from environments import Environment
 
-def smooth_path(env, path):
+def smooth_path(env, path_obj : Path):
+    path = deepcopy(path_obj.path) # Do not modify original path
     original_path_length = sum([np.linalg.norm(path[i].value - path[i+1].value) for i in range(len(path)-1)])
     i = 0
     while i < len(path)-1:
@@ -17,7 +20,7 @@ def smooth_path(env, path):
         i += 1
     smoothed_path_length = sum([np.linalg.norm(path[i].value - path[i+1].value) for i in range(len(path)-1)])
     print(f"Smoothed Path from Length {original_path_length} to Length {smoothed_path_length}")
-    return path
+    return Path(path=path)
 
 # To make general
 def interpolate_edge(start, end, delta):

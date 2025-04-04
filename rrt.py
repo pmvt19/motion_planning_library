@@ -9,6 +9,7 @@ from environments import Environment2d, RandomSamplePassage, OpenSpace2d, CarPar
 from matplotlib.collections import LineCollection
 from state import NumpyState
 from utils import smooth_path
+from path import Path
 
 class RRT():
     def __init__(self, env, delta=0.5):
@@ -43,7 +44,7 @@ class RRT():
 
         return new_node
 
-    def draw_tree(self, ax, path=None, hold=False):
+    def draw_tree(self, ax, path:Path = None, hold=False):
         self.env.draw_environment(ax)
         nodes = np.array([node.value for node in self.tree.keys()])
         try:
@@ -71,28 +72,33 @@ class RRT():
         plt.clf()
 
     def draw_voronoi_diagram(self):
-        nodes = np.array([node for node in self.tree.keys()])
+        nodes = np.array([node.value for node in self.tree.keys()])
         vor = Voronoi(nodes)
         fig = voronoi_plot_2d(vor, show_vertices=False, line_colors='orange', line_width=2, line_alpha=0.6, point_size=2)
         self.draw_tree(fig.gca(), hold=True)
 
     def backtrack(self):
+        if self.target not in self.child_to_parent:
+            return Path()
+
         path = []
         node = self.target 
         while node:
             path.append(node)
             node = self.child_to_parent[node]
-        return path[::-1]
-        
+        return Path(path=path[::-1])
+    
+    def init_search(self):
+        self.tree[self.start] = []
+        self.child_to_parent[self.start] = None
 
-    def search(self, start, target, max_steps=10000, goal_bias=0.1):
-        self.tree[start] = []
-        self.child_to_parent[start] = None
-        cur_node = start
-        num_steps = 0
-        
+    def search(self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False):
         self.start = start 
         self.target = target
+        self.init_search()
+
+        cur_node = start
+        num_steps = 0
 
         start_time = time.time()
         while (cur_node != target and num_steps < max_steps):
@@ -100,13 +106,11 @@ class RRT():
             exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
             cur_node = self.expand_node(exp_node, sampled_point)
             num_steps += 1
-            # self.draw_tree(plt.gca())
+            if animate_search_tree:
+                self.draw_tree(plt.gca())
         search_time = time.time() - start_time
         print(f"Search Time: {search_time}, Collision Checks: {self.env.num_collision_checks}")
-        # draw_tree(env, tree, start, target, hold=True)
-        path = None
-        if cur_node == target:
-            path = self.backtrack()
+        path = self.backtrack()
         
         return path
 
@@ -117,20 +121,21 @@ if __name__ == "__main__":
     # start = (0, 0)
     # target = (9, 9)
     
-    # env = OpenSpace2d()
+    env = OpenSpace2d()
     # env = Environment2d()
     # env = RandomSamplePassage()
-    env = CarParkingEnv()
-    # start, target = env.sample_task()
+    # env = CarParkingEnv()
+    start, target = env.sample_task()
 
-    start = env.make_state(np.array([0,0]))
-    target = env.make_state(np.array([9,9]))
+    # start = env.make_state(np.array([0,0]))
+    # target = env.make_state(np.array([9,9]))
 
     max_steps = 10
     goal_bias = 0.1
 
     rrt = RRT(env)
-    path = rrt.search(start, target, goal_bias=0.01)
+    path = rrt.search(start, target, max_steps=100, goal_bias=0.01)
+    print(path)
     rrt.draw_tree(plt.gca(), path=path, hold=True)
     
     smoothed_path = smooth_path(env, path)
@@ -139,4 +144,4 @@ if __name__ == "__main__":
     # from kinematic_path_smoothing import smooth_path_trajectory_optimization
     # smoothed_path = smooth_path_trajectory_optimization(env, path)
 
-    # rrt.draw_voronoi_diagram()
+    rrt.draw_voronoi_diagram()
