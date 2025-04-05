@@ -117,9 +117,10 @@ class RRT():
         return path
 
 class RRTStar(RRT):
-    def __init__(self, env, delta=0.5, rewire_radius=1):
+    def __init__(self, env, delta=0.5, rewire_radius=1, max_rewire_neighbors=20):
         super().__init__(env=env, delta=delta)
         self.rewire_radius = rewire_radius
+        self.max_rewire_neighbors = max_rewire_neighbors
     
     def init_search(self, start, target):
         self.start = start
@@ -160,10 +161,7 @@ class RRTStar(RRT):
 
 
     def rewire(self, q_new):
-        # k = int(len(self.tree) * 0.1)
-        k = int(len(self.tree) * 0.1)
-        k = min(k, 5)
-        # print(k)
+        k = min(int(len(self.tree) * 1), self.max_rewire_neighbors)
 
         nodes = np.array([node.value for node in self.tree.keys()])
         kdt = KDTree(nodes)
@@ -189,10 +187,11 @@ class RRTStar(RRT):
                     # optimal path to q_new passes through q
                     self.update_child_nodes(parent=q, child=q_new)
 
-    def step_search(self, goal_bias):
+    def step_search(self, rewire, goal_bias):
         exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
         cur_node = self.expand_node(exp_node, sampled_point)
-        self.rewire(cur_node)
+        if rewire:
+            self.rewire(cur_node)
         return cur_node
 
     def backtrack(self, end=None):
@@ -207,16 +206,14 @@ class RRTStar(RRT):
         return Path(path=path[::-1])
     
 
-    def search(self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False):
+    def search(self, start, target, max_steps=10000, goal_bias=0.1, do_rewire=True, animate_search_tree=False):
         self.init_search(start, target)
 
         num_steps = 0
-
         start_time = time.time()
         while (num_steps < max_steps):
             print(f"Searching Step: {num_steps}", end='\r')
-            # print(num_steps)
-            cur_node = self.step_search(goal_bias=goal_bias)
+            cur_node = self.step_search(rewire=do_rewire, goal_bias=goal_bias)
             num_steps += 1
             if animate_search_tree:
                 self.draw_tree(plt.gca())
@@ -319,19 +316,20 @@ if __name__ == "__main__":
     # start = env.make_state(np.array([0.0,0.0]))
     # start = env.make_state(np.array([-9.0,-9.0]))
     # target = env.make_state(np.array([9.0,9.0]))
-    target = env.make_state(np.array([15.0, 2.0]))
+    # target = env.make_state(np.array([15.0, 2.0]))
+    target = env.make_state(np.array([35.0, 2.0]))
 
     max_steps = 10
     goal_bias = 0.1
 
-    # rrt = RRT(env)
-    rrt = RRTStar(env)
+    rrt = RRT(env)
+    # rrt = RRTStar(env)
     # rrt = BiDirectionalRRT(env)
     # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=750, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
-    path = rrt.search(start, target, max_steps=3000, goal_bias=0.4, animate_search_tree=False)
+    path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=3000, do_rewire=True, goal_bias=0.4, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     rrt.draw_tree(plt.gca(), path=path)
