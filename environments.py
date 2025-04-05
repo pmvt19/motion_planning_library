@@ -222,7 +222,75 @@ class RandomSamplePassage(Workspace2dEnv):
                            [x_high, self.y_range[1]]])
             self.obstacles.append(obs)
 
-class CarParkingEnv(Environment):
+class NonholonomicEnv(Environment):
+    def __init__(self):
+        super().__init__()
+
+    def draw_environment(self, ax):
+        ax.set_xlim(self.x_range[0], self.x_range[1])
+        ax.set_ylim(self.y_range[0], self.y_range[1])
+        for obs in self.obstacles:
+            x,y = obs.exterior.xy
+            ax.plot(x,y, color='black')
+    
+    # def draw_state(self, ax, state : NumpyState):
+    #     robot = self.generate_robot_representation(state)
+    #     x,y = robot.exterior.xy
+    #     ax.plot(x,y, color='red')
+    #     xs, ys, ts = state.value
+
+    def draw_state(self, ax, state : NumpyState):
+        robot, cosmetics = self.generate_costmetic_robot_representation(state)
+        x,y = robot.exterior.xy
+        ax.plot(x,y, color='red')
+
+        for c in cosmetics:
+            x,y = c.exterior.xy
+            ax.plot(x,y, color='black')
+
+    def animate_path(self, path, frame_delay=0.1):
+        for state in path:
+            plt.clf()
+            self.draw_environment(plt.gca())
+            self.draw_state(plt.gca(), state)
+            plt.pause(frame_delay)
+
+    def create_rectangle_geometry(self, x_loc, y_loc, x_width, y_length):
+        shape = Polygon([[x_loc-x_width/2, y_loc-y_length/2], 
+                         [x_loc-x_width/2, y_loc+y_length/2],
+                         [x_loc+x_width/2, y_loc+y_length/2],
+                         [x_loc+x_width/2, y_loc-y_length/2],])
+        return shape
+    
+    def simulate(self, starting_state: AngularNumpyState, control_seq: list):
+        state = starting_state
+        state_seqs = [state]
+        for control, time in control_seq:
+            state, _, _ = self.extend_state(state, time, control, do_collision_checking=False)
+            state_seqs.append(state)
+        return state_seqs
+    
+    def extend_state(self, state: AngularNumpyState, time: float, controls=None, do_collision_checking=True):
+        if controls is None:
+            controls = self.sample_controls()
+        
+        num_iterations = int(time / self.dt)
+        # print(num_iterations, time, self.dt, time/self.dt, int(time/self.dt), time//self.dt)
+        # assert(int(time/self.dt) == time//self.dt)
+        list_of_states = [state]
+        running_time = 0
+        
+        for i in range(num_iterations):
+            state = self.simulate_forward(state, controls)
+            if do_collision_checking and not self.is_valid(state):
+                break
+            # running_time += self.dt
+            running_time = (i+1) * self.dt
+            list_of_states.append(state)
+
+        return list_of_states[-1], controls, running_time
+
+class CarParkingEnv(NonholonomicEnv):
     def __init__(self):
         super().__init__()
 
@@ -288,37 +356,6 @@ class CarParkingEnv(Environment):
         self.parking_space_samples.extend(space_samples)
 
         return obs
-
-    def draw_environment(self, ax):
-        ax.set_xlim(self.x_range[0], self.x_range[1])
-        ax.set_ylim(self.y_range[0], self.y_range[1])
-        for obs in self.obstacles:
-            x,y = obs.exterior.xy
-            ax.plot(x,y, color='black')
-    
-    # def draw_state(self, ax, state : NumpyState):
-    #     robot = self.generate_robot_representation(state)
-    #     x,y = robot.exterior.xy
-    #     ax.plot(x,y, color='red')
-    #     xs, ys, ts = state.value
-
-    def draw_state(self, ax, state : NumpyState):
-        robot, cosmetics = self.generate_costmetic_robot_representation(state)
-        x,y = robot.exterior.xy
-        ax.plot(x,y, color='red')
-
-        for c in cosmetics:
-            x,y = c.exterior.xy
-            ax.plot(x,y, color='black')
-
-
-
-    def animate_path(self, path, frame_delay=0.1):
-        for state in path:
-            plt.clf()
-            self.draw_environment(plt.gca())
-            self.draw_state(plt.gca(), state)
-            plt.pause(frame_delay)
     
     def generate_robot_representation(self, state):
         if isinstance(state, AngularNumpyState):
@@ -336,13 +373,6 @@ class CarParkingEnv(Environment):
                 ])
         rotated_robot = affinity.rotate(robot, theta, use_radians=True)
         return rotated_robot
-    
-    def create_rectangle_geometry(self, x_loc, y_loc, x_width, y_length):
-        shape = Polygon([[x_loc-x_width/2, y_loc-y_length/2], 
-                         [x_loc-x_width/2, y_loc+y_length/2],
-                         [x_loc+x_width/2, y_loc+y_length/2],
-                         [x_loc+x_width/2, y_loc-y_length/2],])
-        return shape
     
     def generate_costmetic_robot_representation(self, state):
         if isinstance(state, AngularNumpyState):
@@ -446,49 +476,199 @@ class CarParkingEnv(Environment):
         new_state = np.copy(state.value) + x_dot
         return self.make_state(new_state)
     
-    def simulate(self, starting_state: AngularNumpyState, control_seq: list):
-        state = starting_state
-        state_seqs = [state]
-        for control, time in control_seq:
-            state, _, _ = self.extend_state(state, time, control, do_collision_checking=False)
-            state_seqs.append(state)
-        return state_seqs
-    
-    def extend_state(self, state: AngularNumpyState, time: float, controls=None, do_collision_checking=True):
-        if controls is None:
-            controls = self.sample_controls()
-        num_iterations = int(time / self.dt)
-        list_of_states = [state]
-        running_time = 0
-
-        for i in range(num_iterations):
-            state = self.simulate_forward(state, controls)
-            if do_collision_checking and not self.is_valid(state):
-                break
-            running_time += self.dt
-            list_of_states.append(state)
-
-        return list_of_states[-1], controls, running_time
-    
     def get_fixed_task(self):
         idxes = np.random.choice(len(self.parking_space_centers), size=(2,), replace=False)
         start = self.parking_space_centers[idxes[0]]
         target = self.parking_space_centers[idxes[1]]
         return start, target
 
+class DubinsCarEnv(NonholonomicEnv):
+    def __init__(self):
+        super().__init__()
+        self.obstacles = []
+        self.obstacles.append(
+            self.create_rectangle_geometry(x_loc=0, y_loc=0, x_width=4, y_length=4)
+        )
 
+        self.x_range = [-15,15]
+        self.y_range = [-15,15]
+
+        self.boundary = self.create_rectangle_geometry(x_loc=((self.x_range[0]+self.x_range[1])/2), 
+                                                       y_loc=((self.y_range[0]+self.y_range[1])/2),
+                                                       x_width=self.x_range[1]-self.x_range[0],
+                                                       y_length=self.y_range[1]-self.y_range[0])
+
+        self.velocity_range = [-3, 3]
+        self.theta_range = [0, 2*np.pi]
+        self.phi_range = [-np.pi/3, np.pi/3]
+
+        self.accel_range = [-5, 5]
+        self.psi_range = [-1, 1]
+
+        self.edge_validity_delta = 0.5
+
+        self.angular_dims_start = 4
+
+        self.car_width = 2
+        self.car_length = 4
+
+        self.dt = 0.05
+
+        self.state_dim = 5
+        self.control_dim = 2
+
+    def make_state(self, state : np.ndarray):
+        # State is X, Y, V, Phi, Theta
+        return AngularNumpyState(state, angular_dims_start=self.angular_dims_start)
+    
+    def make_control(self, control : np.ndarray):
+        # State is A, Psi
+        return NumpyState(control)
+    
+    def sample_point(self):
+        rand_point = np.zeros(5)
+        rand_point[0] = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
+        rand_point[1] = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
+        rand_point[2] = np.random.uniform(low=self.velocity_range[0], high=self.velocity_range[1])
+        # rand_point[3] = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        # rand_point[4] = np.random.uniform(low=self.phi_range[0], high=self.phi_range[1])
+
+        rand_point[3] = np.random.uniform(low=self.phi_range[0], high=self.phi_range[1])
+        rand_point[4] = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        return self.make_state(rand_point)
+    
+    def sample_controls(self):
+        a = np.random.uniform(low=self.accel_range[0], high=self.accel_range[1])
+        psi = np.random.uniform(low=self.psi_range[0], high=self.psi_range[1])
+        return self.make_control(np.array([a, psi]))
+    
+    def simulate_forward(self, state: AngularNumpyState, controls : NumpyState):
+        x, y, v, phi, theta = state.value
+        a, psi = controls.value
+
+        theta -= np.pi/2 # Hack to treat the upward direction as the 0 radians orientation (Should Fix)
+
+        x_dot = np.array([
+                    v * np.cos(theta) * self.dt,
+                    v * np.sin(theta) * self.dt,
+                    a * self.dt,
+                    psi * self.dt,
+                    v / self.car_length * np.tan(phi) * self.dt,
+                ])
+        
+        new_state = np.copy(state.value) + self.make_state(x_dot).value
+        return self.make_state(new_state)
+    
+    def decompose_state(self, state):
+        if isinstance(state, AngularNumpyState):
+            x, y, v, phi, theta  = state.value
+        elif isinstance(state, np.ndarray):
+            x, y, v, phi, theta = state
+        else:
+            raise ValueError("state input type is invalid")
+
+        return x, y, v, phi, theta
+    
+    def is_valid_state_constraints(self, state):
+        x, y, v, phi, theta = self.decompose_state(state)
+        if v < self.velocity_range[0] or v > self.velocity_range[1]:
+            return False
+        if phi < self.phi_range[0] or phi > self.phi_range[1]:
+            return False
+        return True
+    
+    def dist(self, state1, state2):
+        return numpystate_distance(self.make_state(state1), self.make_state(state2))
+    
+    def is_within_boundary(self, state):
+        robot = self.generate_robot_representation(state)
+        return robot.within(self.boundary)
+
+    def is_valid(self, state):
+        if self.is_valid_state_constraints(state) and self.is_within_boundary(state):
+            self.num_collision_checks += 1
+            robot = self.generate_robot_representation(state)
+            for obs in self.obstacles:
+                if obs.intersects(robot):
+                    return False
+            return True
+        else:
+            return False
+    
+    def is_valid_edge(self, start, end):
+        start, end = self.instance_check(start, end)
+        interpolated_points = interpolate_edge(start, end, delta=self.edge_validity_delta)
+
+        for point in interpolated_points:
+            if not self.is_valid(point):
+                return False
+        return True
+    
+    def generate_robot_representation(self, state):
+        x, y, v, phi, theta = self.decompose_state(state)
+        
+        robot = Polygon([
+                    [x-self.car_width/2, y-self.car_length/2],
+                    [x-self.car_width/2, y+self.car_length/2],
+                    [x+self.car_width/2, y+self.car_length/2],
+                    [x+self.car_width/2, y-self.car_length/2],
+                ])
+        rotated_robot = affinity.rotate(robot, theta, use_radians=True)
+        return rotated_robot
+    
+    def generate_costmetic_robot_representation(self, state):
+        x, y, v, phi, theta = self.decompose_state(state)
+        
+        robot = self.generate_robot_representation(state)
+        robot_centroid = robot.centroid
+
+        self.x_offset = 0.1
+        self.y_offset = 0.3
+        self.wheel_length = 0.4
+        self.wheel_width = 0.1
+
+        fr_wheel = self.create_rectangle_geometry(x_loc=x+self.car_width/2+self.x_offset,
+                                                  y_loc=y+self.car_length/2-self.y_offset,
+                                                  x_width=self.wheel_width,
+                                                  y_length=self.wheel_length)
+        fl_wheel = self.create_rectangle_geometry(x_loc=x-self.car_width/2-self.x_offset,
+                                                  y_loc=y+self.car_length/2-self.y_offset,
+                                                  x_width=self.wheel_width,
+                                                  y_length=self.wheel_length)
+        fr_wheel = affinity.rotate(fr_wheel, theta, use_radians=True, origin=robot_centroid)
+        fl_wheel = affinity.rotate(fl_wheel, theta, use_radians=True, origin=robot_centroid)
+
+        fr_wheel = affinity.rotate(fr_wheel, -phi, use_radians=True)
+        fl_wheel = affinity.rotate(fl_wheel, -phi, use_radians=True)
+        return robot, [fr_wheel, fl_wheel]
+    
+    def sample_task(self):
+        point1 = self.sample_valid_point()
+        point2 = self.sample_valid_point()
+        point1.value[2] = 0
+        point2.value[2] = 0
+        return self.make_state(point1.value), self.make_state(point2.value)
+        
 if __name__ == '__main__':
-    # np.random.seed(0)
-    env = CarParkingEnv()
-    state = env.make_state(np.array([6.0, 7.0, np.pi/np.sqrt(2)]))
-    controls = env.sample_controls()
+    env = DubinsCarEnv()
+    state = env.sample_point()
     env.draw_environment(plt.gca())
-    env.draw_state(plt.gca(), env.make_state(np.array([5,-5,45.0])))
+    env.draw_state(plt.gca(), state)
+    
+    print(env.is_within_boundary(state))
     plt.show()
 
-    print(state.value, controls.value)
+    # np.random.seed(0)
+    # env = CarParkingEnv()
+    # state = env.make_state(np.array([6.0, 7.0, np.pi/np.sqrt(2)]))
+    # controls = env.sample_controls()
+    # env.draw_environment(plt.gca())
+    # env.draw_state(plt.gca(), env.make_state(np.array([5,-5,45.0])))
+    # plt.show()
 
-    print(env.simulate_forward(state, controls).value)
+    # print(state.value, controls.value)
+
+    # print(env.simulate_forward(state, controls).value)
 
 
     # env.draw_environment(plt.gca())
