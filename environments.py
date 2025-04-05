@@ -41,6 +41,16 @@ class Environment():
         else:
             print(f"Mismatched Input Types: {type(start)}, {type(end)}")
             raise NotImplementedError
+    
+    def dist(self, state1, state2):
+        raise NotImplementedError
+    
+    def create_rectangle_geometry(self, x_loc, y_loc, x_width, y_length):
+        shape = Polygon([[x_loc-x_width/2, y_loc-y_length/2], 
+                         [x_loc-x_width/2, y_loc+y_length/2],
+                         [x_loc+x_width/2, y_loc+y_length/2],
+                         [x_loc+x_width/2, y_loc-y_length/2],])
+        return shape
 
 class Workspace2dEnv(Environment):
     def __init__(self):
@@ -99,7 +109,6 @@ class Workspace2dEnv(Environment):
 
         cur_node = start
         num_checks = int(edge_length / self.edge_validity_delta)
-        # print(key, num_checks, edge_length, self.edge_validity_delta)
         # self.interpolated_edge_points[key].append(cur_node)
         for i in range(num_checks):
             self.interpolated_edge_points[key].append(cur_node)
@@ -115,6 +124,8 @@ class Workspace2dEnv(Environment):
         return True
     
     def shoot_ray(self, node, sampled_point, delta):
+        if node == sampled_point:
+            return node
         dir = (sampled_point.value - node.value) / np.linalg.norm(sampled_point.value - node.value)
         ext_amount = np.random.random() * delta
         new_node = node.value + (ext_amount * dir)
@@ -254,13 +265,6 @@ class NonholonomicEnv(Environment):
             self.draw_environment(plt.gca())
             self.draw_state(plt.gca(), state)
             plt.pause(frame_delay)
-
-    def create_rectangle_geometry(self, x_loc, y_loc, x_width, y_length):
-        shape = Polygon([[x_loc-x_width/2, y_loc-y_length/2], 
-                         [x_loc-x_width/2, y_loc+y_length/2],
-                         [x_loc+x_width/2, y_loc+y_length/2],
-                         [x_loc+x_width/2, y_loc-y_length/2],])
-        return shape
     
     def simulate(self, starting_state: AngularNumpyState, control_seq: list):
         state = starting_state
@@ -648,15 +652,74 @@ class DubinsCarEnv(NonholonomicEnv):
         point1.value[2] = 0
         point2.value[2] = 0
         return self.make_state(point1.value), self.make_state(point2.value)
+
+class PlanarMobileArm(Environment):
+    def __init__(self):
+        self.base_width = 2
+        self.base_length = 0.1
+        self.arm_lengths = [1, 1, 1]
+
+    # def decompose_state(self, state):
+    #     if isinstance(state, AngularNumpyState):
+    #         return state.value
+    #     elif isinstance(state, np.ndarray):
+    #         return state
+    #     else:
+    #         raise ValueError("state input type is invalid")
+
+    def create_end_effector_representation(self, base_point : np.ndarray):
+        x, y = base_point
+
+        y_offset = 0.5
+        lines = [
+            LineString([x, y], [x, y+y_offset]),
+            LineString([x, y], [x, y+y_offset]),
+                ]
+
+    def generate_robot_representation(self, state):
+        x, y, theta1, theta2, theta3 = state.value
         
+        robot = [
+            self.create_rectangle_geometry(x_loc=x, y_loc=y, x_width=self.base_width, y_length=self.base_length),
+        ]
+        # print([x,y+self.base_length/2], [x,y+self.base_length/2 + self.arm_lengths[0]])
+        # [(x,y+self.base_length/2), (x,y+self.base_length/2 + self.arm_lengths[0])]
+        # arm1 = LineString([(x,y+self.base_length/2), (x,y+self.base_length/2 + self.arm_lengths[0])])
+        arm1 = LineString([(x,y+self.base_length/2), (x+self.arm_lengths[0],y+self.base_length/2)])
+        arm1 = affinity.rotate(arm1, angle=theta1, use_radians=True, origin=(x,y+self.base_length/2))
+
+        # rotated_robot = affinity.rotate(robot, theta, use_radians=True)
+        # return rotated_robot
+
+        # end_effector = 
+
+        return robot, arm1
+
+    def draw_environment(self, ax):
+        ax.set_xlim(-10, 10)
+        ax.set_ylim(-10, 10)
+    
+    def draw_state(self, ax, state):
+        robot, arm = self.generate_robot_representation(state)
+        ax.plot(*robot[0].exterior.xy, color='red')
+        ax.plot(*arm.xy, color='red')
+
+
+
+
+
 if __name__ == '__main__':
-    env = DubinsCarEnv()
-    state = env.sample_point()
+
+    env = PlanarMobileArm()
+    state = AngularNumpyState(value=np.array([0, 0, np.pi/2*0.5, 0, 0.0]), angular_dims_start=2)
+    # env = DubinsCarEnv()
+    # state = env.sample_point()
     env.draw_environment(plt.gca())
     env.draw_state(plt.gca(), state)
-    
-    print(env.is_within_boundary(state))
     plt.show()
+    
+    # print(env.is_within_boundary(state))
+    # plt.show()
 
     # np.random.seed(0)
     # env = CarParkingEnv()
