@@ -39,13 +39,13 @@ class KinodynamicRRT(RRT):
 
         return new_node
     
-    def backtrack(self):
-        if self.target not in self.child_to_parent:
+    def backtrack(self, end):
+        if end not in self.child_to_parent:
             return KinodynamicPath()
         
         path = []
         control_seq = []
-        node = self.target 
+        node = end 
         control = None
         while node:
             path.append(node)
@@ -72,6 +72,7 @@ if __name__ == "__main__":
     # seed = 42
     # seed = 21
     # seed = 85
+    seed = 86
     print(f"Setting Seed: {seed}") 
     np.random.seed(seed)
     # env = CarParkingEnv()
