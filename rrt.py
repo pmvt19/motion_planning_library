@@ -134,7 +134,6 @@ class RRTStar(RRT):
             new_node = self.env.shoot_ray(node, sampled_point, self.delta)
         
         if new_node != node:
-            # print('here')
             self.tree[node].append(new_node)
             self.tree[new_node]
             self.child_to_parent[new_node] = (node, self.child_to_parent[node][1] + self.env.dist(node.value, new_node.value))
@@ -161,7 +160,10 @@ class RRTStar(RRT):
 
 
     def rewire(self, q_new):
+        # k = int(len(self.tree) * 0.1)
         k = int(len(self.tree) * 0.1)
+        k = min(k, 5)
+        # print(k)
 
         nodes = np.array([node.value for node in self.tree.keys()])
         kdt = KDTree(nodes)
@@ -208,7 +210,6 @@ class RRTStar(RRT):
     def search(self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False):
         self.init_search(start, target)
 
-        cur_node = start
         num_steps = 0
 
         start_time = time.time()
@@ -297,10 +298,12 @@ class BiDirectionalRRT():
         self.env.draw_environment(ax)
         self.backward_rrt.draw_tree(ax, show_task=False)
         self.forward_rrt.draw_tree(ax, path=path, show_task=show_task)
+        
 
 if __name__ == "__main__":
     seed = np.random.randint(0, 100)
     # seed = 22
+    seed = 18
     print(f"Setting Seed: {seed}")
     
     np.random.seed(seed)
@@ -316,6 +319,7 @@ if __name__ == "__main__":
     # start = env.make_state(np.array([0.0,0.0]))
     # start = env.make_state(np.array([-9.0,-9.0]))
     # target = env.make_state(np.array([9.0,9.0]))
+    target = env.make_state(np.array([15.0, 2.0]))
 
     max_steps = 10
     goal_bias = 0.1
@@ -323,13 +327,19 @@ if __name__ == "__main__":
     # rrt = RRT(env)
     rrt = RRTStar(env)
     # rrt = BiDirectionalRRT(env)
-    path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=750, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
+    path = rrt.search(start, target, max_steps=3000, goal_bias=0.4, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
     
-    # smoothed_path = smooth_path(env, path)
-    # rrt.draw_tree(plt.gca(), path=smoothed_path)
+    smoothed_path = smooth_path(env, path)
+    rrt.draw_tree(plt.gca(), path=smoothed_path)
+    plt.show()
 
     # from kinematic_path_smoothing import smooth_path_trajectory_optimization
     # smoothed_path = smooth_path_trajectory_optimization(env, path)
