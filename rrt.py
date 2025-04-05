@@ -18,6 +18,8 @@ class RRT():
         self.child_to_parent = {}
         self.delta = delta
 
+        self.animation_delay = 0.01
+
     def select_node(self, goal_bias=0):
         if np.random.random() < goal_bias:
             sampled_point = self.target
@@ -102,12 +104,12 @@ class RRT():
         start_time = time.time()
         while (cur_node != target and num_steps < max_steps):
             print(f"Searching Step: {num_steps}", end='\r')
-            # exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
-            # cur_node = self.expand_node(exp_node, sampled_point)
             cur_node = self.step_search(goal_bias=goal_bias)
             num_steps += 1
             if animate_search_tree:
                 self.draw_tree(plt.gca())
+                plt.pause(self.animation_delay)
+                plt.clf()
         search_time = time.time() - start_time
         print(f"Search Time: {search_time}, Collision Checks: {self.env.num_collision_checks}")
         path = self.backtrack(end=target)
@@ -119,6 +121,8 @@ class BiDirectionalRRT():
         self.env = env
         self.delta = delta
         self.max_connection_distance = max_connection_distance
+
+        self.animation_delay = 0.01
 
     def attempt_tree_connection(self, forward_rrt, backward_rrt):
         forward_tree_nodes = np.array([node.value for node in forward_rrt.tree.keys()])
@@ -147,7 +151,7 @@ class BiDirectionalRRT():
         joined_path = forward_path.path + backward_path.path[::-1] 
         return Path(path=joined_path)
 
-    def search(self, start, target, max_steps=10000, goal_bias=0.1):
+    def search(self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False):
         self.forward_rrt = RRT(env=self.env, delta=self.delta)
         self.backward_rrt = RRT(env=self.env, delta=self.delta)
 
@@ -164,6 +168,11 @@ class BiDirectionalRRT():
             self.backward_rrt.step_search(goal_bias=goal_bias)
             is_connected, connection = self.attempt_tree_connection(self.forward_rrt, self.backward_rrt)
             num_steps += 1
+
+            if animate_search_tree:
+                self.draw_tree(plt.gca())
+                plt.pause(self.animation_delay)
+                plt.clf()
         
         search_time = time.time() - start_time
         print(f"Search Time: {search_time}, Collision Checks: {self.env.num_collision_checks}")
@@ -191,8 +200,8 @@ if __name__ == "__main__":
     # env = CarParkingEnv()
     # start, target = env.sample_task()
 
-    # start = env.make_state(np.array([0,0]))
-    start = env.make_state(np.array([-9,-9]))
+    start = env.make_state(np.array([0,0]))
+    # start = env.make_state(np.array([-9,-9]))
     target = env.make_state(np.array([9,9]))
 
     max_steps = 10
@@ -200,7 +209,7 @@ if __name__ == "__main__":
 
     # rrt = RRT(env)
     rrt = BiDirectionalRRT(env)
-    path = rrt.search(start, target, max_steps=10000, goal_bias=0.1)
+    path = rrt.search(start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=True)
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
     
