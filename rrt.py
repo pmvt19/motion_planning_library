@@ -30,7 +30,6 @@ class RRT():
         return self.env.make_state(nodes[idx]), sampled_point
 
     def expand_node(self, node, sampled_point):
-
         if np.linalg.norm(self.target.value - node.value) < self.delta:
             new_node = self.target
         else:
@@ -72,17 +71,6 @@ class RRT():
         fig = voronoi_plot_2d(vor, show_vertices=False, line_colors='orange', line_width=2, line_alpha=0.6, point_size=2)
         self.draw_tree(fig.gca(), hold=True)
 
-    # def backtrack(self):
-    #     if self.target not in self.child_to_parent:
-    #         return Path()
-
-    #     path = []
-    #     node = self.target 
-    #     while node:
-    #         path.append(node)
-    #         node = self.child_to_parent[node]
-    #     return Path(path=path[::-1])
-
     def backtrack(self, end=None):
         if end is None or end not in self.child_to_parent:
             return Path()
@@ -100,6 +88,11 @@ class RRT():
         self.tree[self.start] = []
         self.child_to_parent[self.start] = None
 
+    def step_search(self, goal_bias):
+        exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
+        cur_node = self.expand_node(exp_node, sampled_point)
+        return cur_node
+
     def search(self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False):
         self.init_search(start, target)
 
@@ -109,8 +102,9 @@ class RRT():
         start_time = time.time()
         while (cur_node != target and num_steps < max_steps):
             print(f"Searching Step: {num_steps}", end='\r')
-            exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
-            cur_node = self.expand_node(exp_node, sampled_point)
+            # exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
+            # cur_node = self.expand_node(exp_node, sampled_point)
+            cur_node = self.step_search(goal_bias=goal_bias)
             num_steps += 1
             if animate_search_tree:
                 self.draw_tree(plt.gca())
@@ -125,11 +119,6 @@ class BiDirectionalRRT():
         self.env = env
         self.delta = delta
         self.max_connection_distance = max_connection_distance
-
-    def rrt_step(self, rrt, goal_bias):
-        exp_node, sampled_point = rrt.select_node(goal_bias=goal_bias)
-        cur_node = rrt.expand_node(exp_node, sampled_point)
-        return cur_node
 
     def attempt_tree_connection(self, forward_rrt, backward_rrt):
         forward_tree_nodes = np.array([node.value for node in forward_rrt.tree.keys()])
@@ -171,8 +160,8 @@ class BiDirectionalRRT():
 
         while not is_connected and num_steps < max_steps:
             print(f'Searching Step: {num_steps}', end='\r')
-            self.rrt_step(self.forward_rrt, goal_bias)
-            self.rrt_step(self.backward_rrt, goal_bias)
+            self.forward_rrt.step_search(goal_bias=goal_bias)
+            self.backward_rrt.step_search(goal_bias=goal_bias)
             is_connected, connection = self.attempt_tree_connection(self.forward_rrt, self.backward_rrt)
             num_steps += 1
         
@@ -209,8 +198,8 @@ if __name__ == "__main__":
     max_steps = 10
     goal_bias = 0.1
 
-    rrt = RRT(env)
-    # rrt = BiDirectionalRRT(env)
+    # rrt = RRT(env)
+    rrt = BiDirectionalRRT(env)
     path = rrt.search(start, target, max_steps=10000, goal_bias=0.1)
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
