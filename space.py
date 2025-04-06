@@ -83,7 +83,7 @@ class PointRobot(HolonomicRobot):
         return self.make_state(np.array([x, y]))
     
     def dist(self, state1, state2):
-        return np.linalg.norm(state1.value - state2.value)
+        return np.linalg.norm(self.get_state_value(state1) - self.get_state_value(state2))
     
     def is_valid(self, state):
         self.num_collision_checks += 1
@@ -96,7 +96,7 @@ class PointRobot(HolonomicRobot):
     def get_edge_states(self, start : np.ndarray, end : np.ndarray):
         edge_length = np.linalg.norm(end - start)
         dir = (end - start) / edge_length
-
+        
         num_checks = int(edge_length / self.edge_validity_delta)
         edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
         edge_states_derivative[0] = np.zeros_like(start)
@@ -108,15 +108,7 @@ class PointRobot(HolonomicRobot):
         start = self.get_state_value(start)
         end = self.get_state_value(end)
 
-        edge_length = np.linalg.norm(end - start)
-        dir = (end - start) / edge_length
-
-        num_checks = int(edge_length / self.edge_validity_delta)
-
-        edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
-        edge_states_derivative[0] = np.zeros_like(start)
-        edge_states = np.cumsum(edge_states_derivative, axis=0) + start
-        edge_states[-1] = end
+        edge_states = self.get_edge_states(start, end)
 
         for state in edge_states:
             if not self.is_valid(state):
@@ -124,10 +116,12 @@ class PointRobot(HolonomicRobot):
         return True
 
     def shoot_ray(self, node, sampled_point, delta):
+        if node == sampled_point:
+            return node
         node = self.get_state_value(node)
         sampled_point = self.get_state_value(sampled_point)
 
-        edge_length = np.linalg.norm(sampled_point - node)
+        edge_length = self.dist(self.make_state(sampled_point), self.make_state(node))
         dir = (sampled_point - node) / edge_length
         extension_dist = np.random.uniform(low=0, high=delta)
         
@@ -149,10 +143,6 @@ class PointRobot(HolonomicRobot):
         start = self.sample_valid_point()
         target = self.sample_valid_point()
         return start, target
-    
-
-    
-    
 
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
