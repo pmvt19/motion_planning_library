@@ -5,7 +5,7 @@ from matplotlib.collections import LineCollection
 from heapq import heappush, heappop
 
 class Graph():
-    def __init__(self, vertices, num_neighbors=5, max_edge_dist=5):
+    def __init__(self, vertices, num_neighbors=5, max_edge_dist=None):
         self.vertices = vertices
         self.num_neighbors=num_neighbors
         self.max_edge_dist = max_edge_dist
@@ -15,7 +15,9 @@ class Graph():
 
     def connect_edges(self):
         self.kdt = KDTree(self.vertices)
-        _, ind = self.kdt.query(self.vertices, k=self.num_neighbors+1)
+        dists, ind = self.kdt.query(self.vertices, k=self.num_neighbors+1)
+        if self.max_edge_dist:
+            ind[dists > self.max_edge_dist] = -1
         self.edges = ind[:, 1:]
     
     def draw(self, ax):
