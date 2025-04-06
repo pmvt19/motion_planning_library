@@ -172,7 +172,11 @@ class PolygonalRobot(HolonomicRobot):
         self.angular_dims_start = 2
 
         self.robot_width = 1
-        self.robot_length = 2
+        self.robot_length = 5
+
+        self.obstacles = [
+            create_rectangle_geometry(0, 0, 5, 5)
+        ]
 
         self.do_boundary_check = True
 
@@ -249,24 +253,28 @@ class PolygonalRobot(HolonomicRobot):
         ax.plot(*robot.exterior.xy, color='red')
     
 class PlanarMobileArm(HolonomicRobot):
-    def __init__(self):
+    def __init__(self, num_links=3, arm_lengths=None):
         super().__init__()
         self.base_width = 2
         self.base_length = 0.1
-        self.arm_lengths = [1, 1, 1]
 
         self.x_range = [-10, 10]
         self.y_range = [-10, 10]
         self.theta1_range = [0, np.pi]
         self.theta_range = [0, 2*np.pi]
 
-        # self.num_collision_checks = 0
-
-        # self.obstacles = [
-        #     self.create_rectangle_geometry(x_loc=0, y_loc=0, x_width=14, y_length=14)
-        # ]
         self.edge_validity_delta = 0.5
         self.angular_dims_start = 2
+
+        assert (num_links > 0), "Num Links Must Be Greater Than Zero"
+        
+        self.num_links = num_links
+        self.arm_lengths = np.array([1] * self.num_links)
+
+        if arm_lengths is not None:
+            assert (num_links == len(arm_lengths)), "Num Links must be equal to the list size of arm lengths"
+            self.arm_lengths = np.array(arm_lengths)
+        
     
     def dist(self, state1 : AngularNumpyState, state2 : AngularNumpyState):
         state1 = self.get_state_value(state1)
@@ -280,9 +288,8 @@ class PlanarMobileArm(HolonomicRobot):
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
         theta1 = np.random.uniform(low=self.theta1_range[0], high=self.theta1_range[1])
-        theta2 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
-        theta3 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
-        return self.make_state(np.array([x, y, theta1, theta2, theta3]))
+        link_thetas = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1], size=(self.num_links-1,))
+        return self.make_state(np.array([x, y, theta1, *link_thetas]))
     
     def create_end_effector_representation(self, base_point : np.ndarray):
         x, y = base_point
@@ -323,42 +330,32 @@ class PlanarMobileArm(HolonomicRobot):
     
     def get_arm_base_position(self, state):
         state = self.get_state_value(state)
-        x, y, theta1, theta2, theta3 = state
+        x, y, *_ = state
         return np.array([x, y+self.base_length/2])
 
     def forward_kinematics(self, state):
         state = self.get_state_value(state)
-        x, y, theta1, theta2, theta3 = state
+        x, y, *thetas = state
 
-        theta2 -= np.pi # Hack to treat angles properly
-        theta3 -= np.pi # Hack to treat angles properly
+        thetas = np.array(thetas)
+        thetas[1:] = thetas[1:] - np.pi # Hack to treat angles properly
 
         arm_base = self.get_arm_base_position(state)
+        link_thetas = np.cumsum(thetas)
 
-        joint_pos1 = np.array([
-            self.arm_lengths[0] * np.cos(theta1),
-            self.arm_lengths[0] * np.sin(theta1),
-        ]) + arm_base
+        cos = np.cos(link_thetas)
+        sin = np.sin(link_thetas)
+        normalized_link_points = np.vstack((cos, sin)).T
 
-        joint_pos2 = joint_pos1 + np.array([
-            self.arm_lengths[1] * np.cos(theta1 + theta2),
-            self.arm_lengths[1] * np.sin(theta1 + theta2),
-        ])
-
-        joint_pos3 = joint_pos2 + np.array([
-            self.arm_lengths[1] * np.cos(theta1 + theta2 + theta3),
-            self.arm_lengths[1] * np.sin(theta1 + theta2 + theta3),
-        ])
-
-        return [arm_base, joint_pos1, joint_pos2, joint_pos3]
-
+        point_der = self.arm_lengths.reshape(self.num_links, 1) * normalized_link_points
+        joint_pos = np.cumsum(point_der, axis=0) + arm_base
+        return np.vstack((arm_base, joint_pos))
 
     def generate_robot_representation(self, state):
         state = self.get_state_value(state)
-        x, y, theta1, theta2, theta3 = state
-        
+        x, y, *thetas = state
         robot = create_rectangle_geometry(x_loc=x, y_loc=y, x_width=self.base_width, y_length=self.base_length)
-
+        rotation_offset = np.pi/2 if self.num_links % 2 == 0 else -np.pi/2
         arms = []
 
         joint_positions = self.forward_kinematics(state)
@@ -370,9 +367,8 @@ class PlanarMobileArm(HolonomicRobot):
         ee = []
         for i in range(len(end_effector_point_pairs)):
             ee_link = LineString(end_effector_point_pairs[i])
-            ee_link = affinity.rotate(ee_link, angle=(theta1+theta2+theta3-np.pi/2), use_radians=True, origin=list(joint_positions[-1]))
+            ee_link = affinity.rotate(ee_link, angle=(np.sum(thetas)+rotation_offset), use_radians=True, origin=list(joint_positions[-1]))
             ee.append(ee_link)
-        
 
         return robot, arms, ee 
 
@@ -440,8 +436,6 @@ class PlanarMobileArm(HolonomicRobot):
                 return self.make_state(prev_state)
             prev_state = state
         return self.make_state(prev_state)
-    
-
 
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
@@ -451,12 +445,16 @@ class NonHolonomicRobot(RobotSpace):
         raise NotImplementedError
 
 if __name__ == '__main__':
-    np.random.seed(0)
-    env = PlanarMobileArm()
-    state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0]))
+    # np.random.seed(0)
+    env = PlanarMobileArm(num_links=3)
+    # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
+    state = env.sample_point()
+    # env2 = GeneralizedPlanarMobileArm(num_links=3)
+    print(state.value)
     env.draw_environment(plt.gca())
     env.draw_state(plt.gca(), state)
     plt.show()
+
     # start, target = env.sample_task()
     # print(start.value, target.value)
     # env.get_edge_states(start.value, target.value)
