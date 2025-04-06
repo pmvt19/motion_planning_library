@@ -8,11 +8,23 @@ if __name__ == '__main__':
     points = [env.sample_point() for _ in range(10000)]
     points = [point for point in points if not env.is_valid(point)]
     points =  np.array([point.value for point in points])
-    print("Created Points")
+    # print("Created Points")
 
-    # NumPy array with shape (n_points, 3)
-    point_cloud = pv.PolyData(points)
-    mesh = point_cloud.reconstruct_surface(nbr_sz=100, sample_spacing=0.4)
+    # # NumPy array with shape (n_points, 3)
+    # point_cloud = pv.PolyData(points)
+    # mesh = point_cloud.reconstruct_surface(nbr_sz=100, sample_spacing=0.4)
 
-    point_cloud.plot(eye_dome_lighting=True)
-    mesh.plot(color='orange')
+    # point_cloud.plot(eye_dome_lighting=True)
+    # mesh.plot(color='orange')
+
+    import open3d as o3d
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    # Estimate normals for the point cloud
+    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
+
+    # Apply Poisson Surface Reconstruction
+    mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=9)
+
+    # Visualize the result
+    o3d.visualization.draw_geometries([mesh])
