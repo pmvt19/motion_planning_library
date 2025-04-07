@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # seed = 42
     # seed = 21
     # seed = 85
-    seed = 86
+    # seed = 86 # Interesting S-shaped Path
     print(f"Setting Seed: {seed}") 
     np.random.seed(seed)
     # env = CarParkingEnv()
