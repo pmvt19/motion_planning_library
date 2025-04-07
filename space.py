@@ -21,7 +21,15 @@ class RobotSpace():
         raise NotImplementedError
     
     def is_valid_edge(self, start, end):
-        raise NotImplementedError
+        start = self.get_state_value(start)
+        end = self.get_state_value(end)
+
+        edge_states = self.get_edge_states(start, end)
+
+        for state in edge_states:
+            if not self.is_valid(state):
+                return False
+        return True
     
     def make_state(self, state):
         raise NotImplementedError
@@ -65,6 +73,28 @@ class RobotSpace():
             return state
         else:
             raise ValueError("Incorrect Input Type")
+        
+    def get_edge_states(self, start, end):
+        raise NotImplementedError
+        
+    def shoot_ray(self, node, sampled_point, delta):
+        if node == sampled_point:
+            return node
+        node = self.get_state_value(node)
+        sampled_point = self.get_state_value(sampled_point)
+
+        edge_length = self.dist(self.make_state(sampled_point), self.make_state(node))
+        dir = (sampled_point - node) / edge_length
+        extension_dist = np.random.uniform(low=0, high=delta)
+        
+        target_position = node + dir * extension_dist
+        edge_states = self.get_edge_states(node, target_position)
+        prev_state = node 
+        for state in edge_states[1:]:
+            if not self.is_valid(state):
+                return self.make_state(prev_state)
+            prev_state = state
+        return self.make_state(prev_state)
     
 class HolonomicRobot(RobotSpace):
     def __init__(self):
@@ -123,36 +153,16 @@ class PointRobot(HolonomicRobot):
         edge_states[-1] = end
         return edge_states
     
-    def is_valid_edge(self, start, end):
-        start = self.get_state_value(start)
-        end = self.get_state_value(end)
+    # def is_valid_edge(self, start, end):
+    #     start = self.get_state_value(start)
+    #     end = self.get_state_value(end)
 
-        edge_states = self.get_edge_states(start, end)
+    #     edge_states = self.get_edge_states(start, end)
 
-        for state in edge_states:
-            if not self.is_valid(state):
-                return False
-        return True
-
-    def shoot_ray(self, node, sampled_point, delta):
-        if node == sampled_point:
-            return node
-        node = self.get_state_value(node)
-        sampled_point = self.get_state_value(sampled_point)
-
-        edge_length = self.dist(self.make_state(sampled_point), self.make_state(node))
-        dir = (sampled_point - node) / edge_length
-        extension_dist = np.random.uniform(low=0, high=delta)
-        
-        target_position = node + dir * extension_dist
-        edge_states = self.get_edge_states(node, target_position)
-
-        prev_state = node 
-        for state in edge_states[1:]:
-            if not self.is_valid(state):
-                return self.make_state(prev_state)
-            prev_state = state
-        return self.make_state(prev_state)
+    #     for state in edge_states:
+    #         if not self.is_valid(state):
+    #             return False
+    #     return True
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
@@ -185,6 +195,7 @@ class PolygonalRobot(HolonomicRobot):
 
     def generate_robot_representation(self, state):
         x, y, theta = self.get_state_value(state)
+        theta -= np.pi
         robot = create_rectangle_geometry(x_loc=x, 
                                           y_loc=y, 
                                           x_width=self.robot_width, 
@@ -218,35 +229,16 @@ class PolygonalRobot(HolonomicRobot):
         edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
         return edge_states
     
-    def is_valid_edge(self, start, end):
-        start = self.get_state_value(start)
-        end = self.get_state_value(end)
+    # def is_valid_edge(self, start, end):
+    #     start = self.get_state_value(start)
+    #     end = self.get_state_value(end)
 
-        edge_states = self.get_edge_states(start, end)
+    #     edge_states = self.get_edge_states(start, end)
 
-        for state in edge_states:
-            if not self.is_valid(state):
-                return False
-        return True
-    
-    def shoot_ray(self, node, sampled_point, delta):
-        if node == sampled_point:
-            return node
-        node = self.get_state_value(node)
-        sampled_point = self.get_state_value(sampled_point)
-
-        edge_length = self.dist(self.make_state(sampled_point), self.make_state(node))
-        dir = (sampled_point - node) / edge_length
-        extension_dist = np.random.uniform(low=0, high=delta)
-        
-        target_position = node + dir * extension_dist
-        edge_states = self.get_edge_states(node, target_position)
-        prev_state = node 
-        for state in edge_states[1:]:
-            if not self.is_valid(state):
-                return self.make_state(prev_state)
-            prev_state = state
-        return self.make_state(prev_state)
+    #     for state in edge_states:
+    #         if not self.is_valid(state):
+    #             return False
+    #     return True
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
@@ -407,42 +399,59 @@ class PlanarMobileArm(HolonomicRobot):
         edge_states[-1] = end
         return edge_states
 
-    def is_valid_edge(self, start, end):
-        start = self.get_state_value(start)
-        end = self.get_state_value(end)
+    # def is_valid_edge(self, start, end):
+    #     start = self.get_state_value(start)
+    #     end = self.get_state_value(end)
 
-        edge_states = self.get_edge_states(start, end)
+    #     edge_states = self.get_edge_states(start, end)
 
-        for state in edge_states:
-            if not self.is_valid(state):
-                return False
-        return True
-
-    def shoot_ray(self, node, sampled_point, delta):
-        if node == sampled_point:
-            return node
-        node = self.get_state_value(node)
-        sampled_point = self.get_state_value(sampled_point)
-
-        edge_length = self.dist(self.make_state(sampled_point), self.make_state(node))
-        dir = (sampled_point - node) / edge_length
-        extension_dist = np.random.uniform(low=0, high=delta)
-        
-        target_position = node + dir * extension_dist
-        edge_states = self.get_edge_states(node, target_position)
-        prev_state = node 
-        for state in edge_states[1:]:
-            if not self.is_valid(state):
-                return self.make_state(prev_state)
-            prev_state = state
-        return self.make_state(prev_state)
+    #     for state in edge_states:
+    #         if not self.is_valid(state):
+    #             return False
+    #     return True
 
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
         super().__init__()
+
+        self.dt = 0.05
     
     def make_control(self, state : np.ndarray):
         raise NotImplementedError
+    def state_derivative(self, state, control):
+        raise NotImplementedError
+
+    # TODO: Implement these functions here
+    def simulate(self, starting_state: NumpyState, control_seq: list):
+        state = starting_state
+        state_seqs = [state]
+        for control, time in control_seq:
+            state, _, _ = self.extend_state(state, time, control, do_collision_checking=False)
+            state_seqs.append(state)
+        return state_seqs
+    
+    def extend_state(self, state: NumpyState, time: float, controls=None, do_collision_checking=True):
+        if controls is None:
+            controls = self.sample_controls()
+
+        list_of_states = [state]
+        running_time = 0
+        num_iterations = int(time / self.dt)
+
+        for i in range(num_iterations):
+            state = self.simulate_step(state, controls)
+            if do_collision_checking and not self.is_valid(state):
+                break
+            running_time = (i+1) * self.dt
+            list_of_states.append(state)
+        # May want to change how this works to allow for multi-node 
+        # addition to kinodynamic tree 
+        return list_of_states[-1], controls, running_time
+    
+    def simulate_step(self, state, control):
+        state = self.get_state_value(state)
+        x_dot = self.state_derivative(state, control)
+        return self.make_state(state + x_dot)
 
 class SkidSteerCar(NonHolonomicRobot):
     def __init__(self):
@@ -459,6 +468,9 @@ class SkidSteerCar(NonHolonomicRobot):
 
         self.velocity_range = [-3, 3]
         self.delta_range = [-np.pi, np.pi]
+
+        self.state_dim = 3
+        self.control_dim = 2
 
     def sample_point(self):
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
@@ -486,18 +498,7 @@ class SkidSteerCar(NonHolonomicRobot):
     def dist(self, state1, state2):
         state1 = self.get_state_value(state1)
         state2 = self.get_state_value(state2)
-        raise numpystate_distance(self.make_state(state1), self.make_state(state2))
-    
-    def generate_robot_representation(self, state):
-        state = self.get_state_value(state)
-        x, y, *_ = state
-        theta = state[self.angular_dim_start]
-        robot = create_rectangle_geometry(x_loc=x, 
-                                          y_loc=y, 
-                                          x_width=self.car_width, 
-                                          y_length=self.car_length)
-        rotated_robot = affinity.rotate(robot, theta, use_radians=True)
-        return rotated_robot
+        return numpystate_distance(self.make_state(state1), self.make_state(state2))
     
     def is_valid(self, state):
         self.num_collision_checks += 1
@@ -509,14 +510,46 @@ class SkidSteerCar(NonHolonomicRobot):
     
     def generate_robot_representation(self, state):
         x, y, theta = self.get_state_value(state)
+        theta -= np.pi/2
         robot = create_rectangle_geometry(x_loc=x, y_loc=y, x_width=self.car_width, y_length=self.car_length)
         robot = affinity.rotate(robot, theta, use_radians=True)
         return robot
 
+    def generate_costmetic_robot_representation(self, state):
+        return self.generate_robot_representation(state), []
+
+    def draw_state(self, ax, state):
+        robot, cosmetics = self.generate_costmetic_robot_representation(state)
+        x,y = robot.exterior.xy
+        ax.plot(x,y, color='red')
+
+        for c in cosmetics:
+            x,y = c.exterior.xy
+            ax.plot(x,y, color='black')
+    
+    def state_derivative(self, state, control):
+        x, y, theta = self.get_state_value(state)
+        v, delta = self.get_state_value(control)
+        x_dot = np.array([
+                    v * np.cos(theta) * self.dt,
+                    v * np.sin(theta) * self.dt,
+                    delta * self.dt,
+                ])
+        return x_dot
+    
+    def get_edge_states(self, start, end):
+        raise NotImplementedError
+    
+    def is_valid_edge(self, start, end):
+        raise NotImplementedError
+
+
 if __name__ == '__main__':
     # np.random.seed(0)
-    env = PlanarMobileArm(num_links=3)
+    # env = PlanarMobileArm(num_links=3)
+    env = SkidSteerCar()
     # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
+    state = env.make_state(0)
     state = env.sample_point()
     # env2 = GeneralizedPlanarMobileArm(num_links=3)
     print(state.value)
