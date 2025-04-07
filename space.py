@@ -2,6 +2,7 @@ import numpy as np
 from shapely import Polygon, Point, LineString, affinity
 from state import NumpyState, AngularNumpyState
 import matplotlib.pyplot as plt
+from obstacle_sets import ObstacleSet
 from utils import create_rectangle_geometry, numpystate_distance, interpolate_SE2_edge
 
 class RobotSpace():
@@ -52,6 +53,15 @@ class RobotSpace():
     def draw_state(self, ax, state):
         raise NotImplementedError
     
+    # def draw_state(self, ax, state):
+    #     robot = self.generate_robot_representation(state)
+    #     for rectangle in robot.rectangles:
+    #         ax.plot(*rectangle.exterior.xy, color='red')
+    #     for segment in robot.segments:
+    #         ax.plot(*segment.xy, color='red')
+    #     for point in robot.points:
+    #         ax.plot(*point.xy, color='red')
+    
     def draw_environment(self, ax):
         ax.set_xlim(self.x_range[0], self.x_range[1])
         ax.set_ylim(self.y_range[0], self.y_range[1])
@@ -95,6 +105,10 @@ class RobotSpace():
                 return self.make_state(prev_state)
             prev_state = state
         return self.make_state(prev_state)
+    
+    def set_obstacles(self, obstacle_set : ObstacleSet):
+        self.obstacles = obstacle_set.obstacles
+        self.boundary = obstacle_set.boundary
     
 class HolonomicRobot(RobotSpace):
     def __init__(self):
@@ -152,17 +166,6 @@ class PointRobot(HolonomicRobot):
         edge_states = np.cumsum(edge_states_derivative, axis=0) + start
         edge_states[-1] = end
         return edge_states
-    
-    # def is_valid_edge(self, start, end):
-    #     start = self.get_state_value(start)
-    #     end = self.get_state_value(end)
-
-    #     edge_states = self.get_edge_states(start, end)
-
-    #     for state in edge_states:
-    #         if not self.is_valid(state):
-    #             return False
-    #     return True
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
@@ -228,17 +231,6 @@ class PolygonalRobot(HolonomicRobot):
         edge_states = interpolate_SE2_edge(start, end, self.edge_validity_delta)
         edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
         return edge_states
-    
-    # def is_valid_edge(self, start, end):
-    #     start = self.get_state_value(start)
-    #     end = self.get_state_value(end)
-
-    #     edge_states = self.get_edge_states(start, end)
-
-    #     for state in edge_states:
-    #         if not self.is_valid(state):
-    #             return False
-    #     return True
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
@@ -373,12 +365,28 @@ class PlanarMobileArm(HolonomicRobot):
         
         for ee_link in ee:
             ax.plot(*ee_link.xy, color='red')
+
+    def collides_with_self(self, robot, arms, ee):
+        for i in range(len(arms)):
+            for j in range(i+2, len(arms)):
+                if arms[i].intersects(arms[j]):
+                    return True
+
+            if i > 0:
+                if robot.intersects(arms[i]):
+                    return True 
+        return False 
+        
+        
     
     def is_valid(self, state):
         self.num_collision_checks += 1
         robot, arms, ee = self.generate_robot_representation(state)
+        # if self.collides_with_self(robot, arms, ee):
+        #     return False
+
         for obs in self.obstacles:
-            if obs.intersects(robot[0]):
+            if obs.intersects(robot):
                 return False
             for arm in arms:
                 if obs.intersects(arm):
@@ -398,17 +406,6 @@ class PlanarMobileArm(HolonomicRobot):
         edge_states = np.cumsum(edge_states_derivative, axis=0) + start
         edge_states[-1] = end
         return edge_states
-
-    # def is_valid_edge(self, start, end):
-    #     start = self.get_state_value(start)
-    #     end = self.get_state_value(end)
-
-    #     edge_states = self.get_edge_states(start, end)
-
-    #     for state in edge_states:
-    #         if not self.is_valid(state):
-    #             return False
-    #     return True
 
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
@@ -456,6 +453,8 @@ class NonHolonomicRobot(RobotSpace):
 class SkidSteerCar(NonHolonomicRobot):
     def __init__(self):
         super().__init__()
+
+        self.edge_validity_delta = 0.05
 
         self.car_width = 1
         self.car_length = 2
@@ -516,6 +515,7 @@ class SkidSteerCar(NonHolonomicRobot):
         return robot
 
     def generate_costmetic_robot_representation(self, state):
+        print("Cosmetic State is Incomplete")
         return self.generate_robot_representation(state), []
 
     def draw_state(self, ax, state):
@@ -538,11 +538,151 @@ class SkidSteerCar(NonHolonomicRobot):
         return x_dot
     
     def get_edge_states(self, start, end):
-        raise NotImplementedError
-    
-    def is_valid_edge(self, start, end):
-        raise NotImplementedError
+        edge_states = interpolate_SE2_edge(start, end, self.edge_validity_delta)
+        edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
+        return edge_states
 
+class DubinsCar(NonHolonomicRobot):
+    def __init__(self):
+        super().__init__()
+
+        self.edge_validity_delta = 0.05
+
+        self.x_range = [-10, 10]
+        self.y_range = [-10, 10]
+        self.velocity_range = [-3, 3]
+        self.phi_range = [-np.pi/3, np.pi/3]
+        self.theta_range = [0, 2*np.pi]
+
+        self.accel_range = [-5, 5]
+        self.psi_range = [-1, 1]
+
+        self.boundary = create_rectangle_geometry(0, 0, 20, 20)
+
+        self.angular_dims_start = 4
+
+        self.car_width = 2
+        self.car_length = 4
+
+        self.dt = 0.05
+
+        self.state_dim = 5
+        self.control_dim = 2
+
+    def sample_point(self):
+        x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
+        y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
+        v = np.random.uniform(low=self.velocity_range[0], high=self.velocity_range[1])
+        phi = np.random.uniform(low=self.phi_range[0], high=self.phi_range[1])
+        theta = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        return self.make_state(np.array([x, y, v, phi, theta]))
+    
+    def sample_controls(self):
+        a = np.random.uniform(low=self.accel_range[0], high=self.accel_range[1])
+        psi = np.random.uniform(low=self.psi_range[0], high=self.psi_range[1])
+        return self.make_control(np.array([a, psi]))
+    
+    def make_state(self, state):
+        return AngularNumpyState(state, angular_dims_start=self.angular_dims_start)
+    
+    def make_control(self, control):
+        return NumpyState(control)
+    
+    def dist(self, state1, state2):
+        state1 = self.get_state_value(state1)
+        state2 = self.get_state_value(state2)
+        return numpystate_distance(self.make_state(state1), self.make_state(state2))
+    
+    def is_valid_state_constraints(self, state):
+        x, y, v, phi, theta = self.get_state_value(state)
+        if v < self.velocity_range[0] or v > self.velocity_range[1]:
+            return False
+        if phi < self.phi_range[0] or phi > self.phi_range[1]:
+            return False
+        return True
+
+    def is_within_boundary(self, state):
+        robot = self.generate_robot_representation(state)
+        return robot.within(self.boundary)
+    
+    def is_valid(self, state):
+        self.num_collision_checks += 1
+        if self.is_valid_state_constraints(state) and self.is_within_boundary(state):
+            robot = self.generate_robot_representation(state)
+            for obs in self.obstacles:
+                if obs.intersects(robot):
+                    return False
+            return True
+        else:
+            return False
+    
+    def generate_robot_representation(self, state):
+        x, y, v, phi, theta = self.get_state_value(state)
+        robot = create_rectangle_geometry(x_loc=x, y_loc=y, x_width=self.car_width, y_length=self.car_length)
+        robot = affinity.rotate(robot, theta, use_radians=True)
+        return robot
+    
+    def generate_costmetic_robot_representation(self, state):
+        x, y, v, phi, theta = self.get_state_value(state)
+        
+        robot = self.generate_robot_representation(state)
+        robot_centroid = robot.centroid
+
+        self.x_offset = 0.1
+        self.y_offset = 0.3
+        self.wheel_length = 0.4
+        self.wheel_width = 0.1
+
+        fr_wheel = create_rectangle_geometry(x_loc=x+self.car_width/2+self.x_offset,
+                                             y_loc=y+self.car_length/2-self.y_offset,
+                                             x_width=self.wheel_width,
+                                             y_length=self.wheel_length)
+        
+        fl_wheel = create_rectangle_geometry(x_loc=x-self.car_width/2-self.x_offset,
+                                             y_loc=y+self.car_length/2-self.y_offset,
+                                             x_width=self.wheel_width,
+                                             y_length=self.wheel_length)
+        
+        fr_wheel = affinity.rotate(fr_wheel, theta, use_radians=True, origin=robot_centroid)
+        fl_wheel = affinity.rotate(fl_wheel, theta, use_radians=True, origin=robot_centroid)
+
+        fr_wheel = affinity.rotate(fr_wheel, phi, use_radians=True)
+        fl_wheel = affinity.rotate(fl_wheel, phi, use_radians=True)
+
+        max_v = np.max(np.abs(self.velocity_range))
+        arrow_length = self.car_length / 2 * (v / max_v)
+        velocity_arrow_stem = LineString([(x,y), (x,y+arrow_length)])
+        velocity_arrow_stem = affinity.rotate(velocity_arrow_stem, theta, use_radians=True, origin=robot_centroid)
+
+        return robot, [fr_wheel, fl_wheel, velocity_arrow_stem]
+    
+    def draw_state(self, ax, state):
+        robot, cosmetics = self.generate_costmetic_robot_representation(state)
+        x,y = robot.exterior.xy
+        ax.plot(x,y, color='red')
+
+        for c in cosmetics[:2]:
+            x,y = c.exterior.xy
+            ax.plot(x,y, color='black')
+        ax.plot(*cosmetics[2].xy, color='blue')
+    
+    def state_derivative(self, state, control):
+        x, y, v, phi, theta = self.get_state_value(state)
+        a, psi = self.get_state_value(control)
+        theta += np.pi/2 # Hack to treat the upward direction as the 0 radians orientation (Should Fix)
+        x_dot = np.array([
+                    v * np.cos(theta) * self.dt,
+                    v * np.sin(theta) * self.dt,
+                    a * self.dt,
+                    psi * self.dt,
+                    v / self.car_length * np.tan(phi) * self.dt,
+                ])
+        return x_dot
+    
+    def get_edge_states(self, start, end):
+        start = self.get_state_value(start)
+        end = self.get_state_value(end)
+        # return numpystate_distance(self.make_state(start), self.make_state(end))
 
 if __name__ == '__main__':
     # np.random.seed(0)
@@ -567,3 +707,4 @@ if __name__ == '__main__':
     # env.draw_state(plt.gca(), start)
     # env.draw_state(plt.gca(), target)
     # plt.show()
+
