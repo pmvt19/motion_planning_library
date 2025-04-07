@@ -444,6 +444,75 @@ class NonHolonomicRobot(RobotSpace):
     def make_control(self, state : np.ndarray):
         raise NotImplementedError
 
+class SkidSteerCar(NonHolonomicRobot):
+    def __init__(self):
+        super().__init__()
+
+        self.car_width = 1
+        self.car_length = 2
+
+        self.angular_dim_start = 2
+
+        self.x_range = [-10, 10]
+        self.y_range = [-10, 10]
+        self.theta_range = [0, 2*np.pi]
+
+        self.velocity_range = [-3, 3]
+        self.delta_range = [-np.pi, np.pi]
+
+    def sample_point(self):
+        x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
+        y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
+        theta = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        return self.make_state(np.array([x, y, theta]))
+    
+    def sample_controls(self, bias=0.5):
+        v = np.random.uniform(low=self.velocity_range[0], high=self.velocity_range[1]) # Sample Velocity Uniformly Between: (-3, 3)
+        delta = np.random.uniform(low=self.delta_range[0], high=self.delta_range[1]) # Sample Delta Uniformly Between: (-pi, pi)
+
+        # Can only Move Forward OR Turn in place Not Both!
+        if np.random.random() < bias:
+            delta = 0.0
+        else:
+            v = 0.0
+        return self.make_control(np.array([v, delta]))
+
+    def make_state(self, state : np.ndarray):
+        return AngularNumpyState(state, angular_dims_start=self.angular_dim_start)
+
+    def make_control(self, control : np.ndarray):
+        return NumpyState(control)
+    
+    def dist(self, state1, state2):
+        state1 = self.get_state_value(state1)
+        state2 = self.get_state_value(state2)
+        raise numpystate_distance(self.make_state(state1), self.make_state(state2))
+    
+    def generate_robot_representation(self, state):
+        state = self.get_state_value(state)
+        x, y, *_ = state
+        theta = state[self.angular_dim_start]
+        robot = create_rectangle_geometry(x_loc=x, 
+                                          y_loc=y, 
+                                          x_width=self.car_width, 
+                                          y_length=self.car_length)
+        rotated_robot = affinity.rotate(robot, theta, use_radians=True)
+        return rotated_robot
+    
+    def is_valid(self, state):
+        self.num_collision_checks += 1
+        robot = self.generate_robot_representation(state)
+        for obs in self.obstacles:
+            if obs.intersects(robot):
+                return False
+        return True
+    
+    def generate_robot_representation(self, state):
+        x, y, theta = self.get_state_value(state)
+        robot = create_rectangle_geometry(x_loc=x, y_loc=y, x_width=self.car_width, y_length=self.car_length)
+        robot = affinity.rotate(robot, theta, use_radians=True)
+        return robot
+
 if __name__ == '__main__':
     # np.random.seed(0)
     env = PlanarMobileArm(num_links=3)

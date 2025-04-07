@@ -6,6 +6,7 @@ from shapely import Polygon, Point
 import time
 from scipy.spatial import Voronoi, voronoi_plot_2d
 from environments import Environment2d, RandomSamplePassage, OpenSpace2d, CarParkingEnv
+from space import PointRobot, PolygonalRobot, PlanarMobileArm
 from matplotlib.collections import LineCollection
 from state import NumpyState
 from utils import smooth_path
@@ -36,6 +37,7 @@ class RRT():
             new_node = self.target
         else:
             new_node = self.env.shoot_ray(node, sampled_point, self.delta)
+            # print(new_node.value)
 
         if new_node != node:
             self.tree[node].append(new_node)
@@ -47,6 +49,7 @@ class RRT():
     def draw_tree(self, ax, path:Path = None, show_task=True):
         self.env.draw_environment(ax)
         nodes = np.array([node.value for node in self.tree.keys()])
+        # print(nodes)
         try:
             ax.scatter(nodes[:, 0], nodes[:, 1])
             if show_task:
@@ -247,7 +250,7 @@ class BiDirectionalRRT():
         if np.min(dist) < self.max_connection_distance:
             backward_tree_node_idx = np.argmin(dist)
             forward_tree_node_idx = ind[backward_tree_node_idx]
-            return self.env.is_valid_edge(forward_tree_nodes[forward_tree_node_idx], backward_tree_nodes[backward_tree_node_idx]), \
+            return self.env.is_valid_edge(self.env.make_state(forward_tree_nodes[forward_tree_node_idx]), self.env.make_state(backward_tree_nodes[backward_tree_node_idx])), \
                     (self.env.make_state(forward_tree_nodes[forward_tree_node_idx]), self.env.make_state(backward_tree_nodes[backward_tree_node_idx]))
         return False, None
     
@@ -300,7 +303,12 @@ class BiDirectionalRRT():
 if __name__ == "__main__":
     seed = np.random.randint(0, 100)
     # seed = 22
-    seed = 18
+    # seed = 18
+    # seed = 81
+    # seed = 5
+    # seed = 25
+    # seed = 6
+    seed = 66
     print(f"Setting Seed: {seed}")
     
     np.random.seed(seed)
@@ -309,35 +317,45 @@ if __name__ == "__main__":
     
     # env = OpenSpace2d()
     # env = Environment2d()
-    env = RandomSamplePassage()
+    # env = RandomSamplePassage()
     # env = CarParkingEnv()
+    # env = PlanarMobileArm()
+    # env = PointRobot()
+    # env = PolygonalRobot()
+    env = PlanarMobileArm(num_links=4)
     start, target = env.sample_task()
 
     # start = env.make_state(np.array([0.0,0.0]))
     # start = env.make_state(np.array([-9.0,-9.0]))
     # target = env.make_state(np.array([9.0,9.0]))
     # target = env.make_state(np.array([15.0, 2.0]))
-    target = env.make_state(np.array([35.0, 2.0]))
+    # target = env.make_state(np.array([35.0, 2.0]))
 
     max_steps = 10
     goal_bias = 0.1
 
-    rrt = RRT(env)
-    # rrt = RRTStar(env)
+    # rrt = RRT(env)
+    rrt = RRTStar(env)
     # rrt = BiDirectionalRRT(env)
     # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=750, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
-    path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
+    path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=3000, do_rewire=True, goal_bias=0.4, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
+
+    env.animate_path(path, frame_delay=0.1)
     
-    smoothed_path = smooth_path(env, path)
-    rrt.draw_tree(plt.gca(), path=smoothed_path)
-    plt.show()
+    # smoothed_path = smooth_path(env, path)
+    # rrt.draw_tree(plt.gca(), path=smoothed_path)
+    # plt.show()
+
+    # env.animate_path(smoothed_path, frame_delay=0.1)
+
+
 
     # from kinematic_path_smoothing import smooth_path_trajectory_optimization
     # smoothed_path = smooth_path_trajectory_optimization(env, path)
