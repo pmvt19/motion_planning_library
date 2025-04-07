@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from state import NumpyState, AngularNumpyState
 from path import Path
 from copy import deepcopy
+from shapely import Polygon
 # from environments import Environment
 
 def smooth_path(env, path_obj : Path):
@@ -22,6 +23,13 @@ def smooth_path(env, path_obj : Path):
     print(f"Smoothed Path from Length {original_path_length} to Length {smoothed_path_length}")
     return Path(path=path)
 
+def create_rectangle_geometry(x_loc, y_loc, x_width, y_length):
+    shape = Polygon([[x_loc-x_width/2, y_loc-y_length/2], 
+                        [x_loc-x_width/2, y_loc+y_length/2],
+                        [x_loc+x_width/2, y_loc+y_length/2],
+                        [x_loc+x_width/2, y_loc-y_length/2],])
+    return shape
+
 # To make general
 def interpolate_edge(start, end, delta):
     x1, y1, theta1 = start
@@ -40,7 +48,52 @@ def interpolate_edge(start, end, delta):
     theta_vals = np.arctan2(sin_theta, cos_theta)
 
     return np.vstack((x_vals, y_vals, theta_vals)).T
-            
+
+def interpolate_SE2_edge(start, end, delta):
+    x1, y1, theta1 = start
+    x2, y2, theta2 = end
+
+    edge_length = np.linalg.norm(end - start)
+    num_checks = int(edge_length / delta)
+    t_vals = np.linspace(0, 1, num_checks+2)  # Parameter t ∈ [0,1]
+    
+    x_vals = (1 - t_vals) * x1 + t_vals * x2
+    y_vals = (1 - t_vals) * y1 + t_vals * y2
+    
+    # Spherical interpolation of theta
+    cos_theta = (1 - t_vals) * np.cos(theta1) + t_vals * np.cos(theta2)
+    sin_theta = (1 - t_vals) * np.sin(theta1) + t_vals * np.sin(theta2)
+    theta_vals = np.arctan2(sin_theta, cos_theta)
+
+    return np.vstack((x_vals, y_vals, theta_vals)).T
+
+def interpolate_edge_mobile_arm(start, end, delta):
+    x1, y1, theta1_1, theta1_2, theta1_3 = start.value
+    x2, y2, theta2_1, theta2_2, theta2_3 = end.value
+
+    edge_length = np.linalg.norm(end.value - start.value)
+    num_checks = int(edge_length / delta)
+    t_vals = np.linspace(0, 1, num_checks)  # Parameter t ∈ [0,1]
+    
+    x_vals = (1 - t_vals) * x1 + t_vals * x2
+    y_vals = (1 - t_vals) * y1 + t_vals * y2
+    
+    # Spherical interpolation of theta
+    cos_theta1 = (1 - t_vals) * np.cos(theta1_1) + t_vals * np.cos(theta2_1)
+    sin_theta1 = (1 - t_vals) * np.sin(theta1_1) + t_vals * np.sin(theta2_1)
+    theta1_vals = np.arctan2(sin_theta1, cos_theta1)
+
+    cos_theta2 = (1 - t_vals) * np.cos(theta1_2) + t_vals * np.cos(theta2_2)
+    sin_theta2 = (1 - t_vals) * np.sin(theta1_2) + t_vals * np.sin(theta2_2)
+    theta2_vals = np.arctan2(sin_theta2, cos_theta2)
+
+    cos_theta3 = (1 - t_vals) * np.cos(theta1_3) + t_vals * np.cos(theta2_3)
+    sin_theta3 = (1 - t_vals) * np.sin(theta1_3) + t_vals * np.sin(theta2_3)
+    theta3_vals = np.arctan2(sin_theta3, cos_theta3)
+
+    # return np.vstack((x_vals, y_vals, theta_vals)).T
+    return np.vstack((x_vals, y_vals, theta1_vals, theta2_vals, theta3_vals)).T
+
 def interpolate_euclidean_edge(start : np.ndarray, end : np.ndarray, delta):
     dir = (end - start) / np.linalg.norm(end - start)
     interpolated_points = []
@@ -68,7 +121,8 @@ def numpystate_distance(state1, state2):
     if isinstance(state1, NumpyState) and isinstance(state2, NumpyState):
         return euclidean_distance(state1.value, state2.value)
     elif isinstance(state1, AngularNumpyState) and isinstance(state2, AngularNumpyState) and (state1.angular_dims_start == state2.angular_dims_start):
-        return euclidean_distance(state1.value[state1.angular_dims_start], state2.value[state2.angular_dims_start]) + angular_distance
+        return euclidean_distance(state1.value[:state1.angular_dims_start], state2.value[:state2.angular_dims_start]) + \
+                angular_distance(state1.value[state1.angular_dims_start:], state2.value[state2.angular_dims_start:])
     else:
         raise ValueError("Mismatched Types inputed or incorrect angular dims start")
 
