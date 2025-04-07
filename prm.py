@@ -1,13 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from graph import Graph
-from environments import Environment2d, RandomSamplePassage, CarParkingEnv
+from environments import Environment2d, OpenSpace2d, RandomSamplePassage, CarParkingEnv, PlanarMobileArm
+from space import PointRobot, PolygonalRobot, PlanarMobileArm
 from matplotlib.collections import LineCollection
 import time
 from heapq import heappop, heappush
 from state import NumpyState
 from utils import smooth_path
 from path import Path
+import threading 
 
 class PRM():
     def __init__(self, env, num_samples=10, num_neighbors=10, validate_edges=False):
@@ -25,9 +27,8 @@ class PRM():
     def create_graph(self, starting_samples=[]):
         vertices = self.generate_sample_points(starting_samples=starting_samples)
         self.graph = Graph(vertices=vertices, num_neighbors=self.num_neighbors)
-
-        if self.validate_edges:
-            self.validate_graph_edges()
+        # if self.validate_edges:
+            # self.validate_graph_edges()
 
     def validate_graph_edges(self):
         self.invalid_edges = []
@@ -72,7 +73,6 @@ class PRM():
             path = Path([self.env.make_state(p) for p in path])
         # Return final Path
         return path
-    
 
 class LazyPRM(PRM):
     def __init__(self, env, num_samples=10, num_neighbors=10):
@@ -121,18 +121,27 @@ class LazyPRM(PRM):
             path = [self.env.make_state(p) for p in path]
         # Return final Path
         return path
-
+    
 if __name__ == "__main__":
-    seed = np.random.randint(0, 100)
+    # seed = np.random.randint(0, 100)
+    seed = 15
     # seed = 13 # Connected Graph Fails to Find Path
+    # seed = 66 # Connected Graph Fails to Find Path
     print(f"Seed: {seed}")
     np.random.seed(seed)
-    env = Environment2d()
+    # env = Environment2d()
     # env = RandomSamplePassage()
+    # env = PlanarMobileArm()
+    # env = OpenSpace2d()
+    # env = PointRobot()
+    # env = PolygonalRobot()
+    env = PlanarMobileArm()
+    start, target = env.sample_task()
     # env = CarParkingEnv()
     start_time = time.time()
-    prm = PRM(env=env, num_samples=100, num_neighbors=10, validate_edges=True)
-    # prm = LazyPRM(env=env, num_samples=100)
+    prm = PRM(env=env, num_samples=1000, num_neighbors=10, validate_edges=True)
+    # prm = ParallelPRM(env=env, num_samples=1000, num_neighbors=10, validate_edges=True)
+    # prm = LazyPRM(env=env, num_samples=1000)
     prm.create_graph()
     
     # plt.clf()
@@ -144,7 +153,7 @@ if __name__ == "__main__":
     # target = (9,9)
     # start = env.make_state(np.array([0,0]))
     # target = env.make_state(np.array([9,9]))
-    start, target = env.sample_task()
+    
     # start = env.make_state(np.array([2.0, 2.75, 0]))
     # target = env.make_state(np.array([-3.0, -2.25, 0]))
     
@@ -156,6 +165,8 @@ if __name__ == "__main__":
     env.draw_environment(plt.gca())
     prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
     plt.show()
+
+    env.animate_path(path, frame_delay=0.5)
 
     smoothed_path = smooth_path(env, path)
     env.draw_environment(plt.gca())
