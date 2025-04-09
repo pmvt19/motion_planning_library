@@ -121,38 +121,55 @@ class ApproximationSpace():
             2 : Dimension of the segment
         """
         # segments : (B, 2, 2) 
-        radius = 0.1
+        radius = 0.05
+        # segments = segments.astype(np.float128)
 
         start_points = segments[:, 0, :] # (B, 2)
         end_points = segments[:, 1, :] # (B, 2)
 
-        print(start_points)
+        print(start_points, end_points)
 
         # batch_rays = segments[:, 0, :] - segments[:, 1, :] # (B, 2)
         batch_rays = end_points - start_points
         segment_lengths = np.linalg.norm(batch_rays, axis=1).reshape(-1, 1) # (B,1)
+        assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
         batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
         print(batch_normalized_rays)
 
         # print(batch_normalized_rays*2*radius)
 
-        # modified_segment_lengths = segment_lengths - (radius)
-        modified_segment_lengths = segment_lengths
-        num_circles_per_segment = modified_segment_lengths / (2*radius)
-        print(num_circles_per_segment, modified_segment_lengths, (2*radius))
-        max_num_circles = math.ceil(np.max(num_circles_per_segment)) #+ 1
+        modified_segment_lengths = segment_lengths - (2*radius)
+        print(modified_segment_lengths.dtype)
+        # modified_segment_lengths = segment_lengths
+        print(modified_segment_lengths/(2*radius), modified_segment_lengths, 2*radius)
+        num_circles_per_segment = np.ceil(np.round((modified_segment_lengths / (2*radius)), 10))
+        # print(num_circles_per_segment, modified_segment_lengths, (2*radius))
+        max_num_circles = math.ceil(np.max(num_circles_per_segment)) + 1
+        print(max_num_circles, "MAX NUM CIRCLES")
 
         # circle_start_points = start_points + (batch_normalized_rays * radius)
         # circle_start_points = start_points #+ (batch_normalized_rays * radius)
-        circle_start_points = start_points - (batch_normalized_rays * radius)
+        circle_start_points = start_points #+ (batch_normalized_rays * radius)
+        circle_start_points = start_points + (batch_normalized_rays * radius)
 
-        repeated_rays = np.repeat(batch_normalized_rays.reshape(-1, 1, 2) * (2*radius), (max_num_circles), axis=1)
+        gaps = (modified_segment_lengths / num_circles_per_segment)
+        # print(gaps)
+        print(num_circles_per_segment)
+        print(gaps)
+        # print(batch_normalized_rays.shape)
+        # print((batch_normalized_rays.reshape(-1, 1, 2) * (gaps.reshape(-1, 1))).shape)
+
+        # print((batch_normalized_rays * gaps.reshape(-1, 1)).reshape(-1, 1, 2).shape)
+        batch_scaled_rays = (batch_normalized_rays * gaps.reshape(-1, 1)).reshape(-1, 1, 2)
+        repeated_rays = np.repeat(batch_scaled_rays, (max_num_circles), axis=1)
+        repeated_rays[:, 0, :] = 0
+        print(repeated_rays.shape)
 
         trajectories = np.cumsum(repeated_rays, axis=1) + circle_start_points.reshape(-1, 1, 2)
 
-        print(trajectories)
-        print(repeated_rays.shape, trajectories.shape, circle_start_points.shape, batch_normalized_rays.shape)
-        print(end_points)
+        # print(trajectories)
+        # print(repeated_rays.shape, trajectories.shape, circle_start_points.shape, batch_normalized_rays.shape)
+        # print(end_points)
 
         shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius
         # print(shaped_radius.shape)
@@ -163,7 +180,7 @@ class ApproximationSpace():
         # print(circle_center_radius_pairs.shape)
 
         circle_center_radius_pairs = circle_center_radius_pairs.reshape(-1, 3)
-
+        print(circle_center_radius_pairs.shape)
         return circle_center_radius_pairs
 
 
@@ -180,13 +197,14 @@ class ApproximationSpace():
             shape = Polygon(corners)
             ax.plot(*shape.exterior.xy, color='black')
         for i, (x, y, r) in enumerate(circles):
+            # print(x, y, r)
             point = Point(x, y)
             c = point.buffer(r)
             x, y = c.exterior.xy
             ax.fill(x, y, 'blue')  # 'g-' for green line
-
-            if i >= 5:
-                break
+            
+            # if i >= 5:
+            #     break
         # plt.show()
 
 
@@ -226,8 +244,8 @@ if __name__ == "__main__":
 
     # is_valid_per_circle = dists > min_dists
     # print(np.all(is_valid_per_circle, axis=0))
-
-    numpystates = [env.sample_point() for _ in range(1)]
+    N = 3
+    numpystates = [env.sample_point() for _ in range(N)]
     states = np.array([state.value for state in numpystates])
     segment_points = env.batch_forward_kinematics(states)#.reshape(-1, 2, 2)
     start_points = segment_points[:, :-1, :]
@@ -235,8 +253,10 @@ if __name__ == "__main__":
     segment_start_end_points = np.concatenate((start_points, end_points), axis=2).reshape(-1, 4).reshape(-1, 2, 2)
     segment_circles = space.segments_to_circles(segment_start_end_points, radius=0.1)
 
-    env.draw_state(plt.gca(), numpystates[0])
-    space.draw_env(plt.gca(), segment_circles, [])
-    plt.show()
+    for i in range(N):
+        plt.clf()
+        env.draw_state(plt.gca(), numpystates[i])
+        space.draw_env(plt.gca(), segment_circles, [])
+        plt.show()
 
     
