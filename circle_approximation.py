@@ -7,8 +7,9 @@ from shapely import Point, Polygon
 from sklearn.metrics import pairwise_distances
 import time
 
-class ApproximationSpace():
+class ApproximationSpace(RobotSpace):
     def __init__(self, space : RobotSpace, do_overapproximation=False):
+        super().__init__()
         self.space = space
         self.do_overapproximation = do_overapproximation
         self.obstacle_circles = self.space_to_circles()
@@ -186,7 +187,7 @@ if __name__ == "__main__":
     space = ApproximationSpace(env)
     obst_circles = space.space_to_circles()
 
-    N = 20
+    N = 2000
     numpystates = [env.sample_point() for _ in range(N)]
     states = np.array([state.value for state in numpystates])
     
@@ -200,17 +201,58 @@ if __name__ == "__main__":
     # end_time = time.time()
     # print(f"Batched is_valid Time: {end_time-start_time}")
 
-    validities = space.batch_is_valid(states)
-    print(obst_circles.shape)
-    for i in range(N):
-        plt.clf()
-        plt.title(validities[i])
-        # env.draw_environment(plt.gca())
-        space.draw_environment(plt.gca())
+    # validities = space.batch_is_valid(states)
+    # print(obst_circles.shape)
+    # for i in range(N):
+    #     plt.clf()
+    #     plt.title(validities[i])
+    #     # env.draw_environment(plt.gca())
+    #     space.draw_environment(plt.gca())
         
-        # env.draw_state(plt.gca(), numpystates[i])
-        space.draw_state(plt.gca(), numpystates[i].value)
-        plt.show()
+    #     # env.draw_state(plt.gca(), numpystates[i])
+    #     space.draw_state(plt.gca(), numpystates[i].value)
+    #     plt.show()
+
+    ## Batch get edge states ##
+    start_states = states[:(N//2)]
+    end_states = states[(N//2):]
+    print(f"Validating {(N//2)} edges")
+    start_time = time.time()
+    edge_validities = space.batch_is_valid_edge(start_states, end_states)
+    end_time = time.time()
+    print(f"Time to batch validate edges: {end_time - start_time}")
+
+    start_time = time.time()
+    validities_edge = [env.is_valid_edge(start_states[i], end_states[i]) for i in range((N//2))]
+    end_time = time.time()
+    print(f"Time to unbatched validate edges: {end_time - start_time}")
+
+    
+
+    # print(start_states.shape, end_states.shape)
+    # pts, steps = env.batch_get_edge_states(start_states, end_states)
+    ## Batch get edge states ##
+    print("Unbatched function")
+    # print(env.get_edge_states(start_states[0], end_states[0]))
+    # print(env.get_edge_states(start_states[1], end_states[1]))
+
+    # edge_states = [pts[i, :steps[i], :] for i in range(len(steps))]
+
+    # B, d = (N//2), 5
+    # old_plts = pts
+    # pts = pts.reshape(-1, d)
+    # pt_validities = space.batch_is_valid(pts).reshape(B, -1)
+    # edge_validities = [np.all(pt_validities[i, :steps[i]]) for i in range(len(steps))]
+
+    # for i in range(B):
+    #     plt.clf()
+    #     plt.title(edge_validities[i])
+    #     space.draw_environment(plt.gca())
+    #     for state in old_plts[i, :steps[i], :]:
+    #         space.draw_state(plt.gca(), state)
+    #     plt.show()
+
+
     exit()
 
     # N = 10000
