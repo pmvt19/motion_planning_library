@@ -127,13 +127,14 @@ class ApproximationSpace():
 
         batch_rays = end_points - start_points
         segment_lengths = np.linalg.norm(batch_rays, axis=1).reshape(-1, 1) # (B,1)
-        assert len(np.unique(np.round(segment_lengths, 10))) == 1, "All Segments currently must have the same length"
+
+        num_distinct_segment_lengths = len(np.unique(np.round(segment_lengths, 10)))
+        # assert len(np.unique(np.round(segment_lengths, 10))) == 1, "All Segments currently must have the same length"
         assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
         batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
         modified_segment_lengths = segment_lengths - (2*radius)
 
-
-        num_circles_per_segment = np.ceil(np.round((modified_segment_lengths / (2*radius)), 10))
+        num_circles_per_segment = np.ceil(np.round((modified_segment_lengths / (2*radius)), 10)).astype(np.int32)
         max_num_circles = math.ceil(np.max(num_circles_per_segment)) + 1
 
         circle_start_points = start_points + (batch_normalized_rays * radius)
@@ -149,12 +150,20 @@ class ApproximationSpace():
         shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius
         circle_center_radius_pairs = np.concatenate((trajectories, shaped_radius), axis=2)
 
-        circle_center_radius_pairs = circle_center_radius_pairs.reshape(-1, 3)
+        if num_distinct_segment_lengths == 1:
+            circle_center_radius_pairs = circle_center_radius_pairs.reshape(-1, 3)
+        else:
+            num_circles_per_segment = num_circles_per_segment.squeeze()
+            circle_center_radius_pairs = np.vstack([circle_center_radius_pairs[i, :(num_circles+1)] for i, num_circles in enumerate(num_circles_per_segment)])
+
         return circle_center_radius_pairs
 
 
-    def points_to_circles(self):
-        raise NotImplementedError
+    def points_to_circles(self, points):
+        # points: (B, 2)
+        radii = np.zeros((points.shape[0], 1))
+        zero_radius_circles = np.concatenate((points, radii), axis=1)
+        return zero_radius_circles
     
     def draw_env(self, ax, circles, rectangles):
         # plt.figure()
@@ -213,19 +222,24 @@ if __name__ == "__main__":
 
     # is_valid_per_circle = dists > min_dists
     # print(np.all(is_valid_per_circle, axis=0))
-    N = 3
+    N = 20000
     numpystates = [env.sample_point() for _ in range(N)]
     states = np.array([state.value for state in numpystates])
     segment_points = env.batch_forward_kinematics(states)#.reshape(-1, 2, 2)
     start_points = segment_points[:, :-1, :]
     end_points = segment_points[:, 1:, :]
     segment_start_end_points = np.concatenate((start_points, end_points), axis=2).reshape(-1, 4).reshape(-1, 2, 2)
-    segment_circles = space.segments_to_circles(segment_start_end_points, radius=0.1)
 
-    for i in range(N):
-        plt.clf()
-        env.draw_state(plt.gca(), numpystates[i])
-        space.draw_env(plt.gca(), segment_circles, [])
-        plt.show()
+    start_time = time.time()
+    segment_circles = space.segments_to_circles(segment_start_end_points, radius=0.04)
+    end_time = time.time()
+
+    print(f"Segments to Circles Time: {end_time - start_time}")
+
+    # for i in range(N):
+    #     plt.clf()
+    #     env.draw_state(plt.gca(), numpystates[i])
+    #     space.draw_env(plt.gca(), segment_circles, [])
+    #     plt.show()
 
     
