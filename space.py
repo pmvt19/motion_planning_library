@@ -120,10 +120,18 @@ class RobotSpace():
     def batch_get_edge_states(self, start_states, end_states):
         raise NotImplementedError
     
+    def batch_is_valid(self, states : np.ndarray):
+        validities = []
+        for state in states:
+            validities.append(self.is_valid(self.make_state(state)))
+        validities = np.array(validities)
+        return validities
+    
     def batch_is_valid_edge(self, start_states : np.ndarray, end_states : np.ndarray):
         B, d = start_states.shape
         # start_states: (B, d), end_states: (B, d)
         time0 = time.time()
+        print("WARNING: THIS IS A HACK THAT NEEDS TO BE FIXED ASAP")
         pts, steps = self.space.batch_get_edge_states(start_states, end_states) # points -> (B, max_steps, d), steps -> (B,)
         time1 = time.time()
         print(f"Time to interpolate edges: {time1-time0}")

@@ -13,7 +13,6 @@ class ApproximationSpace(RobotSpace):
         self.space = space
         self.do_overapproximation = do_overapproximation
         self.obstacle_circles = self.space_to_circles()
-        
     
     def obstacles_to_aabb(self, obstacles):
         aabbs = []
@@ -144,7 +143,7 @@ class ApproximationSpace(RobotSpace):
 
     def circles_to_validity(self, obstacle_circles, robot_circles):
         B = robot_circles.shape[0]
-
+        # print(obstacle_circles.shape, robot_circles.shape)
         robot_xy = robot_circles[:, :, :2]
         obst_xy = obstacle_circles[:, :2]
         distance_mat = np.sqrt(np.sum(robot_xy**2, axis=2, keepdims=True) + np.sum(obst_xy**2, axis=1, keepdims=True).T + (-2 * (robot_xy @ obst_xy.T)))
@@ -158,7 +157,7 @@ class ApproximationSpace(RobotSpace):
         return validities
     
     def batch_is_valid(self, states):
-        robot_circles = space.states_to_circles(states)
+        robot_circles = self.states_to_circles(states)
         return self.circles_to_validity(self.obstacle_circles, robot_circles)
 
     def draw_state(self, ax, state):
@@ -177,6 +176,15 @@ class ApproximationSpace(RobotSpace):
             c = point.buffer(r)
             x, y = c.exterior.xy
             ax.fill(x, y, 'blue')
+    
+    def sample_point(self):
+        return self.space.sample_point()
+    
+    def is_valid(self, state):
+        return self.space.is_valid(state)
+    
+    def make_state(self, state):
+        return self.space.make_state(state)
     
 if __name__ == "__main__":
     np.random.seed(0)
