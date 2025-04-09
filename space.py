@@ -4,6 +4,8 @@ from state import NumpyState, AngularNumpyState
 import matplotlib.pyplot as plt
 from obstacle_sets import ObstacleSet
 from utils import create_rectangle_geometry, numpystate_distance, interpolate_SE2_edge
+import time
+from collections import defaultdict
 
 class RobotSpace():
     def __init__(self):
@@ -109,6 +111,11 @@ class RobotSpace():
     def set_obstacles(self, obstacle_set : ObstacleSet):
         self.obstacles = obstacle_set.obstacles
         self.boundary = obstacle_set.boundary
+
+        # print(self.boundary.exterior.xy)
+        x_points, y_points = self.boundary.exterior.xy
+        self.x_range = [min(x_points), max(x_points)]
+        self.y_range = [min(y_points), max(y_points)]
     
 class HolonomicRobot(RobotSpace):
     def __init__(self):
@@ -259,7 +266,11 @@ class PlanarMobileArm(HolonomicRobot):
             assert (num_links == len(arm_lengths)), "Num Links must be equal to the list size of arm lengths"
             self.arm_lengths = np.array(arm_lengths)
         
-    
+        self.obstacle_check_time = 0
+        self.generate_state_time = 0
+
+        self.timing_dict = defaultdict(float)
+
     def dist(self, state1 : AngularNumpyState, state2 : AngularNumpyState):
         state1 = self.get_state_value(state1)
         state2 = self.get_state_value(state2)
@@ -336,23 +347,38 @@ class PlanarMobileArm(HolonomicRobot):
         return np.vstack((arm_base, joint_pos))
 
     def generate_robot_representation(self, state):
+        time0 = time.time()
         state = self.get_state_value(state)
         x, y, *thetas = state
+        time1 = time.time()
         robot = create_rectangle_geometry(x_loc=x, y_loc=y, x_width=self.base_width, y_length=self.base_length)
+        time2 = time.time()
         rotation_offset = np.pi/2 if self.num_links % 2 == 0 else -np.pi/2
         arms = []
 
+        time3 = time.time()
         joint_positions = self.forward_kinematics(state)
+        time4 = time.time()
         for i in range(len(joint_positions) - 1):
             arm = LineString([joint_positions[i], joint_positions[i+1]])
             arms.append(arm)
-
+        time5 = time.time()
         end_effector_point_pairs = self.create_end_effector_representation(joint_positions[-1])
+        # end_effector_point_pairs = []
+        time6 = time.time()
         ee = []
         for i in range(len(end_effector_point_pairs)):
             ee_link = LineString(end_effector_point_pairs[i])
             ee_link = affinity.rotate(ee_link, angle=(np.sum(thetas)+rotation_offset), use_radians=True, origin=list(joint_positions[-1]))
             ee.append(ee_link)
+        time7 = time.time()
+
+        self.timing_dict['get_state_value'] += time1-time0
+        self.timing_dict['create_robot_base'] += time2-time1
+        self.timing_dict['forward_kinematics'] += time4-time3
+        self.timing_dict['create_arm_link'] += time5-time4
+        self.timing_dict['create_end_effector_representation'] += time6-time5
+        self.timing_dict['create_end_effector_lines'] += time7-time6
 
         return robot, arms, ee 
 
@@ -376,15 +402,15 @@ class PlanarMobileArm(HolonomicRobot):
                 if robot.intersects(arms[i]):
                     return True 
         return False 
-        
-        
     
     def is_valid(self, state):
+        start_time = time.time()
         self.num_collision_checks += 1
         robot, arms, ee = self.generate_robot_representation(state)
+        self.generate_state_time += (time.time() - start_time)
         # if self.collides_with_self(robot, arms, ee):
         #     return False
-
+        start_time = time.time()
         for obs in self.obstacles:
             if obs.intersects(robot):
                 return False
@@ -394,6 +420,8 @@ class PlanarMobileArm(HolonomicRobot):
             for ee_link in ee:
                 if obs.intersects(ee_link):
                     return False
+        self.obstacle_check_time += (time.time() - start_time)
+
         return True
     
     def get_edge_states(self, start : np.ndarray, end : np.ndarray):
@@ -406,6 +434,24 @@ class PlanarMobileArm(HolonomicRobot):
         edge_states = np.cumsum(edge_states_derivative, axis=0) + start
         edge_states[-1] = end
         return edge_states
+
+    ## ---- Batched Methods ---- ##
+    def batch_forward_kinematics(self, states : np.ndarray):
+        states[:, 3:] -= np.pi # Hack to treat angles properly
+        arm_bases = np.vstack((states[:, 0], states[:, 1] + self.base_length/2)).T # (B, 2)
+        link_thetas = np.cumsum(states[:, 2:], axis=1) # (B, num_links)
+        link_cosines = np.cos(link_thetas) # (B, num_links)
+        link_sines = np.sin(link_thetas) # (B, num_links)
+        normalized_link_points = np.stack((link_cosines, link_sines), axis=2) # (B, num_links, 2)
+        point_der = self.arm_lengths.reshape(1, self.num_links, 1) * normalized_link_points # (B, num_links, 2)
+        joint_pos = np.cumsum(point_der, axis=1) + arm_bases.reshape(-1, 1, 2) # (B, num_links, 2)
+        return np.concatenate((arm_bases.reshape(-1, 1, 2), joint_pos), axis=1)
+    
+    def batch_is_valid(self, states: np.ndarray):
+        raise NotImplementedError
+    
+    def batch_is_valid_edge(self, start_states : np.ndarray, end_states : np.ndarray):
+        raise NotImplementedError
 
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
@@ -541,6 +587,7 @@ class SkidSteerCar(NonHolonomicRobot):
         edge_states = interpolate_SE2_edge(start, end, self.edge_validity_delta)
         edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
         return edge_states
+
 
 class DubinsCar(NonHolonomicRobot):
     def __init__(self):
@@ -685,17 +732,43 @@ class DubinsCar(NonHolonomicRobot):
         # return numpystate_distance(self.make_state(start), self.make_state(end))
 
 if __name__ == '__main__':
-    # np.random.seed(0)
-    # env = PlanarMobileArm(num_links=3)
-    env = SkidSteerCar()
+    np.random.seed(0)
+    env = PlanarMobileArm(num_links=3)
+    # env = SkidSteerCar()
     # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
-    state = env.make_state(0)
-    state = env.sample_point()
+    # state = env.make_state(0)
+    # state = env.sample_point()
     # env2 = GeneralizedPlanarMobileArm(num_links=3)
-    print(state.value)
-    env.draw_environment(plt.gca())
-    env.draw_state(plt.gca(), state)
-    plt.show()
+    # print(state.value)
+    # env.draw_environment(plt.gca())
+    # env.draw_state(plt.gca(), state)
+    # plt.show()
+
+    state1 = env.sample_point()
+    state2 = env.sample_point()
+
+    # env.draw_environment(plt.gca())
+    # env.draw_state(plt.gca(), state1)
+    # env.draw_state(plt.gca(), state2)
+    # plt.show()
+
+    states = np.array([state1.value, state2.value])
+    # print(env.batch_forward_kinematics(states))
+
+
+    states = [env.sample_point() for _ in range(1000000)]
+    start_time = time.time()
+    for state in states:
+        env.forward_kinematics(state)
+    end_time = time.time()
+    print("Unbatched Forward Kinematics Time:", end_time-start_time)
+
+    start_time = time.time()
+    states = np.array([state.value for state in states])
+    env.batch_forward_kinematics(states)
+    end_time = time.time()
+
+    print("Batched Forward Kinematics Time:", end_time-start_time)
 
     # start, target = env.sample_task()
     # print(start.value, target.value)
