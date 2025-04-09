@@ -6,21 +6,26 @@ from shapely import Polygon, Point
 import time
 from scipy.spatial import Voronoi, voronoi_plot_2d
 from environments import CarParkingEnv, DubinsCarEnv
+from space import SkidSteerCar, DubinsCar
 from matplotlib.collections import LineCollection
 from state import NumpyState
 from utils import smooth_path, interpolate_edge
 from rrt import RRT
 from path import KinodynamicPath
 import pickle
+from obstacle_sets import TestSet, ParkingSpace
 
 class KinodynamicRRT(RRT):
-    def __init__(self, env, goal_radius=0.5, max_time_horizon=4):
+    def __init__(self, env, goal_radius=0.5, max_time_horizon=4, expansion_strategy='single', expansion_attempts=10):
         super().__init__(env=env)
         self.env = env
         self.tree = defaultdict(list)
         self.child_to_parent = {}
         self.goal_radius = goal_radius
         self.max_time_horizon = max_time_horizon
+        self.expansion_strategy = expansion_strategy # 'single' or 'sampled_point_bias'
+        self.expansion_attempts = expansion_attempts
+
 
     def expand_node(self, node, sampled_point):
 
@@ -29,8 +34,15 @@ class KinodynamicRRT(RRT):
             controls = self.env.make_control(np.zeros(self.env.control_dim))
             time = 0
         else:
-            time_horizon = np.random.random() * self.max_time_horizon # Choose extension simulation time between [0, self.max_time_horizon)
+            time_horizon = np.random.uniform(low=0, high=self.max_time_horizon) # Choose extension simulation time between [0, self.max_time_horizon)
             new_node, controls, time = self.env.extend_state(node, time_horizon)
+            if self.expansion_strategy == 'sampled_point_bias':
+                for i in range(self.expansion_attempts-1):
+                    time_horizon = np.random.uniform(low=0, high=self.max_time_horizon)
+                    potential_new_node, potential_controls, potential_time = self.env.extend_state(node, time_horizon)
+                    if self.env.dist(potential_new_node, sampled_point) < self.env.dist(new_node, sampled_point):
+                        new_node, controls, time = potential_new_node, potential_controls, potential_time
+            
 
         if new_node != node:
             self.tree[node].append(new_node)
@@ -73,11 +85,29 @@ if __name__ == "__main__":
     # seed = 21
     # seed = 85
     # seed = 86 # Interesting S-shaped Path
+    # seed = 91
+    # seed = 30
+    # seed = 81
+    # seed = 53
+    # seed = 45 # USE FOR SKID STEER CAR AND PARKING SPACE
+    # seed = 0 # WORKS FOR DUBINS CAR AND FIXED TASK
+    # seed = 60
+    # seed = 57
+    seed = 59
+    
     print(f"Setting Seed: {seed}") 
     np.random.seed(seed)
     # env = CarParkingEnv()
-    env = DubinsCarEnv()
-    start, target = env.sample_task()
+    # env = DubinsCarEnv()
+    env = DubinsCar()
+    # env = SkidSteerCar()
+    # env.set_obstacles(ParkingSpace())
+    # start, target = env.sample_task()
+    # start, target = env.sample_point(), env.sample_point()
+    start, target = env.sample_valid_point(), env.sample_valid_point()
+    start = env.make_state(np.array([3.0, 2.75, 0, 0, 0]))
+    target = env.make_state(np.array([-4.5, -4.75, 0, 0, 0]))
+
     # start, target = env.get_fixed_task()
     # start = env.make_state(np.array([2.0, 2.75, 0]))
     # target = env.make_state(np.array([-3.0, -2.25, 0]))
@@ -91,6 +121,8 @@ if __name__ == "__main__":
     # print(env.extend_state(state, 0.4, control)[0].value)
     # exit()
     path = rrt.search(start, target, max_steps=5000, goal_bias=0.4)
+    # path = rrt.search(start, target, max_steps=20000, goal_bias=0.1)
+    print(len(rrt.tree))
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
 
