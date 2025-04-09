@@ -447,12 +447,24 @@ class PlanarMobileArm(HolonomicRobot):
         joint_pos = np.cumsum(point_der, axis=1) + arm_bases.reshape(-1, 1, 2) # (B, num_links, 2)
         return np.concatenate((arm_bases.reshape(-1, 1, 2), joint_pos), axis=1)
     
+    def batch_get_robot_representations(self, states : np.ndarray):
+        rectangles = np.stack((states[:, 0], states[:, 1], np.ones((states.shape[0])) * self.base_width, np.ones((states.shape[0])) * self.base_length), axis=1)
+        segment_points = self.batch_forward_kinematics(states)#.reshape(-1, 2, 2)
+        start_points = segment_points[:, :-1, :]
+        end_points = segment_points[:, 1:, :]
+        segments = np.concatenate((start_points, end_points), axis=2).reshape(-1, 4).reshape(-1, 2, 2)
+        return {
+            'rectangles' : rectangles,
+            'segments' : segments, 
+            'points' : np.empty((0, 2)),
+        }
+    
     def batch_is_valid(self, states: np.ndarray):
         raise NotImplementedError
     
     def batch_is_valid_edge(self, start_states : np.ndarray, end_states : np.ndarray):
         raise NotImplementedError
-
+    
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
         super().__init__()
@@ -487,8 +499,7 @@ class NonHolonomicRobot(RobotSpace):
                 break
             running_time = (i+1) * self.dt
             list_of_states.append(state)
-        # May want to change how this works to allow for multi-node 
-        # addition to kinodynamic tree 
+
         return list_of_states[-1], controls, running_time
     
     def simulate_step(self, state, control):
@@ -756,7 +767,7 @@ if __name__ == '__main__':
     # print(env.batch_forward_kinematics(states))
 
 
-    states = [env.sample_point() for _ in range(1000000)]
+    states = [env.sample_point() for _ in range(100000)]
     start_time = time.time()
     for state in states:
         env.forward_kinematics(state)
