@@ -122,65 +122,34 @@ class ApproximationSpace():
         """
         # segments : (B, 2, 2) 
         radius = 0.05
-        # segments = segments.astype(np.float128)
 
         start_points = segments[:, 0, :] # (B, 2)
         end_points = segments[:, 1, :] # (B, 2)
 
-        print(start_points, end_points)
-
-        # batch_rays = segments[:, 0, :] - segments[:, 1, :] # (B, 2)
         batch_rays = end_points - start_points
         segment_lengths = np.linalg.norm(batch_rays, axis=1).reshape(-1, 1) # (B,1)
         assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
         batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
-        print(batch_normalized_rays)
-
-        # print(batch_normalized_rays*2*radius)
-
         modified_segment_lengths = segment_lengths - (2*radius)
-        print(modified_segment_lengths.dtype)
-        # modified_segment_lengths = segment_lengths
-        print(modified_segment_lengths/(2*radius), modified_segment_lengths, 2*radius)
-        num_circles_per_segment = np.ceil(np.round((modified_segment_lengths / (2*radius)), 10))
-        # print(num_circles_per_segment, modified_segment_lengths, (2*radius))
-        max_num_circles = math.ceil(np.max(num_circles_per_segment)) + 1
-        print(max_num_circles, "MAX NUM CIRCLES")
 
-        # circle_start_points = start_points + (batch_normalized_rays * radius)
-        # circle_start_points = start_points #+ (batch_normalized_rays * radius)
-        circle_start_points = start_points #+ (batch_normalized_rays * radius)
+
+        num_circles_per_segment = np.ceil(np.round((modified_segment_lengths / (2*radius)), 10))
+        max_num_circles = math.ceil(np.max(num_circles_per_segment)) + 1
+
         circle_start_points = start_points + (batch_normalized_rays * radius)
 
         gaps = (modified_segment_lengths / num_circles_per_segment)
-        # print(gaps)
-        print(num_circles_per_segment)
-        print(gaps)
-        # print(batch_normalized_rays.shape)
-        # print((batch_normalized_rays.reshape(-1, 1, 2) * (gaps.reshape(-1, 1))).shape)
 
-        # print((batch_normalized_rays * gaps.reshape(-1, 1)).reshape(-1, 1, 2).shape)
         batch_scaled_rays = (batch_normalized_rays * gaps.reshape(-1, 1)).reshape(-1, 1, 2)
         repeated_rays = np.repeat(batch_scaled_rays, (max_num_circles), axis=1)
         repeated_rays[:, 0, :] = 0
-        print(repeated_rays.shape)
 
         trajectories = np.cumsum(repeated_rays, axis=1) + circle_start_points.reshape(-1, 1, 2)
 
-        # print(trajectories)
-        # print(repeated_rays.shape, trajectories.shape, circle_start_points.shape, batch_normalized_rays.shape)
-        # print(end_points)
-
         shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius
-        # print(shaped_radius.shape)
         circle_center_radius_pairs = np.concatenate((trajectories, shaped_radius), axis=2)
 
-        # print(circle_center_radius_pairs.shape)
-        # print(circle_center_radius_pairs)
-        # print(circle_center_radius_pairs.shape)
-
         circle_center_radius_pairs = circle_center_radius_pairs.reshape(-1, 3)
-        print(circle_center_radius_pairs.shape)
         return circle_center_radius_pairs
 
 
