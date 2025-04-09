@@ -8,10 +8,11 @@ from sklearn.metrics import pairwise_distances
 import time
 
 class ApproximationSpace(RobotSpace):
-    def __init__(self, space : RobotSpace, do_overapproximation=False):
+    def __init__(self, space : RobotSpace, batch_size=1000, do_overapproximation=False):
         super().__init__()
         self.space = space
         self.do_overapproximation = do_overapproximation
+        self.batch_size = batch_size
         self.obstacle_circles = self.space_to_circles()
     
     def obstacles_to_aabb(self, obstacles):
@@ -158,7 +159,17 @@ class ApproximationSpace(RobotSpace):
     
     def batch_is_valid(self, states):
         robot_circles = self.states_to_circles(states)
-        return self.circles_to_validity(self.obstacle_circles, robot_circles)
+        B = robot_circles.shape[0]
+
+        stacked_validities = []
+        num_batches = math.ceil(B / self.batch_size)
+        for i in range(num_batches):
+            idx_start = i * self.batch_size
+            idx_end = min((i+1)*self.batch_size, B)
+            validities = self.circles_to_validity(self.obstacle_circles, robot_circles[idx_start:idx_end])
+            stacked_validities.append(validities)
+        stacked_validities = np.hstack(stacked_validities)
+        return stacked_validities
 
     def draw_state(self, ax, state):
         circles = self.states_to_circles(np.array([state]))[0]
