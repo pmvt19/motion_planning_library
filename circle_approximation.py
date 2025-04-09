@@ -120,14 +120,14 @@ class ApproximationSpace():
             2 : This value is fixed at two since a segment must have only 2 end points
             2 : Dimension of the segment
         """
-        # segments : (B, 2, 2) 
-        radius = 0.05
+        # segments : (B, 2, 2)
 
         start_points = segments[:, 0, :] # (B, 2)
         end_points = segments[:, 1, :] # (B, 2)
 
         batch_rays = end_points - start_points
         segment_lengths = np.linalg.norm(batch_rays, axis=1).reshape(-1, 1) # (B,1)
+        assert len(np.unique(np.round(segment_lengths, 10))) == 1, "All Segments currently must have the same length"
         assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
         batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
         modified_segment_lengths = segment_lengths - (2*radius)
