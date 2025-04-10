@@ -3,7 +3,7 @@ from shapely import Polygon, Point, LineString, affinity
 from state import NumpyState, AngularNumpyState
 import matplotlib.pyplot as plt
 from obstacle_sets import ObstacleSet
-from utils import create_rectangle_geometry, numpystate_distance, interpolate_SE2_edge
+from utils import create_rectangle_geometry, numpystate_distance, interpolate_SE2_edge, issue_warning, interpolate_edge
 import time
 from collections import defaultdict
 
@@ -11,6 +11,7 @@ class RobotSpace():
     def __init__(self):
         self.num_collision_checks = 0
         self.obstacles = []
+        self.edge_validity_delta = 0.5
 
 
         self.x_range = [-10,10]
@@ -24,10 +25,7 @@ class RobotSpace():
         raise NotImplementedError
     
     def is_valid_edge(self, start, end):
-        start = self.get_state_value(start)
-        end = self.get_state_value(end)
-
-        edge_states = self.get_edge_states(start, end)
+        edge_states = interpolate_edge(start, end, self.edge_validity_delta)
 
         for state in edge_states:
             if not self.is_valid(state):
@@ -140,7 +138,7 @@ class RobotSpace():
         print(pts.shape)
         pt_validities = self.batch_is_valid(pts).reshape(B, -1)
         time3 = time.time()
-        print(f"Time to get state validities: {time3-time2}")
+        print(f"Time to get state validities for size {B}: {time3-time2}")
         edge_validities = np.array([np.all(pt_validities[i, :steps[i]]) for i in range(len(steps))])
         time4 = time.time()
         print(f"Time to get edge validities from state validities: {time4-time3}")
@@ -287,7 +285,7 @@ class PlanarMobileArm(HolonomicRobot):
         self.theta_range = [0, 2*np.pi]
 
         self.edge_validity_delta = 0.5
-        self.angular_dims_start = 2
+        # self.angular_dims_start = 2
 
         assert (num_links > 0), "Num Links Must Be Greater Than Zero"
         
@@ -303,13 +301,13 @@ class PlanarMobileArm(HolonomicRobot):
 
         self.timing_dict = defaultdict(float)
 
-    def dist(self, state1 : AngularNumpyState, state2 : AngularNumpyState):
+    def dist(self, state1 : NumpyState, state2 : NumpyState):
         state1 = self.get_state_value(state1)
         state2 = self.get_state_value(state2)
         return np.linalg.norm(state1 - state2)
     
     def make_state(self, state : np.ndarray):
-        return AngularNumpyState(value=state, angular_dims_start=self.angular_dims_start)
+        return NumpyState(value=state)
     
     def sample_point(self):
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
@@ -806,7 +804,7 @@ class DubinsCar(NonHolonomicRobot):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    env = PlanarMobileArm(num_links=3)
+    env = PlanarMobileArm(num_links=3, arm_lengths=[1,1])
     # env = SkidSteerCar()
     # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
     # state = env.make_state(0)
