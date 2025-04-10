@@ -5,7 +5,6 @@ from collections import defaultdict
 from shapely import Polygon, Point
 import time
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from environments import CarParkingEnv, DubinsCarEnv
 from space import SkidSteerCar, DubinsCar
 from matplotlib.collections import LineCollection
 from state import NumpyState
@@ -28,7 +27,6 @@ class KinodynamicRRT(RRT):
 
 
     def expand_node(self, node, sampled_point):
-
         if self.env.dist(node.value, self.target.value) < self.goal_radius:
             new_node = self.target
             controls = self.env.make_control(np.zeros(self.env.control_dim))
@@ -90,10 +88,10 @@ if __name__ == "__main__":
     # seed = 81
     # seed = 53
     # seed = 45 # USE FOR SKID STEER CAR AND PARKING SPACE
-    # seed = 0 # WORKS FOR DUBINS CAR AND FIXED TASK
+    seed = 0 # WORKS FOR DUBINS CAR AND FIXED TASK
     # seed = 60
     # seed = 57
-    seed = 59
+    # seed = 59
     
     print(f"Setting Seed: {seed}") 
     np.random.seed(seed)
@@ -101,7 +99,7 @@ if __name__ == "__main__":
     # env = DubinsCarEnv()
     env = DubinsCar()
     # env = SkidSteerCar()
-    # env.set_obstacles(ParkingSpace())
+    env.set_obstacles(ParkingSpace())
     # start, target = env.sample_task()
     # start, target = env.sample_point(), env.sample_point()
     start, target = env.sample_valid_point(), env.sample_valid_point()
@@ -121,7 +119,7 @@ if __name__ == "__main__":
     # print(env.extend_state(state, 0.4, control)[0].value)
     # exit()
     path = rrt.search(start, target, max_steps=5000, goal_bias=0.4)
-    # path = rrt.search(start, target, max_steps=20000, goal_bias=0.1)
+    # path = rrt.search(start, target, max_steps=20000, goal_bias=0.0)
     print(len(rrt.tree))
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()

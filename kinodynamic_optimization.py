@@ -2,7 +2,6 @@ import casadi as ca
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-from environments import CarParkingEnv, DubinsCarEnv
 # Car parameters
 
 def trajectory_optimization(env, start, target):
