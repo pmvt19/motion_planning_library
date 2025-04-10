@@ -8,6 +8,7 @@ from matplotlib.collections import LineCollection
 from state import NumpyState
 from utils import smooth_path
 from rrt import RRT 
+from space import PolygonalRobot
 
 class RandomSampleGeneration(RRT):
     def __init__(self, env, num_neighbors=5, delta=0.5):
@@ -50,7 +51,8 @@ if __name__ == "__main__":
     # target = (9, 9)
     
     # env = Environment2d()
-    env = RandomSamplePassage()
+    # env = RandomSamplePassage()
+    env = PolygonalRobot()
     start, target = env.sample_task()
 
     # start = env.make_state(np.array([0,0]))
