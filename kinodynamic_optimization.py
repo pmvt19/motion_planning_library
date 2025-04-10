@@ -2,6 +2,7 @@ import casadi as ca
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+from space import DubinsCar
 # Car parameters
 
 def trajectory_optimization(env, start, target):
@@ -135,7 +136,7 @@ def trajectory_optimization(env, start, target):
 
 if __name__ == '__main__':
     # np.random.seed(0)
-    env = DubinsCarEnv()
+    env = DubinsCar()
     start, target = env.sample_task()
 
     control_seq = trajectory_optimization(env, start, target)
