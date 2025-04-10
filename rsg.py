@@ -4,8 +4,6 @@ from sklearn.neighbors import KDTree
 from collections import defaultdict
 from shapely import Polygon, Point
 import time
-from scipy.spatial import Voronoi, voronoi_plot_2d
-from environments import Environment2d, RandomSamplePassage
 from matplotlib.collections import LineCollection
 from state import NumpyState
 from utils import smooth_path

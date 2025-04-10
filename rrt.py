@@ -5,12 +5,12 @@ from collections import defaultdict
 from shapely import Polygon, Point
 import time
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from environments import Environment2d, RandomSamplePassage, OpenSpace2d, CarParkingEnv
 from space import PointRobot, PolygonalRobot, PlanarMobileArm
 from matplotlib.collections import LineCollection
 from state import NumpyState
 from utils import smooth_path
 from path import Path
+from obstacle_sets import TestSet
 
 class RRT():
     def __init__(self, env, delta=0.5):
@@ -308,7 +308,8 @@ if __name__ == "__main__":
     # seed = 5
     # seed = 25
     # seed = 6
-    seed = 66
+    # seed = 66
+    seed = 95
     print(f"Setting Seed: {seed}")
     
     np.random.seed(seed)
@@ -319,10 +320,13 @@ if __name__ == "__main__":
     # env = Environment2d()
     # env = RandomSamplePassage()
     # env = CarParkingEnv()
-    # env = PlanarMobileArm()
+
+    env = PlanarMobileArm(num_links=3)
+    env.set_obstacles(TestSet())
     # env = PointRobot()
     # env = PolygonalRobot()
-    env = PlanarMobileArm(num_links=4)
+
+    # env = PlanarMobileArm(num_links=4)
     start, target = env.sample_task()
 
     # start = env.make_state(np.array([0.0,0.0]))
@@ -335,12 +339,12 @@ if __name__ == "__main__":
     goal_bias = 0.1
 
     # rrt = RRT(env)
-    rrt = RRTStar(env)
-    # rrt = BiDirectionalRRT(env)
+    # rrt = RRTStar(env)
+    rrt = BiDirectionalRRT(env)
     # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=750, goal_bias=0.1, animate_search_tree=False)
-    path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
+    path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=3000, do_rewire=True, goal_bias=0.4, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
