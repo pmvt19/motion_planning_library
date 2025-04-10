@@ -3,6 +3,8 @@ from obstacle_sets import TestSet
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+import matplotlib.patches as patches
 from shapely import Point, Polygon
 from sklearn.metrics import pairwise_distances
 import time
@@ -144,7 +146,6 @@ class ApproximationSpace(RobotSpace):
 
     def circles_to_validity(self, obstacle_circles, robot_circles):
         B = robot_circles.shape[0]
-        # print(obstacle_circles.shape, robot_circles.shape)
         robot_xy = robot_circles[:, :, :2]
         obst_xy = obstacle_circles[:, :2]
         distance_mat = np.sqrt(np.sum(robot_xy**2, axis=2, keepdims=True) + np.sum(obst_xy**2, axis=1, keepdims=True).T + (-2 * (robot_xy @ obst_xy.T)))
@@ -172,21 +173,19 @@ class ApproximationSpace(RobotSpace):
         return stacked_validities
 
     def draw_state(self, ax, state):
-        circles = self.states_to_circles(np.array([state]))[0]
-        # print(circles.shape)
-        for i, (x, y, r) in enumerate(circles):
-            point = Point(x, y)
-            c = point.buffer(r)
-            x, y = c.exterior.xy
-            ax.fill(x, y, 'red')
+        start_time = time.time()
+        circles = self.states_to_circles(np.array([self.get_state_value(state)]))[0]
+        patch_list = [patches.Circle((x,y), (2*r)**2) for (x,y,r) in circles]
+        patch_collection = PatchCollection(patch_list, color='red')
+        ax.add_collection(patch_collection)
 
     def draw_environment(self, ax):
+        ax.set_xlim(self.space.x_range[0], self.space.x_range[1])
+        ax.set_ylim(self.space.y_range[0], self.space.y_range[1])
         circles = self.space_to_circles()
-        for i, (x, y, r) in enumerate(circles):
-            point = Point(x, y)
-            c = point.buffer(r)
-            x, y = c.exterior.xy
-            ax.fill(x, y, 'blue')
+        patch_list = [patches.Circle((x,y), (2*r)**2) for (x,y,r) in circles]
+        patch_collection = PatchCollection(patch_list, color='blue')
+        ax.add_collection(patch_collection)
     
     def sample_point(self):
         return self.space.sample_point()
