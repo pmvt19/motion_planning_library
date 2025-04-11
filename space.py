@@ -3,7 +3,7 @@ from shapely import Polygon, Point, LineString, affinity
 from state import NumpyState, AngularNumpyState
 import matplotlib.pyplot as plt
 from obstacle_sets import ObstacleSet
-from utils import create_rectangle_geometry, numpystate_distance, interpolate_SE2_edge, issue_warning, interpolate_edge
+from utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge
 import time
 from collections import defaultdict
 
@@ -13,13 +13,14 @@ class RobotSpace():
         self.obstacles = []
         self.edge_validity_delta = 0.5
 
-
         self.x_range = [-10,10]
         self.y_range = [-10,10]
         self.boundary = create_rectangle_geometry(x_loc=((self.x_range[0]+self.x_range[1])/2), 
                                                     y_loc=((self.y_range[0]+self.y_range[1])/2),
                                                     x_width=self.x_range[1]-self.x_range[0],
                                                     y_length=self.y_range[1]-self.y_range[0])
+        
+        self.angular_dims_start = None
 
     def is_valid(self, state):
         raise NotImplementedError
@@ -84,9 +85,9 @@ class RobotSpace():
         else:
             raise ValueError("Incorrect Input Type")
         
-    def get_edge_states(self, start, end):
-        raise NotImplementedError
-        
+    # def get_edge_states(self, start, end):
+    #     raise NotImplementedError
+
     def shoot_ray(self, node, sampled_point, delta):
         if node == sampled_point:
             return node
@@ -115,9 +116,6 @@ class RobotSpace():
         self.x_range = [min(x_points), max(x_points)]
         self.y_range = [min(y_points), max(y_points)]
     
-    def batch_get_edge_states(self, start_states, end_states):
-        raise NotImplementedError
-    
     def batch_is_valid(self, states : np.ndarray):
         validities = []
         for state in states:
@@ -128,22 +126,14 @@ class RobotSpace():
     def batch_is_valid_edge(self, start_states : np.ndarray, end_states : np.ndarray):
         B, d = start_states.shape
         # start_states: (B, d), end_states: (B, d)
-        time0 = time.time()
-        print("WARNING: THIS IS A HACK THAT NEEDS TO BE FIXED ASAP")
-        pts, steps = self.space.batch_get_edge_states(start_states, end_states) # points -> (B, max_steps, d), steps -> (B,)
-        time1 = time.time()
-        print(f"Time to interpolate edges: {time1-time0}")
+        pts, steps = batch_interpolate_edge(start_states, end_states, self.edge_validity_delta, self.angular_dims_start)
         pts = pts.reshape(-1, d)
-        time2 = time.time()
-        print(pts.shape)
         pt_validities = self.batch_is_valid(pts).reshape(B, -1)
-        time3 = time.time()
-        print(f"Time to get state validities for size {B}: {time3-time2}")
         edge_validities = np.array([np.all(pt_validities[i, :steps[i]]) for i in range(len(steps))])
-        time4 = time.time()
-        print(f"Time to get edge validities from state validities: {time4-time3}")
-
         return edge_validities
+    
+    def batch_sample_point(self, num_points):
+        raise NotImplementedError
         
     
 
@@ -193,16 +183,16 @@ class PointRobot(HolonomicRobot):
                 return False
         return True
     
-    def get_edge_states(self, start : np.ndarray, end : np.ndarray):
-        edge_length = np.linalg.norm(end - start)
-        dir = (end - start) / edge_length
+    # def get_edge_states(self, start : np.ndarray, end : np.ndarray):
+    #     edge_length = np.linalg.norm(end - start)
+    #     dir = (end - start) / edge_length
         
-        num_checks = int(edge_length / self.edge_validity_delta)
-        edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
-        edge_states_derivative[0] = np.zeros_like(start)
-        edge_states = np.cumsum(edge_states_derivative, axis=0) + start
-        edge_states[-1] = end
-        return edge_states
+    #     num_checks = int(edge_length / self.edge_validity_delta)
+    #     edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
+    #     edge_states_derivative[0] = np.zeros_like(start)
+    #     edge_states = np.cumsum(edge_states_derivative, axis=0) + start
+    #     edge_states[-1] = end
+    #     return edge_states
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
@@ -264,10 +254,10 @@ class PolygonalRobot(HolonomicRobot):
                 return False
         return True
     
-    def get_edge_states(self, start : np.ndarray, end : np.ndarray):
-        edge_states = interpolate_SE2_edge(start, end, self.edge_validity_delta)
-        edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
-        return edge_states
+    # def get_edge_states(self, start : np.ndarray, end : np.ndarray):
+    #     edge_states = interpolate_edge(start, end, self.edge_validity_delta)
+    #     edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
+    #     return edge_states
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
@@ -413,6 +403,7 @@ class PlanarMobileArm(HolonomicRobot):
         return robot, arms, ee 
 
     def draw_state(self, ax, state):
+        start_time = time.time()
         robot, arms, ee = self.generate_robot_representation(state)
         ax.plot(*robot.exterior.xy, color='red')
 
@@ -421,6 +412,9 @@ class PlanarMobileArm(HolonomicRobot):
         
         for ee_link in ee:
             ax.plot(*ee_link.xy, color='red')
+        
+        end_time = time.time()
+        print(f"time to draw state: {end_time-start_time}")
 
     def collides_with_self(self, robot, arms, ee):
         for i in range(len(arms)):
@@ -454,16 +448,16 @@ class PlanarMobileArm(HolonomicRobot):
 
         return True
     
-    def get_edge_states(self, start : np.ndarray, end : np.ndarray):
-        edge_length = np.linalg.norm(end - start)
-        dir = (end - start) / edge_length
+    # def get_edge_states(self, start : np.ndarray, end : np.ndarray):
+    #     edge_length = np.linalg.norm(end - start)
+    #     dir = (end - start) / edge_length
         
-        num_checks = int(edge_length / self.edge_validity_delta)
-        edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
-        edge_states_derivative[0] = np.zeros_like(start)
-        edge_states = np.cumsum(edge_states_derivative, axis=0) + start
-        edge_states[-1] = end
-        return edge_states
+    #     num_checks = int(edge_length / self.edge_validity_delta)
+    #     edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
+    #     edge_states_derivative[0] = np.zeros_like(start)
+    #     edge_states = np.cumsum(edge_states_derivative, axis=0) + start
+    #     edge_states[-1] = end
+    #     return edge_states
 
     ## ---- Batched Methods ---- ##
     def batch_forward_kinematics(self, states : np.ndarray):
@@ -489,35 +483,35 @@ class PlanarMobileArm(HolonomicRobot):
             'points' : np.empty((0, 2)),
         }
     
-    def batch_get_edge_states(self, start_states : np.ndarray, end_states : np.ndarray):
-        """
-        This function will be generalized to utils as it is not specific to this robot space
-        """
-        # (B, d), # (B, d)
-        B, d  = start_states.shape
-        print(end_states.shape, start_states.shape)
-        vecs = (end_states - start_states)
-        print(vecs.shape)
-        lengths = np.linalg.norm(vecs, axis=1)
-        print(lengths)
-        normalized_vecs = vecs / lengths.reshape(-1, 1) # TODO: Probably need to reshape # (B, d)
+    # def batch_get_edge_states(self, start_states : np.ndarray, end_states : np.ndarray):
+    #     """
+    #     This function will be generalized to utils as it is not specific to this robot space
+    #     """
+    #     # (B, d), # (B, d)
+    #     B, d  = start_states.shape
+    #     print(end_states.shape, start_states.shape)
+    #     vecs = (end_states - start_states)
+    #     print(vecs.shape)
+    #     lengths = np.linalg.norm(vecs, axis=1)
+    #     print(lengths)
+    #     normalized_vecs = vecs / lengths.reshape(-1, 1) # TODO: Probably need to reshape # (B, d)
         
-        # num_checks = int(edge_length / self.edge_validity_delta)
+    #     # num_checks = int(edge_length / self.edge_validity_delta)
 
-        num_steps = np.ceil((lengths / self.edge_validity_delta) + 1).astype(np.int32)
-        print(num_steps, 'steps')
-        max_steps = np.max(num_steps).astype(np.int32)
-        print(max_steps, 'max steps')
+    #     num_steps = np.ceil((lengths / self.edge_validity_delta) + 1).astype(np.int32)
+    #     print(num_steps, 'steps')
+    #     max_steps = np.max(num_steps).astype(np.int32)
+    #     print(max_steps, 'max steps')
 
-        # WARNING: TILE MAY NOT WORK
-        # edge_states_derivative = np.tile(normalized_vecs * self.edge_validity_delta, (max_steps)) # (B, max_steps, d)
-        normalized_vecs = normalized_vecs.reshape(-1, 1, d) # Reshape normalized vectors for repeating function
-        edge_states_derivative = np.repeat(normalized_vecs * self.edge_validity_delta, (max_steps), axis=1) # (B, max_steps, d)
-        edge_states_derivative[:,0,:] = 0
-        edge_states = np.cumsum(edge_states_derivative, axis=1) + start_states.reshape(-1, 1, d) # (B, max_steps, d) + (B,1,d)
-        edge_states[np.arange(B), (num_steps-1), :] = end_states
-        # padded_num_steps = np.hstack((0, num_steps)) # Padding to make it easier to index the results later
-        return edge_states, num_steps
+    #     # WARNING: TILE MAY NOT WORK
+    #     # edge_states_derivative = np.tile(normalized_vecs * self.edge_validity_delta, (max_steps)) # (B, max_steps, d)
+    #     normalized_vecs = normalized_vecs.reshape(-1, 1, d) # Reshape normalized vectors for repeating function
+    #     edge_states_derivative = np.repeat(normalized_vecs * self.edge_validity_delta, (max_steps), axis=1) # (B, max_steps, d)
+    #     edge_states_derivative[:,0,:] = 0
+    #     edge_states = np.cumsum(edge_states_derivative, axis=1) + start_states.reshape(-1, 1, d) # (B, max_steps, d) + (B,1,d)
+    #     edge_states[np.arange(B), (num_steps-1), :] = end_states
+    #     # padded_num_steps = np.hstack((0, num_steps)) # Padding to make it easier to index the results later
+    #     return edge_states, num_steps
 
     # def batch_is_valid(self, states: np.ndarray):
     #     raise NotImplementedError
@@ -654,10 +648,10 @@ class SkidSteerCar(NonHolonomicRobot):
                 ])
         return x_dot
     
-    def get_edge_states(self, start, end):
-        edge_states = interpolate_SE2_edge(start, end, self.edge_validity_delta)
-        edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
-        return edge_states
+    # def get_edge_states(self, start, end):
+    #     edge_states = interpolate_SE2_edge(start, end, self.edge_validity_delta)
+    #     edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
+    #     return edge_states
 
 
 class DubinsCar(NonHolonomicRobot):
