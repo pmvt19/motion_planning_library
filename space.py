@@ -2,8 +2,9 @@ import numpy as np
 from shapely import Polygon, Point, LineString, affinity
 from state import NumpyState, AngularNumpyState
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 from obstacle_sets import ObstacleSet
-from utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge
+from utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge, rad2deg
 import time
 from collections import defaultdict
 
@@ -458,7 +459,75 @@ class PlanarMobileArm(HolonomicRobot):
             'segments' : segments, 
             'points' : np.empty((0, 2)),
         }
+
+class FixedArm(HolonomicRobot):
+    def __init__(self):
+        super().__init__()
+        self.angular_dims_start = 0
+        self.edge_validity_delta = 0.5
+        self.arm_link_lengths = np.array([2, 2, 2, 2])
+        self.num_links = len(self.arm_link_lengths)
+        self.arm_width = 0.1
+
+    def dist(self, state1, state2):
+        return numpystate_distance(state1, state2)
     
+    def sample_point(self):
+        thetas = np.random.uniform(low=np.zeros(self.num_links), high=np.ones(self.num_links)*(2*np.pi), size=(self.num_links,))
+        return self.make_state(thetas)
+    
+    def make_state(self, state):
+        return AngularNumpyState(value=state, angular_dims_start=self.angular_dims_start)
+    
+    def generate_robot_representation(self, state):
+        end_points = self.forward_kinematics(state)
+        lines = []
+        for i in range(len(end_points)-1):
+            line = LineString([end_points[i], end_points[i+1]])
+            lines.append(line)
+        return lines
+        # return end_points
+
+    def is_self_colliding(self, state):
+        lines = self.generate_robot_representation(state)
+        for i in range(len(lines)):
+            for j in range(i+2, len(lines)):
+                if lines[i].intersects(lines[j]):
+                    return True
+        return False
+    
+    def is_valid(self, state):
+        self.num_collision_checks += 1
+        lines = self.generate_robot_representation(state)
+
+        if self.is_self_colliding(state):
+            return False
+        
+        for obs in self.obstacles:
+            for line in lines:
+                if obs.intersects(line):
+                    return False
+    
+        return True
+    
+    def forward_kinematics(self, state):
+        thetas = self.get_state_value(state)
+
+        cum_thetas = np.cumsum(thetas)
+        cos_vals = np.cos(cum_thetas)
+        sin_vals = np.sin(cum_thetas)
+
+        uncoordinated_points = np.stack((cos_vals, sin_vals), axis=1) * self.arm_link_lengths.reshape(-1, 1)
+        uncoordinated_points = np.vstack((np.zeros(2), uncoordinated_points))
+        end_points = np.cumsum(uncoordinated_points, axis=0)
+        return end_points
+    
+    def draw_state(self, ax, state):
+        lines = self.generate_robot_representation(state)
+        for line in lines:
+            ax.plot(*line.xy, color='blue')
+
+
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
         super().__init__()
@@ -732,7 +801,8 @@ class DubinsCar(NonHolonomicRobot):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    env = PlanarMobileArm(num_links=3, arm_lengths=[1,1])
+    # env = PlanarMobileArm(num_links=3, arm_lengths=[1,1])
+    env = FixedArm()
     # env = SkidSteerCar()
     # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
     # state = env.make_state(0)
@@ -746,28 +816,33 @@ if __name__ == '__main__':
     state1 = env.sample_point()
     state2 = env.sample_point()
 
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state1)
+    env.draw_state(plt.gca(), state2)
+    plt.show()
+
     # env.draw_environment(plt.gca())
     # env.draw_state(plt.gca(), state1)
     # env.draw_state(plt.gca(), state2)
     # plt.show()
 
-    states = np.array([state1.value, state2.value])
+    # states = np.array([state1.value, state2.value])
     # print(env.batch_forward_kinematics(states))
 
 
-    states = [env.sample_point() for _ in range(100000)]
-    start_time = time.time()
-    for state in states:
-        env.forward_kinematics(state)
-    end_time = time.time()
-    print("Unbatched Forward Kinematics Time:", end_time-start_time)
+    # states = [env.sample_point() for _ in range(100000)]
+    # start_time = time.time()
+    # for state in states:
+    #     env.forward_kinematics(state)
+    # end_time = time.time()
+    # print("Unbatched Forward Kinematics Time:", end_time-start_time)
 
-    start_time = time.time()
-    states = np.array([state.value for state in states])
-    env.batch_forward_kinematics(states)
-    end_time = time.time()
+    # start_time = time.time()
+    # states = np.array([state.value for state in states])
+    # env.batch_forward_kinematics(states)
+    # end_time = time.time()
 
-    print("Batched Forward Kinematics Time:", end_time-start_time)
+    # print("Batched Forward Kinematics Time:", end_time-start_time)
 
     # start, target = env.sample_task()
     # print(start.value, target.value)
