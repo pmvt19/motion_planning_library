@@ -108,31 +108,6 @@ def numpystate_distance(state1, state2):
     else:
         raise ValueError("Mismatched Types inputed or incorrect angular dims start")
 
-# def interpolate_angular_edge(start, end, delta):
-#     zero_mask = np.isclose(start, end)
-#     if np.all(zero_mask):
-#         vec = np.zeros_like(start)
-#     else:
-#         # if the angular distance does not match the absolute value of the difference then we wrap around...
-#         dist = angular_distance(start, end)
-#         diff = (end - start)
-#         matched = 2*np.isclose(dist, np.abs(diff)) - 1.0
-#         vec = matched * dist * diff/(np.abs(diff) + zero_mask*0.1**4)
-#         vec /= np.linalg.norm(vec) # if we don't normalize then it splits every edge into equal number of pieces
-    
-#     # starting at c1 we move in increments of delta towards c2
-#     pts = [np.copy(start)]
-#     curr = np.copy(start) # NOTE: copy important to avoid changing original input
-#     while True:
-#         if np.linalg.norm(angular_distance(curr, end)) <= delta:
-#             break
-#         curr = (curr + vec*delta) % (2 * np.pi)
-#         pts.append(np.copy(curr))
-    
-#     if not np.all(np.isclose(curr, end)):
-#         pts.append(np.copy(end))
-#     return np.array(pts)
-
 def interpolate_path(path : Path, delta : float):
     interpolated_path = []
     for i in range(len(path)-1):
