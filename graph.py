@@ -10,6 +10,7 @@ class Graph():
         self.num_neighbors=num_neighbors
         self.max_edge_dist = max_edge_dist
         self.connect_edges()
+        # self.connect_edges_radius()
 
         self.vertex_to_idx = {tuple(v):i for i, v in enumerate(self.vertices)}
 
@@ -19,6 +20,11 @@ class Graph():
         if self.max_edge_dist:
             ind[dists > self.max_edge_dist] = -1
         self.edges = ind[:, 1:]
+
+    def connect_edges_radius(self):
+        self.kdt = KDTree(self.vertices)
+        ind = self.kdt.query_radius(self.vertices, r=1.1)
+        self.edges = ind
     
     def draw(self, ax):
         ax.scatter(self.vertices[:, 0], self.vertices[:, 1])
@@ -30,6 +36,7 @@ class Graph():
         self.vertex_to_idx[tuple(vertex)] = len(self.vertices)
         self.vertices = np.vstack((self.vertices, vertex))
         self.connect_edges()
+        # self.connect_edges_radius()
 
     def backtrack(self, visited, end):
         path_idxs = []
