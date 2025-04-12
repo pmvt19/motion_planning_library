@@ -16,6 +16,8 @@ class ApproximationSpace(RobotSpace):
         self.do_overapproximation = do_overapproximation
         self.batch_size = batch_size
         self.obstacle_circles = self.space_to_circles()
+    def dist(self, state1, state2):
+        return self.space.dist(state1, state2)
     
     def obstacles_to_aabb(self, obstacles):
         aabbs = []
@@ -32,13 +34,15 @@ class ApproximationSpace(RobotSpace):
     def space_to_circles(self):
         aabbs = self.obstacles_to_aabb(self.space.obstacles)
         obst_circles = self.rectangles_to_circles(aabbs)
+        self.optimized_rectangle_to_circles(aabbs)
         return obst_circles
     
     def states_to_circles(self, states):
         # States : (B, d)
         representations = self.space.batch_get_robot_representations(states)
         B, *_ = states.shape
-        rect_circles = self.rectangles_to_circles(representations['rectangles']).reshape(B, -1, 3)
+        # rect_circles = self.rectangles_to_circles(representations['rectangles']).reshape(B, -1, 3)
+        rect_circles = self.optimized_rectangle_to_circles(representations['rectangles']).reshape(B, -1, 3)
         seg_circles = self.segments_to_circles(representations['segments'], 0.1).reshape(B, -1, 3)
         point_circles = self.points_to_circles(representations['points']).reshape(B, -1, 3)
         state_circles = np.concatenate((rect_circles, seg_circles, point_circles), axis=1)
@@ -94,13 +98,55 @@ class ApproximationSpace(RobotSpace):
         circles = np.array(circles)
         return circles
     
-    def segments_to_circles(self, segments : np.ndarray, radius : float):
+    def optimized_rectangle_to_circles(self, aa_rect):
+        # aa_rect : (B, 4) -> (x, y, w, h) where x and y is the center of the rectangle
+        # print(aa_rect.shape, 'here', aa_rect[:, 2:].shape)
+        min_dims = np.argmin(aa_rect[:, 2:], axis=1)
+        vert_rect = aa_rect[min_dims == 0]
+        xs = vert_rect[:, 0] # (V,)
+        min_ys = vert_rect[:, 1] - vert_rect[:, 3]/2 # (V,)
+        max_ys = vert_rect[:, 1] + vert_rect[:, 3]/2 # (V,)
+        vert_radii = vert_rect[:, 2].reshape(-1, 1) # radii # (V,1)
+
+        vert_starts = np.stack((xs, min_ys), axis=1) # (V,2)
+        vert_ends = np.stack((xs, max_ys), axis=1) # (V,2)
+        vert_segments = np.stack((vert_starts, vert_ends), axis=2).transpose(0, 2, 1) # (V,2,2)
+        # print(vert_segments)
+
+
+        # exit()
+
+        # (V, 2, 2)
+
+        horiz_rect = aa_rect[min_dims == 1]
+        # print(horiz_rect)
+        min_xs = horiz_rect[:, 0] - horiz_rect[:, 2]/2
+        max_xs = horiz_rect[:, 0] + horiz_rect[:, 2]/2
+        ys = horiz_rect[:, 1]
+        horiz_radii = horiz_rect[:, 3].reshape(-1, 1)
+        horiz_starts = np.stack((min_xs, ys), axis=1)
+        horiz_ends = np.stack((max_xs, ys), axis=1)
+        horiz_segments = np.stack((horiz_starts, horiz_ends), axis=2).transpose(0, 2, 1)
+        # print(horiz_segments)
+
+        segments = np.concatenate((vert_segments, horiz_segments), axis=0)
+        radii = np.concatenate((vert_radii, horiz_radii), axis=0)
+        return self.segments_to_circles(segments, radii)
+        # exit()
+        
+
+
+    def segments_to_circles(self, segments : np.ndarray, radius):
         """
             B : Number of entries in the batch
             2 : This value is fixed at two since a segment must have only 2 end points
             2 : Dimension of the segment
         """
+
         # segments : (B, 2, 2)
+        B, *_ = segments.shape
+        if B == 0:
+            return np.empty((0, 3))
 
         start_points = segments[:, 0, :] # (B, 2)
         end_points = segments[:, 1, :] # (B, 2)
@@ -127,7 +173,11 @@ class ApproximationSpace(RobotSpace):
 
         trajectories = np.cumsum(repeated_rays, axis=1) + circle_start_points.reshape(-1, 1, 2)
 
-        shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius
+        if isinstance(radius, float):
+            shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius
+        elif isinstance(radius, np.ndarray):
+            shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius.reshape(-1, 1, 1)
+
         circle_center_radius_pairs = np.concatenate((trajectories, shaped_radius), axis=2)
 
         if num_distinct_segment_lengths == 1:
@@ -161,7 +211,7 @@ class ApproximationSpace(RobotSpace):
     def batch_is_valid(self, states):
         robot_circles = self.states_to_circles(states)
         B = robot_circles.shape[0]
-
+        self.num_collision_checks += B
         stacked_validities = []
         num_batches = math.ceil(B / self.batch_size)
         for i in range(num_batches):
@@ -175,7 +225,7 @@ class ApproximationSpace(RobotSpace):
     def draw_state(self, ax, state):
         start_time = time.time()
         circles = self.states_to_circles(np.array([self.get_state_value(state)]))[0]
-        patch_list = [patches.Circle((x,y), (2*r)**2) for (x,y,r) in circles]
+        patch_list = [patches.Circle((x,y), r) for (x,y,r) in circles]
         patch_collection = PatchCollection(patch_list, color='red')
         ax.add_collection(patch_collection)
 
@@ -183,7 +233,8 @@ class ApproximationSpace(RobotSpace):
         ax.set_xlim(self.space.x_range[0], self.space.x_range[1])
         ax.set_ylim(self.space.y_range[0], self.space.y_range[1])
         circles = self.space_to_circles()
-        patch_list = [patches.Circle((x,y), (2*r)**2) for (x,y,r) in circles]
+
+        patch_list = [patches.Circle((x,y), r) for (x,y,r) in circles]
         patch_collection = PatchCollection(patch_list, color='blue')
         ax.add_collection(patch_collection)
     
