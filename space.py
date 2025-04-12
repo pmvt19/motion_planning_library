@@ -84,9 +84,6 @@ class RobotSpace():
             return state
         else:
             raise ValueError("Incorrect Input Type")
-        
-    # def get_edge_states(self, start, end):
-    #     raise NotImplementedError
 
     def shoot_ray(self, node, sampled_point, delta):
         if node == sampled_point:
@@ -99,7 +96,7 @@ class RobotSpace():
         extension_dist = np.random.uniform(low=0, high=delta)
         
         target_position = node + dir * extension_dist
-        edge_states = self.get_edge_states(node, target_position)
+        edge_states = interpolate_edge(self.make_state(node), self.make_state(target_position), self.edge_validity_delta)
         prev_state = node 
         for state in edge_states[1:]:
             if not self.is_valid(state):
@@ -111,7 +108,6 @@ class RobotSpace():
         self.obstacles = obstacle_set.obstacles
         self.boundary = obstacle_set.boundary
 
-        # print(self.boundary.exterior.xy)
         x_points, y_points = self.boundary.exterior.xy
         self.x_range = [min(x_points), max(x_points)]
         self.y_range = [min(y_points), max(y_points)]
@@ -182,21 +178,20 @@ class PointRobot(HolonomicRobot):
             if obs.intersects(robot):
                 return False
         return True
-    
-    # def get_edge_states(self, start : np.ndarray, end : np.ndarray):
-    #     edge_length = np.linalg.norm(end - start)
-    #     dir = (end - start) / edge_length
-        
-    #     num_checks = int(edge_length / self.edge_validity_delta)
-    #     edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
-    #     edge_states_derivative[0] = np.zeros_like(start)
-    #     edge_states = np.cumsum(edge_states_derivative, axis=0) + start
-    #     edge_states[-1] = end
-    #     return edge_states
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
         ax.scatter(*robot.xy, color='red')
+
+    ## ---- Batched Methods ---- ##
+
+    def batch_get_robot_representations(self, states : np.ndarray):
+        # states # (B, 2)
+        return {
+            'rectangles' : np.empty((0, 4)),
+            'segments' : np.empty((0, 2, 2)), 
+            'points' : states,
+        }
 
 class PolygonalRobot(HolonomicRobot):
     def __init__(self):
@@ -214,9 +209,7 @@ class PolygonalRobot(HolonomicRobot):
         self.robot_width = 1
         self.robot_length = 5
 
-        self.obstacles = [
-            create_rectangle_geometry(0, 0, 5, 5)
-        ]
+        self.obstacles = []
 
         self.do_boundary_check = True
 
@@ -253,11 +246,6 @@ class PolygonalRobot(HolonomicRobot):
             if obs.intersects(robot):
                 return False
         return True
-    
-    # def get_edge_states(self, start : np.ndarray, end : np.ndarray):
-    #     edge_states = interpolate_edge(start, end, self.edge_validity_delta)
-    #     edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
-    #     return edge_states
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
@@ -275,7 +263,6 @@ class PlanarMobileArm(HolonomicRobot):
         self.theta_range = [0, 2*np.pi]
 
         self.edge_validity_delta = 0.5
-        # self.angular_dims_start = 2
 
         assert (num_links > 0), "Num Links Must Be Greater Than Zero"
         
@@ -447,17 +434,6 @@ class PlanarMobileArm(HolonomicRobot):
         self.obstacle_check_time += (time.time() - start_time)
 
         return True
-    
-    # def get_edge_states(self, start : np.ndarray, end : np.ndarray):
-    #     edge_length = np.linalg.norm(end - start)
-    #     dir = (end - start) / edge_length
-        
-    #     num_checks = int(edge_length / self.edge_validity_delta)
-    #     edge_states_derivative = np.tile(dir * self.edge_validity_delta, (num_checks+2, 1))
-    #     edge_states_derivative[0] = np.zeros_like(start)
-    #     edge_states = np.cumsum(edge_states_derivative, axis=0) + start
-    #     edge_states[-1] = end
-    #     return edge_states
 
     ## ---- Batched Methods ---- ##
     def batch_forward_kinematics(self, states : np.ndarray):
@@ -482,42 +458,6 @@ class PlanarMobileArm(HolonomicRobot):
             'segments' : segments, 
             'points' : np.empty((0, 2)),
         }
-    
-    # def batch_get_edge_states(self, start_states : np.ndarray, end_states : np.ndarray):
-    #     """
-    #     This function will be generalized to utils as it is not specific to this robot space
-    #     """
-    #     # (B, d), # (B, d)
-    #     B, d  = start_states.shape
-    #     print(end_states.shape, start_states.shape)
-    #     vecs = (end_states - start_states)
-    #     print(vecs.shape)
-    #     lengths = np.linalg.norm(vecs, axis=1)
-    #     print(lengths)
-    #     normalized_vecs = vecs / lengths.reshape(-1, 1) # TODO: Probably need to reshape # (B, d)
-        
-    #     # num_checks = int(edge_length / self.edge_validity_delta)
-
-    #     num_steps = np.ceil((lengths / self.edge_validity_delta) + 1).astype(np.int32)
-    #     print(num_steps, 'steps')
-    #     max_steps = np.max(num_steps).astype(np.int32)
-    #     print(max_steps, 'max steps')
-
-    #     # WARNING: TILE MAY NOT WORK
-    #     # edge_states_derivative = np.tile(normalized_vecs * self.edge_validity_delta, (max_steps)) # (B, max_steps, d)
-    #     normalized_vecs = normalized_vecs.reshape(-1, 1, d) # Reshape normalized vectors for repeating function
-    #     edge_states_derivative = np.repeat(normalized_vecs * self.edge_validity_delta, (max_steps), axis=1) # (B, max_steps, d)
-    #     edge_states_derivative[:,0,:] = 0
-    #     edge_states = np.cumsum(edge_states_derivative, axis=1) + start_states.reshape(-1, 1, d) # (B, max_steps, d) + (B,1,d)
-    #     edge_states[np.arange(B), (num_steps-1), :] = end_states
-    #     # padded_num_steps = np.hstack((0, num_steps)) # Padding to make it easier to index the results later
-    #     return edge_states, num_steps
-
-    # def batch_is_valid(self, states: np.ndarray):
-    #     raise NotImplementedError
-    
-    # def batch_is_valid_edge(self, start_states : np.ndarray, end_states : np.ndarray):
-    #     raise NotImplementedError
     
 class NonHolonomicRobot(RobotSpace):
     def __init__(self):
@@ -647,12 +587,6 @@ class SkidSteerCar(NonHolonomicRobot):
                     delta * self.dt,
                 ])
         return x_dot
-    
-    # def get_edge_states(self, start, end):
-    #     edge_states = interpolate_SE2_edge(start, end, self.edge_validity_delta)
-    #     edge_states[:, 2] = edge_states[:, 2] % (2*np.pi)
-    #     return edge_states
-
 
 class DubinsCar(NonHolonomicRobot):
     def __init__(self):
