@@ -3,10 +3,11 @@ from shapely import Polygon, Point, LineString, affinity
 from state import NumpyState, AngularNumpyState
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
-from obstacle_sets import ObstacleSet
+from obstacle_sets import ObstacleSet, ParkingSpace
 from utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge, rad2deg
 import time
 from collections import defaultdict
+from sklearn.metrics import pairwise_distances
 
 class RobotSpace():
     def __init__(self):
@@ -436,8 +437,48 @@ class PlanarMobileArm(HolonomicRobot):
 
         return True
 
+    def inverse_kinematics(self, target_ee_position):
+        # NEED TO UPDATE TO STOP SAMPLING FROM A RANDOM POINT
+        q = self.sample_valid_point().value
+
+        # q_start = np.array([self.sample_valid_point().value for _ in range(10000)])
+
+        d = q.shape[0]
+
+        num_steps = 1000
+        sample_size = 10
+
+        scale = 0.1
+        tolerance = 0.1
+
+        # q_start = np.full((sample_size, d), )
+
+        for i in range(num_steps):
+            noise = np.random.normal(scale=scale, size=(sample_size, d))
+            q_near = q.reshape(1, -1) + noise
+            # validities = np.array([self.is_valid(self.make_state(q_val)) for q_val in q_near])
+            # q_near = q_near[validities]
+
+            positions = self.batch_forward_kinematics(q_near)
+            ee_positions = positions[:, 3, :]
+
+            dist_mat = pairwise_distances(target_ee_position.reshape(1, -1), ee_positions)
+            dist_array = dist_mat[0]
+            best_idx = np.argmin(dist_array)
+            error = np.min(dist_array)
+            q = q_near[best_idx]
+
+            if error < tolerance:
+                return self.make_state(q)
+
+            # scale = scale * 0.99
+
+        # return self.make_state(q)
+        return None
+
     ## ---- Batched Methods ---- ##
     def batch_forward_kinematics(self, states : np.ndarray):
+        states = np.copy(states)
         states[:, 3:] -= np.pi # Hack to treat angles properly
         arm_bases = np.vstack((states[:, 0], states[:, 1] + self.base_length/2)).T # (B, 2)
         link_thetas = np.cumsum(states[:, 2:], axis=1) # (B, num_links)
@@ -801,8 +842,8 @@ class DubinsCar(NonHolonomicRobot):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    # env = PlanarMobileArm(num_links=3, arm_lengths=[1,1])
-    env = FixedArm()
+    env = PlanarMobileArm(num_links=3)
+    # env = FixedArm()
     # env = SkidSteerCar()
     # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
     # state = env.make_state(0)
@@ -812,14 +853,28 @@ if __name__ == '__main__':
     # env.draw_environment(plt.gca())
     # env.draw_state(plt.gca(), state)
     # plt.show()
+    env.set_obstacles(ParkingSpace())
 
     state1 = env.sample_point()
     state2 = env.sample_point()
 
+    ik_state = env.inverse_kinematics(np.array([3.0,2.5]))
+
     env.draw_environment(plt.gca())
-    env.draw_state(plt.gca(), state1)
-    env.draw_state(plt.gca(), state2)
+    # env.draw_state(plt.gca(), state1)
+    env.draw_state(plt.gca(), ik_state)
     plt.show()
+
+    # print(env.forward_kinematics(ik_state))
+    # print(env.batch_forward_kinematics(np.array([ik_state.value])))
+    # print(ik_state.value)
+    
+    
+
+    # env.draw_environment(plt.gca())
+    # env.draw_state(plt.gca(), state1)
+    # env.draw_state(plt.gca(), state2)
+    # plt.show()
 
     # env.draw_environment(plt.gca())
     # env.draw_state(plt.gca(), state1)
