@@ -139,9 +139,12 @@ class HolonomicRobot(RobotSpace):
     def __init__(self):
         super().__init__()
     
-    def sample_task(self):
-        start = self.sample_valid_point()
-        target = self.sample_valid_point()
+    def sample_task(self, task_type='random'):
+        if task_type == 'random':
+            start = self.sample_valid_point()
+            target = self.sample_valid_point()
+        elif task_type == 'structured':
+            raise NotImplementedError
         return start, target
 
 class PointRobot(HolonomicRobot):
@@ -392,7 +395,6 @@ class PlanarMobileArm(HolonomicRobot):
         return robot, arms, ee 
 
     def draw_state(self, ax, state):
-        start_time = time.time()
         robot, arms, ee = self.generate_robot_representation(state)
         ax.plot(*robot.exterior.xy, color='red')
 
@@ -401,9 +403,6 @@ class PlanarMobileArm(HolonomicRobot):
         
         for ee_link in ee:
             ax.plot(*ee_link.xy, color='red')
-        
-        end_time = time.time()
-        print(f"time to draw state: {end_time-start_time}")
 
     def collides_with_self(self, robot, arms, ee):
         for i in range(len(arms)):
