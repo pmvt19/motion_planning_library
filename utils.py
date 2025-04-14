@@ -113,3 +113,6 @@ def interpolate_path(path : Path, delta : float):
     for i in range(len(path)-1):
         interpolated_path.extend(interpolate_edge(path[i], path[i+1], delta))
     return Path(interpolated_path)
+
+def rad2deg(rad):
+    return rad * (180/np.pi)
