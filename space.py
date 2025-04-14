@@ -475,6 +475,22 @@ class PlanarMobileArm(HolonomicRobot):
         # return self.make_state(q)
         return None
 
+    def batch_sample_point(self, num_points):
+        issue_warning(True, "Batch Sample Points is hardcoded for planar mobile arm", 'warning')
+        return np.random.uniform(low=np.array([-10,-10,0,0,0]), high=np.array([10,10,2*np.pi,2*np.pi,2*np.pi]), size=(num_points, 5))
+
+    def sample_configs_ee_target(self, target_ee_position):
+        tolerance = 0.1
+        # q_start = np.array([self.sample_valid_point().value for _ in range(20000)])
+        q_start = self.batch_sample_point(100000)
+        positions = self.batch_forward_kinematics(q_start)
+        ee_positions = positions[:, 3, :]
+        dist_mat = pairwise_distances(target_ee_position.reshape(1, -1), ee_positions)
+        dist_array = dist_mat[0]
+        mask = dist_array < tolerance
+        final_qs = q_start[mask]
+        return final_qs
+
     ## ---- Batched Methods ---- ##
     def batch_forward_kinematics(self, states : np.ndarray):
         states = np.copy(states)
@@ -578,8 +594,9 @@ class NonHolonomicRobot(RobotSpace):
         raise NotImplementedError
     def state_derivative(self, state, control):
         raise NotImplementedError
-
-    # TODO: Implement these functions here
+    def sample_controls(self):
+        raise NotImplementedError
+    
     def simulate(self, starting_state: NumpyState, control_seq: list):
         state = starting_state
         state_seqs = [state]
@@ -696,6 +713,18 @@ class SkidSteerCar(NonHolonomicRobot):
                     delta * self.dt,
                 ])
         return x_dot
+
+    def input_to_control(self, inputs):
+        # Inputs : [0, 0, 0, 0]
+        left, right, up, down = inputs
+        if left:
+            return self.make_control(np.array([0, self.delta_range[0]]))
+        if right:
+            return self.make_control(np.array([0, self.delta_range[1]]))
+        if up:
+            return self.make_control(np.array([self.velocity_range[0], 0]))
+        if down:
+            return self.make_control(np.array([self.velocity_range[1], 0]))
 
 class DubinsCar(NonHolonomicRobot):
     def __init__(self):
@@ -857,11 +886,16 @@ if __name__ == '__main__':
     state1 = env.sample_point()
     state2 = env.sample_point()
 
-    ik_state = env.inverse_kinematics(np.array([3.0,2.5]))
+    # ik_state = env.inverse_kinematics(np.array([3.0,2.5]))
+    sampled_states = env.sample_configs_ee_target(np.array([3.0, 2.5]))
+    # ik_state = env.make_state(sampled_states[0])
+    # print()
 
     env.draw_environment(plt.gca())
     # env.draw_state(plt.gca(), state1)
-    env.draw_state(plt.gca(), ik_state)
+    # env.draw_state(plt.gca(), ik_state)
+    for state in sampled_states:
+        env.draw_state(plt.gca(), env.make_state(state))
     plt.show()
 
     # print(env.forward_kinematics(ik_state))
