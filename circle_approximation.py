@@ -33,8 +33,8 @@ class ApproximationSpace(RobotSpace):
 
     def space_to_circles(self):
         aabbs = self.obstacles_to_aabb(self.space.obstacles)
-        obst_circles = self.rectangles_to_circles(aabbs)
-        self.optimized_rectangle_to_circles(aabbs)
+        # obst_circles = self.rectangles_to_circles(aabbs)
+        obst_circles = self.optimized_rectangle_to_circles(aabbs)
         return obst_circles
     
     def states_to_circles(self, states):
@@ -100,7 +100,6 @@ class ApproximationSpace(RobotSpace):
     
     def optimized_rectangle_to_circles(self, aa_rect):
         # aa_rect : (B, 4) -> (x, y, w, h) where x and y is the center of the rectangle
-        # print(aa_rect.shape, 'here', aa_rect[:, 2:].shape)
         min_dims = np.argmin(aa_rect[:, 2:], axis=1)
         vert_rect = aa_rect[min_dims == 0]
         xs = vert_rect[:, 0] # (V,)
@@ -111,15 +110,8 @@ class ApproximationSpace(RobotSpace):
         vert_starts = np.stack((xs, min_ys), axis=1) # (V,2)
         vert_ends = np.stack((xs, max_ys), axis=1) # (V,2)
         vert_segments = np.stack((vert_starts, vert_ends), axis=2).transpose(0, 2, 1) # (V,2,2)
-        # print(vert_segments)
-
-
-        # exit()
-
-        # (V, 2, 2)
 
         horiz_rect = aa_rect[min_dims == 1]
-        # print(horiz_rect)
         min_xs = horiz_rect[:, 0] - horiz_rect[:, 2]/2
         max_xs = horiz_rect[:, 0] + horiz_rect[:, 2]/2
         ys = horiz_rect[:, 1]
@@ -127,14 +119,13 @@ class ApproximationSpace(RobotSpace):
         horiz_starts = np.stack((min_xs, ys), axis=1)
         horiz_ends = np.stack((max_xs, ys), axis=1)
         horiz_segments = np.stack((horiz_starts, horiz_ends), axis=2).transpose(0, 2, 1)
-        # print(horiz_segments)
 
         segments = np.concatenate((vert_segments, horiz_segments), axis=0)
-        radii = np.concatenate((vert_radii, horiz_radii), axis=0)
-        return self.segments_to_circles(segments, radii)
-        # exit()
-        
-
+        radii = np.concatenate((vert_radii, horiz_radii), axis=0) / 2
+        circles = self.segments_to_circles(segments, radii)
+        if self.do_overapproximation:
+            circles[:, 2] = circles[:, 2] * math.sqrt(2)
+        return circles
 
     def segments_to_circles(self, segments : np.ndarray, radius):
         """
@@ -155,8 +146,9 @@ class ApproximationSpace(RobotSpace):
         segment_lengths = np.linalg.norm(batch_rays, axis=1).reshape(-1, 1) # (B,1)
 
         num_distinct_segment_lengths = len(np.unique(np.round(segment_lengths, 10)))
+        # print(radius, segment_lengths, 'here')
         # assert len(np.unique(np.round(segment_lengths, 10))) == 1, "All Segments currently must have the same length"
-        assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
+        # assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
         batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
         modified_segment_lengths = segment_lengths - (2*radius)
 
