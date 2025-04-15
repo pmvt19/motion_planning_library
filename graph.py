@@ -3,40 +3,62 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from heapq import heappush, heappop
+from collections import defaultdict
+import time
 
 class Graph():
-    def __init__(self, vertices, num_neighbors=5, max_edge_dist=None):
+    def __init__(self, vertices, num_neighbors=None, edge_dist_radius=None):
         self.vertices = vertices
-        self.num_neighbors=num_neighbors
-        self.max_edge_dist = max_edge_dist
-        self.connect_edges()
-        # self.connect_edges_radius()
+        self.num_neighbors = num_neighbors
+        self.edge_dist_radius = edge_dist_radius
 
+        if self.num_neighbors is not None:
+            self.connection_strategy = 'knn'
+        elif self.edge_dist_radius is not None:
+            self.connection_strategy = 'r_neighborhood'
+        else:
+            raise ValueError("Must Specify num_neighbors or edge_dist_radius")
+        print(f"Connecting Edges Using {self.connection_strategy} strategy")
+        self.connect_edges()
         self.vertex_to_idx = {tuple(v):i for i, v in enumerate(self.vertices)}
+
+    def get_node_connections(self, vertices):
+        if self.connection_strategy == 'knn':
+            ind = self.kdt.query(vertices, k=self.num_neighbors+1, return_distance=False)
+        elif self.connection_strategy == 'r_neighborhood':
+            ind = self.kdt.query_radius(vertices, r=self.edge_dist_radius)
+        return ind
 
     def connect_edges(self):
         self.kdt = KDTree(self.vertices)
-        dists, ind = self.kdt.query(self.vertices, k=self.num_neighbors+1)
-        if self.max_edge_dist:
-            ind[dists > self.max_edge_dist] = -1
-        self.edges = ind[:, 1:]
+        ind = self.get_node_connections(self.vertices)
 
-    def connect_edges_radius(self):
-        self.kdt = KDTree(self.vertices)
-        ind = self.kdt.query_radius(self.vertices, r=1.1)
-        self.edges = ind
+        self.edges = defaultdict(set)
+        for a in range(len(ind)):
+            for b in ind[a]:
+                if a != b:
+                    self.edges[a].add(b)
+                    self.edges[b].add(a)
     
     def draw(self, ax):
         ax.scatter(self.vertices[:, 0], self.vertices[:, 1])
-        line = [(self.vertices[a, :2], self.vertices[b, :2]) for a, neighbors in enumerate(self.edges) for b in neighbors if b > 0]
+        # line = [(self.vertices[a, :2], self.vertices[b, :2]) for a, neighbors in enumerate(self.edges) for b in neighbors if b > 0]
+        line = [(self.vertices[a, :2], self.vertices[b, :2]) for a in self.edges for b in self.edges[a] if b >= 0]
         lines = np.array(line)
         ax.add_collection(LineCollection(lines))
 
     def add_vertex(self, vertex):
         self.vertex_to_idx[tuple(vertex)] = len(self.vertices)
         self.vertices = np.vstack((self.vertices, vertex))
-        self.connect_edges()
-        # self.connect_edges_radius()
+
+        ind = self.get_node_connections(np.array([vertex]))[0]
+    
+        a = self.vertex_to_idx[tuple(vertex)]
+
+        for b in ind:
+            if a != b:
+                self.edges[a].add(b)
+                self.edges[b].add(a)
 
     def backtrack(self, visited, end):
         path_idxs = []
