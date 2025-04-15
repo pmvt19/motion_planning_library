@@ -1,5 +1,6 @@
 from shapely import Polygon
 import numpy as np
+from utils import create_rectangle_geometry
 
 
 class ObstacleSet():
@@ -82,5 +83,60 @@ class ParkingSpace(ObstacleSet2d):
 
         return obs
         
+class RandomSamplePassage(ObstacleSet2d):
+    def __init__(self, num_walls=3, wall_width=1, gap_width=1):
+        obstacles = []
+        boundary = []
+
+        x_range = [0,(10 * (num_walls+1))]
+        y_range = [0,10]
+
+        # for x in x_range:
+            # for y in reversed(y_range):
+                # boundary.append([x, y])
+        boundary = Polygon([[0, 0],
+                            [0, 10],
+                            [x_range[1], 10],
+                            [x_range[1], 0]])
+        print(boundary)
+        
+        for i in range(num_walls):
+            x_low = (10 * (i+1)) - wall_width/2
+            x_high = (10 * (i+1)) + wall_width/2
+            gap_y_loc = np.random.random() * (y_range[1] - y_range[0] - gap_width) + y_range[0] + gap_width/2
+
+            y_low = gap_y_loc - gap_width/2
+            y_high = gap_y_loc + gap_width/2
+            
+            obs = Polygon([[x_low, y_range[0]],
+                           [x_low, y_low],
+                           [x_high, y_low],
+                           [x_high, y_range[0]]])
+            obstacles.append(obs)
+            
+            obs = Polygon([[x_low, y_range[1]],
+                           [x_low, y_high],
+                           [x_high, y_high],
+                           [x_high, y_range[1]]])
+            obstacles.append(obs)
+
+        super().__init__(obstacles=obstacles, boundary=boundary)
+
+class CentralObstacle(ObstacleSet2d):
+    def __init__(self):
+        
+        x_range = [0,10]
+        y_range = [0,10]
+
+        obstacles = []
+        obs = create_rectangle_geometry(5,5,5.1,5)
+        obstacles.append(obs)
+
+        boundary = Polygon([[0, 0],
+                            [0, 10],
+                            [x_range[1], 10],
+                            [x_range[1], 0]])
+
+        super().__init__(obstacles=obstacles, boundary=boundary)
 if __name__ == '__main__':
     obs_set = TestSet()
