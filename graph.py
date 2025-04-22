@@ -5,12 +5,15 @@ from matplotlib.collections import LineCollection
 from heapq import heappush, heappop
 from collections import defaultdict
 import time
+from utils import issue_warning
 
 class Graph():
     def __init__(self, vertices, num_neighbors=None, edge_dist_radius=None):
         self.vertices = vertices
         self.num_neighbors = num_neighbors
         self.edge_dist_radius = edge_dist_radius
+
+        issue_warning(self.num_neighbors is not None and self.edge_dist_radius is not None, 'Specified both num_neighbors and edge_dist_radius, defaulting to num_neighbors', 'warning')
 
         if self.num_neighbors is not None:
             self.connection_strategy = 'knn'
