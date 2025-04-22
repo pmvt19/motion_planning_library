@@ -10,7 +10,7 @@ from state import NumpyState
 from utils import smooth_path, interpolate_edge, interpolate_path
 from path import Path
 import threading 
-from obstacle_sets import TestSet, ParkingSpace
+from obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage
 
 class PRM():
     def __init__(self, env : RobotSpace, num_samples=10, num_neighbors=None, edge_dist_radius=None, validate_edges=False):
@@ -167,28 +167,117 @@ class LazyPRM(PRM):
             path = Path([self.env.make_state(p) for p in path])
         # Return final Path
         return path
-    
+
+class IncrementalPRM(PRM):
+    def __init__(self, env, num_samples=100, num_neighbors=None, edge_dist_radius=None):
+        super().__init__(env=env, num_samples=num_samples, num_neighbors=num_neighbors, edge_dist_radius=edge_dist_radius)
+
+    def extend_graph(self):
+        old_vertices = self.graph.vertices
+        new_vertices = self.batch_generate_sample_points()
+        vertices = np.vstack((old_vertices, new_vertices))
+        self.graph = Graph(vertices=vertices, num_neighbors=self.num_neighbors, edge_dist_radius=self.edge_dist_radius)
+
+    def _dfs_recursive(self):
+        pass
+
+    def _dfs_iterative(self, start, target):
+        start_idx = self.graph.vertex_to_idx[tuple(start.value)]
+        target_idx = self.graph.vertex_to_idx[tuple(target.value)]
+        s = [start_idx]
+
+        visited = set()
+
+        while s:
+            node_idx = s.pop()
+            if node_idx == target_idx:
+                return True
+            if node_idx in visited:
+                continue
+            visited.add(node_idx)
+
+            neighbors = self.graph.edges[node_idx]
+            for nbr in neighbors:
+                s.append(nbr)
+        return False
+
+        
+    def _bfs_iterative(self):
+        start_idx = self.graph.vertex_to_idx[start]
+        target_idx = self.graph.vertex_to_idx[target]
+        q = [start_idx]
+
+        while q:
+            node_idx = q.pop(0)
+            if node_idx == target_idx:
+                return True
+            neighbors = self.graph.edges[node_idx]
+            for nbr in neighbors:
+                q.append(nbr)
+        return False
+
+    def is_nodes_connected(self, start, target):
+        return self._dfs_iterative(start, target)
+
+    def search(self, start : NumpyState, target : NumpyState):
+        self.start = start 
+        self.target = target
+
+        # Attach Start and Target to the graph
+        self.graph.add_vertex(start.value)
+        self.graph.add_vertex(target.value)
+
+        self.batch_validate_graph_edges()
+        print("checking connection")
+        is_connected = self.is_nodes_connected(start, target)
+        print("checking connection done")
+        num_times_extended = 0
+        while not is_connected:
+            print(f"Adding Nodes, Current Size: {len(self.graph.vertices)}")
+            self.extend_graph()
+            self.batch_validate_graph_edges()
+            is_connected = self.is_nodes_connected(start, target)
+            num_times_extended += 1
+
+        print(f"Num Times Extended: {num_times_extended}")
+
+        # Solve with A* or Dijkstra's Algorithm
+        path = self.graph.dijkstra_search(start=start.value, end=target.value)
+
+        if path:
+            path = Path([self.env.make_state(p) for p in path])
+        # Return final Path
+        return path
+
 if __name__ == "__main__":
     seed = np.random.randint(0, 100)
     # seed = 15
-    seed = 37 # Goes through the gap for PolygonRobot and ParkingSpace
+    # seed = 37 # Goes through the gap for PolygonRobot and ParkingSpace
+    # seed = 41
     print(f"Seed: {seed}")
     np.random.seed(seed)
 
-    # env = PointRobot()
-    env = PolygonalRobot()
+    env = PointRobot()
+    # env = PolygonalRobot()
     # env = PlanarMobileArm()
 
     env.set_obstacles(ParkingSpace())
+    # env.set_obstacles(RandomSamplePassage())
+    # env.set_obstacles(BiasedPassage(num_walls=4))
+    # env.set_obstacles(CentralObstacle())
     # env.set_obstacles(TestSet())
 
     start, target = env.sample_task()
-    # env = ApproximationSpace(env, do_overapproximation=True)
+    env = ApproximationSpace(env, batch_size=1000, do_overapproximation=False)
     start_time = time.time()
-    prm = PRM(env=env, num_samples=1000, num_neighbors=10, validate_edges=True)
+    # prm = PRM(env=env, num_samples=10000, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=1000, edge_dist_radius=2.4, validate_edges=True)
-    # prm = NonUniformPRM(env=env, num_samples=1000, num_neighbors=20, validate_edges=True)
+    # prm = PRM(env=env, num_samples=5000, edge_dist_radius=0.5, validate_edges=True)
+    prm = NonUniformPRM(env=env, num_samples=1000, num_neighbors=20, validate_edges=True)
     # prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
+
+    # prm = IncrementalPRM(env=env, num_samples=50, num_neighbors=5)
+    # prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
     prm.create_graph()
     
     # plt.clf()
@@ -210,13 +299,20 @@ if __name__ == "__main__":
     print(f"Search Time: {end_time - start_time}", f"Num Collision Checks: {env.num_collision_checks}")
     plt.clf()
     env.draw_environment(plt.gca())
+    # env.space.draw_environment(plt.gca())
     # space.draw_environment(plt.gca())
     prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
     # env.space.draw_environment(plt.gca())
-    env.draw_environment(plt.gca())
+    # env.draw_environment(plt.gca())
     plt.show()
-
+    print(f"PRM Num Nodes: {len(prm.graph.vertices)}")
     interpolated_path = []
     path = smooth_path(env, path)
-    interpolated_path = interpolate_path(path, 0.1)
-    env.animate_path(interpolated_path, frame_delay=0.001)
+    plt.clf()
+    env.draw_environment(plt.gca())
+    # env.space.draw_environment(plt.gca())
+    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
+    plt.show()
+
+    # interpolated_path = interpolate_path(path, 0.1)
+    # env.animate_path(interpolated_path, frame_delay=0.001)
