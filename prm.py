@@ -202,22 +202,29 @@ class IncrementalPRM(PRM):
         return False
 
         
-    def _bfs_iterative(self):
-        start_idx = self.graph.vertex_to_idx[start]
-        target_idx = self.graph.vertex_to_idx[target]
+    def _bfs_iterative(self, start, target):
+        start_idx = self.graph.vertex_to_idx[tuple(start.value)]
+        target_idx = self.graph.vertex_to_idx[tuple(target.value)]
         q = [start_idx]
+
+        visited = set()
 
         while q:
             node_idx = q.pop(0)
             if node_idx == target_idx:
                 return True
+            if node_idx in visited:
+                continue
+            visited.add(node_idx)
+
             neighbors = self.graph.edges[node_idx]
             for nbr in neighbors:
                 q.append(nbr)
         return False
 
     def is_nodes_connected(self, start, target):
-        return self._dfs_iterative(start, target)
+        # return self._dfs_iterative(start, target)
+        return self._bfs_iterative(start, target)
 
     def search(self, start : NumpyState, target : NumpyState):
         self.start = start 
@@ -254,6 +261,8 @@ if __name__ == "__main__":
     # seed = 15
     # seed = 37 # Goes through the gap for PolygonRobot and ParkingSpace
     # seed = 41
+    # seed = 91
+    seed = 83
     print(f"Seed: {seed}")
     np.random.seed(seed)
 
@@ -263,7 +272,7 @@ if __name__ == "__main__":
 
     env.set_obstacles(ParkingSpace())
     # env.set_obstacles(RandomSamplePassage())
-    # env.set_obstacles(BiasedPassage(num_walls=4))
+    # env.set_obstacles(BiasedPassage(num_walls=10))
     # env.set_obstacles(CentralObstacle())
     # env.set_obstacles(TestSet())
 
@@ -273,10 +282,10 @@ if __name__ == "__main__":
     # prm = PRM(env=env, num_samples=10000, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=1000, edge_dist_radius=2.4, validate_edges=True)
     # prm = PRM(env=env, num_samples=5000, edge_dist_radius=0.5, validate_edges=True)
-    prm = NonUniformPRM(env=env, num_samples=1000, num_neighbors=20, validate_edges=True)
+    # prm = NonUniformPRM(env=env, num_samples=1000, num_neighbors=3, validate_edges=True)
     # prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
 
-    # prm = IncrementalPRM(env=env, num_samples=50, num_neighbors=5)
+    prm = IncrementalPRM(env=env, num_samples=50, num_neighbors=5)
     # prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
     prm.create_graph()
     
