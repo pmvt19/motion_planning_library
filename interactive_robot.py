@@ -1,7 +1,9 @@
-from space import SkidSteerCar
+from space import SkidSteerCar, DubinsCar
 import time
 import matplotlib.pyplot as plt
-# import pygame
+import pygame
+from controller.xbox_controller import XboxController
+from obstacle_sets import ParkingSpace
 # import cv2
 
 # class InteractiveRobot():
@@ -33,27 +35,41 @@ import matplotlib.pyplot as plt
 #         return sys.stdin.readline().strip()
 #     return None
 
-def get_input():
-    raise NotImplementedError
+def get_input(controller):
+    controller.update_state()
+    state = controller.get_contoller_state()
+    # state = state[6:10]
+    return state
 
 if __name__ == '__main__':
-    
-    
 
-    env = SkidSteerCar()
+    pygame.init()
+    joysticks = []
+    for i in range(0, pygame.joystick.get_count()):
+        joysticks.append(pygame.joystick.Joystick(i))
+        joysticks[-1].init()
+    
+    
+    controller = XboxController(pygame)
+
+    # env = SkidSteerCar()
+    env = DubinsCar()
+    env.set_obstacles(ParkingSpace())
     state = env.sample_valid_point()
 
     while True: 
-        input = get_input()
+        input = get_input(controller)
+        
         control = env.input_to_control(input)
         state = env.simulate_step(state, control)
+        # print(input, state.value)
 
-        
+        plt.clf()
         env.draw_environment(plt.gca())
         env.draw_state(plt.gca(), state)
-        time.sleep(0.1)
+        plt.pause(0.01)
+        # time.sleep(0.1)
 
-    
-
-    
-    
+        if input[XboxController.XboxControls.B]:
+            print("Exiting")
+            break

@@ -8,6 +8,7 @@ from utils import create_rectangle_geometry, numpystate_distance, issue_warning,
 import time
 from collections import defaultdict
 from sklearn.metrics import pairwise_distances
+from controller.xbox_controller import XboxController
 
 class RobotSpace():
     def __init__(self):
@@ -23,6 +24,10 @@ class RobotSpace():
                                                     y_length=self.y_range[1]-self.y_range[0])
         
         self.angular_dims_start = None
+
+
+        self.state_dims = None
+        self.workspace_dims = None
 
     def is_valid(self, state):
         raise NotImplementedError
@@ -761,15 +766,21 @@ class SkidSteerCar(NonHolonomicRobot):
 
     def input_to_control(self, inputs):
         # Inputs : [0, 0, 0, 0]
-        left, right, up, down = inputs
+        # left, right, up, down = 
+        # down, left, right, up = inputs
+        left = inputs[XboxController.XboxControls.X]
+        right = inputs[XboxController.XboxControls.B]
+        up = inputs[XboxController.XboxControls.Y]
+        down = inputs[XboxController.XboxControls.A]
         if left:
-            return self.make_control(np.array([0, self.delta_range[0]]))
+            return self.make_control(np.array([0.0, self.delta_range[0]]))
         if right:
-            return self.make_control(np.array([0, self.delta_range[1]]))
+            return self.make_control(np.array([0.0, self.delta_range[1]]))
         if up:
-            return self.make_control(np.array([self.velocity_range[0], 0]))
+            return self.make_control(np.array([self.velocity_range[0], 0.0]))
         if down:
-            return self.make_control(np.array([self.velocity_range[1], 0]))
+            return self.make_control(np.array([self.velocity_range[1], 0.0]))
+        return self.make_control(np.array([0.0, 0.0]))
 
 class DubinsCar(NonHolonomicRobot):
     def __init__(self):
@@ -908,10 +919,12 @@ class DubinsCar(NonHolonomicRobot):
                 ])
         return x_dot
     
-    # def get_edge_states(self, start, end):
-    #     start = self.get_state_value(start)
-    #     end = self.get_state_value(end)
-    #     # return numpystate_distance(self.make_state(start), self.make_state(end))
+    def input_to_control(self, inputs):
+        steer = -inputs[XboxController.XboxControls.LTHUMBX]
+        accel = -inputs[XboxController.XboxControls.RTHUMBY]
+        
+        controls = np.array([accel * self.accel_range[1], steer * self.psi_range[1]])
+        return self.make_control(np.array(controls))
 
 if __name__ == '__main__':
     np.random.seed(0)
