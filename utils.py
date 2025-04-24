@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
 from state import NumpyState, AngularNumpyState
 from path import Path
 from copy import deepcopy
 from shapely import Polygon
 import math
+
 # from environments import Environment
 
 def issue_warning(condition, statement, level):
@@ -48,6 +50,16 @@ def calculate_edge_gradient(start_state : NumpyState, end_state : NumpyState):
         gradient[angular_dims_start:] = np.arctan2(np.sin(gradient[angular_dims_start:]), np.cos(gradient[angular_dims_start:]))
 
     return gradient
+
+def bisect_edge(start : NumpyState, end : NumpyState):
+    gradient = calculate_edge_gradient(start, end)
+    edge_length = np.linalg.norm(gradient)
+    gradient /= edge_length
+
+    scaled_gradient = gradient * edge_length/2
+    midpoint = start.value + scaled_gradient
+
+    return midpoint
 
 def interpolate_edge(start : NumpyState, end : NumpyState, delta : float):
 
@@ -108,10 +120,19 @@ def numpystate_distance(state1, state2):
     else:
         raise ValueError("Mismatched Types inputed or incorrect angular dims start")
 
-def interpolate_path(path : Path, delta : float):
+# def interpolate_path(path : Path, delta : float):
+#     interpolated_path = []
+#     for i in range(len(path)-1):
+#         interpolated_edge = interpolate_edge(path[i], path[i+1], delta)
+#         # interpolated_path.extend(interpolate_edge(path[i], path[i+1], delta))
+#         interpolated_path.extend([path.make_state(state) for state in interpolated_edge])
+#     return Path(interpolated_path)
+
+def interpolate_path(path : Path, env, delta : float):
     interpolated_path = []
     for i in range(len(path)-1):
-        interpolated_path.extend(interpolate_edge(path[i], path[i+1], delta))
+        interpolated_edge = interpolate_edge(path[i], path[i+1], delta)
+        interpolated_path.extend([env.make_state(state) for state in interpolated_edge])
     return Path(interpolated_path)
 
 def rad2deg(rad):
