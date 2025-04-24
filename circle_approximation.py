@@ -1,4 +1,4 @@
-from space import RobotSpace, PlanarMobileArm
+from space import RobotSpace, PlanarMobileArm, PolygonalRobot
 from obstacle_sets import TestSet
 import math
 import numpy as np
@@ -43,7 +43,7 @@ class ApproximationSpace(RobotSpace):
         B, *_ = states.shape
         # rect_circles = self.rectangles_to_circles(representations['rectangles']).reshape(B, -1, 3)
         rect_circles = self.optimized_rectangle_to_circles(representations['rectangles']).reshape(B, -1, 3)
-        seg_circles = self.segments_to_circles(representations['segments'], 0.1).reshape(B, -1, 3)
+        seg_circles = self.segments_to_circles(representations['segments'], representations['segments_radii']).reshape(B, -1, 3)
         point_circles = self.points_to_circles(representations['points']).reshape(B, -1, 3)
         state_circles = np.concatenate((rect_circles, seg_circles, point_circles), axis=1)
         return state_circles
@@ -241,16 +241,29 @@ class ApproximationSpace(RobotSpace):
     
 if __name__ == "__main__":
     np.random.seed(0)
-    # env = PlanarMobileArm(num_links=3, arm_lengths=[1, 1, 1])
-    env = PlanarMobileArm(num_links=3, arm_lengths=[1, 1, 1])
+
+    env = PolygonalRobot()
     env.set_obstacles(TestSet())
+    state = env.make_state(np.array([-1.0,3.0,np.pi/4]))
+    state = env.make_state(np.array([-4.0,3.0,np.pi/4]))
+    env = ApproximationSpace(env, do_overapproximation=True)
+    env.draw_environment(plt.gca())
+    env.space.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state)
+    env.space.draw_state(plt.gca(), state)
+    plt.show()
 
-    space = ApproximationSpace(env)
-    obst_circles = space.space_to_circles()
 
-    N = 2000
-    numpystates = [env.sample_point() for _ in range(N)]
-    states = np.array([state.value for state in numpystates])
+    # env = PlanarMobileArm(num_links=3, arm_lengths=[1, 1, 1])
+    # env = PlanarMobileArm(num_links=3, arm_lengths=[1, 1, 1])
+    # env.set_obstacles(TestSet())
+
+    # space = ApproximationSpace(env)
+    # obst_circles = space.space_to_circles()
+
+    # N = 2000
+    # numpystates = [env.sample_point() for _ in range(N)]
+    # states = np.array([state.value for state in numpystates])
     
     # start_time = time.time()
     # traditional_validities = [env.is_valid(state) for state in numpystates]
@@ -275,25 +288,25 @@ if __name__ == "__main__":
     #     plt.show()
 
     ## Batch get edge states ##
-    start_states = states[:(N//2)]
-    end_states = states[(N//2):]
-    print(f"Validating {(N//2)} edges")
-    start_time = time.time()
-    edge_validities = space.batch_is_valid_edge(start_states, end_states)
-    end_time = time.time()
-    print(f"Time to batch validate edges: {end_time - start_time}")
+    # start_states = states[:(N//2)]
+    # end_states = states[(N//2):]
+    # print(f"Validating {(N//2)} edges")
+    # start_time = time.time()
+    # edge_validities = space.batch_is_valid_edge(start_states, end_states)
+    # end_time = time.time()
+    # print(f"Time to batch validate edges: {end_time - start_time}")
 
-    start_time = time.time()
-    validities_edge = [env.is_valid_edge(start_states[i], end_states[i]) for i in range((N//2))]
-    end_time = time.time()
-    print(f"Time to unbatched validate edges: {end_time - start_time}")
+    # start_time = time.time()
+    # validities_edge = [env.is_valid_edge(start_states[i], end_states[i]) for i in range((N//2))]
+    # end_time = time.time()
+    # print(f"Time to unbatched validate edges: {end_time - start_time}")
 
     
 
     # print(start_states.shape, end_states.shape)
     # pts, steps = env.batch_get_edge_states(start_states, end_states)
     ## Batch get edge states ##
-    print("Unbatched function")
+    # print("Unbatched function")
     # print(env.get_edge_states(start_states[0], end_states[0]))
     # print(env.get_edge_states(start_states[1], end_states[1]))
 
@@ -314,7 +327,7 @@ if __name__ == "__main__":
     #     plt.show()
 
 
-    exit()
+    # exit()
 
     # N = 10000
     # aa_rect = np.array([
