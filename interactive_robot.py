@@ -70,6 +70,6 @@ if __name__ == '__main__':
         plt.pause(0.01)
         # time.sleep(0.1)
 
-        if input[XboxController.XboxControls.B]:
+        if input[XboxController.XboxControls.LBUMPER]:
             print("Exiting")
             break
