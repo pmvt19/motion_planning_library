@@ -726,6 +726,12 @@ class SkidSteerCar(NonHolonomicRobot):
     def make_control(self, control : np.ndarray):
         return NumpyState(control)
     
+    def clip_state(self, state : np.ndarray):
+        state = np.clip(state, 
+                        np.array([self.x_range[0], self.y_range[0], -np.inf]), 
+                        np.array([self.x_range[1], self.y_range[1], np.inf]))
+        return state
+
     def dist(self, state1, state2):
         state1 = self.get_state_value(state1)
         state2 = self.get_state_value(state2)
