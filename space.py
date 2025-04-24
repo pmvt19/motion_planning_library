@@ -646,6 +646,8 @@ class NonHolonomicRobot(RobotSpace):
         raise NotImplementedError
     def sample_controls(self):
         raise NotImplementedError
+    def clip_state(self, state):
+        raise NotImplementedError
     
     def simulate(self, starting_state: NumpyState, control_seq: list):
         state = starting_state
@@ -675,7 +677,10 @@ class NonHolonomicRobot(RobotSpace):
     def simulate_step(self, state, control):
         state = self.get_state_value(state)
         x_dot = self.state_derivative(state, control)
-        return self.make_state(state + x_dot)
+        # Add Clipping of Values Here
+        clipped_state = self.clip_state(state + x_dot)
+        return self.make_state(clipped_state)
+        # return self.make_state(state + x_dot)
 
 class SkidSteerCar(NonHolonomicRobot):
     def __init__(self):
@@ -827,6 +832,12 @@ class DubinsCar(NonHolonomicRobot):
     
     def make_control(self, control):
         return NumpyState(control)
+    
+    def clip_state(self, state : np.ndarray):
+        state = np.clip(state, 
+                        np.array([self.x_range[0], self.y_range[0], self.velocity_range[0], self.phi_range[0], -np.inf]), 
+                        np.array([self.x_range[1], self.y_range[1], self.velocity_range[1], self.phi_range[1], np.inf]))
+        return state
     
     def dist(self, state1, state2):
         state1 = self.get_state_value(state1)
