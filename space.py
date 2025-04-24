@@ -133,7 +133,8 @@ class RobotSpace():
     def batch_sample_point(self, num_points):
         raise NotImplementedError
         
-    
+    def batch_get_robot_representations(self, states : np.ndarray):
+        raise NotImplementedError
 
 class HolonomicRobot(RobotSpace):
     def __init__(self):
@@ -223,7 +224,6 @@ class PolygonalRobot(HolonomicRobot):
 
     def generate_robot_representation(self, state):
         x, y, theta = self.get_state_value(state)
-        theta -= np.pi
         robot = create_rectangle_geometry(x_loc=x, 
                                           y_loc=y, 
                                           x_width=self.robot_width, 
@@ -255,6 +255,50 @@ class PolygonalRobot(HolonomicRobot):
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
         ax.plot(*robot.exterior.xy, color='red')
+
+    ### Batch Methods ###
+    
+    def batch_get_robot_representations(self, states : np.ndarray):
+        # states : (B, 3)
+        B, d = states.shape
+
+        # Extract Parameter Values
+        xs = states[:, 0]
+        ys = states[:, 1]
+        thetas = states[:, 2]
+
+        # Tranformation Matrices
+        # tmats : (B, 2, 3)
+
+        cosines = np.cos(thetas)
+        sines = np.sin(thetas)
+
+        tmats = np.array([[cosines, -sines, xs],
+                          [sines, cosines, ys]])
+        tmats = tmats.transpose(2, 0, 1)
+
+        # end_points : (B, 2, 3) Points will be in Homogenous Coordinates
+        xs = xs.reshape(-1, 1)
+        ys = ys.reshape(-1, 1)
+
+        end_points1 = np.concatenate((np.zeros((B,1)), np.zeros((B,1)) + self.robot_length/2, np.ones((B,1))), axis=1)
+        end_points2 = np.concatenate((np.zeros((B,1)), np.zeros((B,1)) - self.robot_length/2, np.ones((B,1))), axis=1)
+        end_points = np.concatenate((end_points1.reshape(B, 1, -1), end_points2.reshape(B, 1, -1)), axis=1)
+
+        segments = tmats @ end_points.transpose(0,2,1)
+        segments = segments.reshape(B, 2, 2).transpose(0,2,1)
+
+        radii = np.ones((B, 1)) * self.robot_width/2
+        
+        # TODO: Standardize the returnable for this function
+        return {
+            'rectangles' : np.empty((0, 4)),
+            'segments' : segments, 
+            'points' : np.empty((0, 2)),
+            'segments_radii' : radii, 
+            'line_approx_non_aarect' : segments,
+            'line_approx_non_aarect_radii' : radii,
+        }
     
 class PlanarMobileArm(HolonomicRobot):
     def __init__(self, num_links=3, arm_lengths=None):
@@ -514,6 +558,7 @@ class PlanarMobileArm(HolonomicRobot):
             'rectangles' : rectangles,
             'segments' : segments, 
             'points' : np.empty((0, 2)),
+            'segments_radii' : 0.1, 
         }
 
 class FixedArm(HolonomicRobot):
@@ -863,14 +908,15 @@ class DubinsCar(NonHolonomicRobot):
                 ])
         return x_dot
     
-    def get_edge_states(self, start, end):
-        start = self.get_state_value(start)
-        end = self.get_state_value(end)
-        # return numpystate_distance(self.make_state(start), self.make_state(end))
+    # def get_edge_states(self, start, end):
+    #     start = self.get_state_value(start)
+    #     end = self.get_state_value(end)
+    #     # return numpystate_distance(self.make_state(start), self.make_state(end))
 
 if __name__ == '__main__':
     np.random.seed(0)
-    env = PlanarMobileArm(num_links=3)
+    env = PolygonalRobot()
+    # env = PlanarMobileArm(num_links=3)
     # env = FixedArm()
     # env = SkidSteerCar()
     # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
@@ -887,15 +933,16 @@ if __name__ == '__main__':
     state2 = env.sample_point()
 
     # ik_state = env.inverse_kinematics(np.array([3.0,2.5]))
-    sampled_states = env.sample_configs_ee_target(np.array([3.0, 2.5]))
+    # sampled_states = env.sample_configs_ee_target(np.array([3.0, 2.5]))
     # ik_state = env.make_state(sampled_states[0])
     # print()
 
     env.draw_environment(plt.gca())
     # env.draw_state(plt.gca(), state1)
     # env.draw_state(plt.gca(), ik_state)
-    for state in sampled_states:
-        env.draw_state(plt.gca(), env.make_state(state))
+    # for state in sampled_states:
+        # env.draw_state(plt.gca(), env.make_state(state))
+    env.draw_state(plt.gca(), env.make_state(np.array([0.0,0.0,0.0])))
     plt.show()
 
     # print(env.forward_kinematics(ik_state))
