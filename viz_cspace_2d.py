@@ -5,9 +5,40 @@ from obstacle_sets import TestSet
 import matplotlib.pyplot as plt
 import time
 from utils import smooth_path, interpolate_path
-
+# from matplotlib import cm
+# from matplotlib import colormaps
+import matplotlib
 
 from rrt import RRT
+
+# Interactive element 
+# - Shows workspace and cspace states as one uses the controller to manipulate the arm
+# - Potentially allow the user to change properties of the robot like arm lengths
+
+# Search element
+# - Shows workspace and cspace executing a planned rrt path (Done)
+# - Add Colors to CSpace side that shows the progression of the path
+
+def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.1):
+    cmap = matplotlib.colormaps['viridis']
+    colors = [cmap(i/len(path)) for i in range(len(path))]
+
+    fig, axs = plt.subplots(1,2)
+    axs[1].scatter(obstacle_points[:, 0], obstacle_points[:, 1], color='red')
+
+    for i, c in enumerate(path.path):
+        axs[0].cla()
+
+        if not show_prev:
+            axs[1].cla()
+            axs[1].scatter(obstacle_points[:, 0], obstacle_points[:, 1], color='red')
+
+        env.draw_environment(axs[0])
+        env.draw_state(axs[0], c)
+        axs[1].scatter(c.value[0], c.value[1], color=colors[i], marker='^')
+        plt.pause(frame_delay)
+
+    
 
 if __name__ == '__main__':
     np.random.seed(0)
@@ -34,51 +65,7 @@ if __name__ == '__main__':
     end_time = time.time()
     print(f"Time to Validate Points: {end_time-start_time}")
 
-    # plt.scatter(points[:, 0], points[:, 1], color='red')
-    # plt.show()
+    path = smooth_path(env, path)
+    path = interpolate_path(path, env, 0.05)
+    animate_path_and_space(path, points)
 
-    # plt.clf()
-    # env.draw_environment(plt.gca())
-    # # print(points[0])
-    # print(points.shape)
-    # env.draw_state(plt.gca(), env.make_state(points[0]))
-    # plt.show()
-
-    # fig, axs = plt.subplots(1,2)
-    # env.draw_environment(axs[0])
-    # axs[1].scatter(points[:, 0], points[:, 1], color='red')
-
-    # path_configs = np.array([c.value for c in path.path])
-    # axs[1].plot(path_configs[:, 0], path_configs[:, 1], color='blue', marker='^')
-    # plt.show()
-
-    # env.animate_path(path, frame_delay=0.5)
-
-    # path = smooth_path(env, path)
-    # path = interpolate_path(path, env, 0.1)
-    # fig, axs = plt.subplots(1,2)
-    # for c in path.path:
-    #     # plt.clf()
-    #     plt.close()
-    #     fig, axs = plt.subplots(1,2)
-    #     env.draw_environment(axs[0])
-    #     env.draw_state(axs[0], c)
-    #     # axs[1].scatter(points[:, 0], points[:, 1], color='red')
-    #     env.draw_environment(axs[1])
-    #     axs[1].scatter(c.value[0], c.value[1], color='blue', marker='^')
-    #     plt.pause(0.5)
-    #     # time.sleep(0.1)
-    #     # plt.close()
-
-    for c in path.path:
-        plt.clf()
-        # plt.close()
-        # fig, axs = plt.subplots(1,2)
-        # env.draw_environment(axs[0])
-        # env.draw_state(axs[0], c)
-        plt.scatter(points[:, 0], points[:, 1], color='red')
-        # env.draw_environment(axs[1])
-        plt.scatter(c.value[0], c.value[1], color='blue', marker='^')
-        plt.pause(0.5)
-        # time.sleep(0.1)
-        # plt.close()
