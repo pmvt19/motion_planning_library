@@ -1,12 +1,10 @@
 import numpy as np
 from space import FixedArm
 from circle_approximation import ApproximationSpace
-from obstacle_sets import TestSet
+from obstacle_sets import TestSet, ParkingSpace
 import matplotlib.pyplot as plt
 import time
 from utils import smooth_path, interpolate_path
-# from matplotlib import cm
-# from matplotlib import colormaps
 import matplotlib
 
 from rrt import RRT
@@ -17,7 +15,7 @@ from rrt import RRT
 
 # Search element
 # - Shows workspace and cspace executing a planned rrt path (Done)
-# - Add Colors to CSpace side that shows the progression of the path
+# - Add Colors to CSpace side that shows the progression of the path (Done)
 
 def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.1):
     cmap = matplotlib.colormaps['viridis']
@@ -36,22 +34,21 @@ def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.
         env.draw_environment(axs[0])
         env.draw_state(axs[0], c)
         axs[1].scatter(c.value[0], c.value[1], color=colors[i], marker='^')
+        axs[0].set_aspect('equal')
+        axs[1].set_aspect('equal')
         plt.pause(frame_delay)
 
-    
 
 if __name__ == '__main__':
-    np.random.seed(0)
+    # np.random.seed(0)
     env = FixedArm()
-    env.arm_link_lengths = np.array([3,3])
+    env.arm_link_lengths = np.array([3,3]) # HACK: DO NOT CHANGE ARM LENGTHS LIKE THIS
     env.set_obstacles(TestSet())
+    # env.set_obstacles(ParkingSpace())
 
     start, target = env.sample_valid_point(), env.sample_valid_point()
     rrt = RRT(env)
     path = rrt.search(start, target, max_steps=1000)
-    # print(path.path)
-
-    
 
     # env = ApproximationSpace(env)
     start_time = time.time()
@@ -65,7 +62,7 @@ if __name__ == '__main__':
     end_time = time.time()
     print(f"Time to Validate Points: {end_time-start_time}")
 
-    path = smooth_path(env, path)
+    # path = smooth_path(env, path)
     path = interpolate_path(path, env, 0.05)
     animate_path_and_space(path, points)
 
