@@ -1,5 +1,5 @@
 from space import RobotSpace, PlanarMobileArm, PolygonalRobot
-from obstacle_sets import TestSet
+from obstacle_sets import TestSet, NonRegularPolygonObst
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -185,6 +185,19 @@ class ApproximationSpace(RobotSpace):
         radii = np.zeros((points.shape[0], 1))
         zero_radius_circles = np.concatenate((points, radii), axis=1)
         return zero_radius_circles
+    
+    # TODO: Combine with circles_to_validity function
+    def circles_to_indiv_validity(self, obstacle_circles, robot_circles):
+        B = robot_circles.shape[0]
+        robot_xy = robot_circles[:, :, :2]
+        obst_xy = obstacle_circles[:, :2]
+        distance_mat = np.sqrt(np.sum(robot_xy**2, axis=2, keepdims=True) + np.sum(obst_xy**2, axis=1, keepdims=True).T + (-2 * (robot_xy @ obst_xy.T)))
+
+        min_dists = robot_circles[:, :, 2].reshape(B, -1, 1) + obstacle_circles[:, 2].reshape(1, 1, -1)
+
+        validity_mask = distance_mat > min_dists
+        # validity_mask = validity_mask.reshape(B, -1)
+        return validity_mask
 
     def circles_to_validity(self, obstacle_circles, robot_circles):
         B = robot_circles.shape[0]
@@ -243,14 +256,15 @@ if __name__ == "__main__":
     np.random.seed(0)
 
     env = PolygonalRobot()
-    env.set_obstacles(TestSet())
+    # env.set_obstacles(TestSet())
+    env.set_obstacles(NonRegularPolygonObst())
     state = env.make_state(np.array([-1.0,3.0,np.pi/4]))
     state = env.make_state(np.array([-4.0,3.0,np.pi/4]))
-    env = ApproximationSpace(env, do_overapproximation=True)
+    # env = ApproximationSpace(env, do_overapproximation=True)
     env.draw_environment(plt.gca())
-    env.space.draw_environment(plt.gca())
+    # env.space.draw_environment(plt.gca())
     env.draw_state(plt.gca(), state)
-    env.space.draw_state(plt.gca(), state)
+    # env.space.draw_state(plt.gca(), state)
     plt.show()
 
 
