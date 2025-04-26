@@ -17,6 +17,21 @@ from rrt import RRT
 # - Shows workspace and cspace executing a planned rrt path (Done)
 # - Add Colors to CSpace side that shows the progression of the path (Done)
 
+def generate_obstacle_points(env):
+    # env = ApproximationSpace(env)
+    start_time = time.time()
+    points = np.array([env.sample_point().value for _ in range(10000)])
+    end_time = time.time()
+    print(f"Time to Sample Points: {end_time-start_time}")
+
+    start_time = time.time()
+    point_validities = env.batch_is_valid(points)
+    obstacle_points = points[(point_validities == False)]
+    end_time = time.time()
+    print(f"Time to Validate Points: {end_time-start_time}")
+
+    return obstacle_points
+
 def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.1):
     cmap = matplotlib.colormaps['viridis']
     colors = [cmap(i/len(path)) for i in range(len(path))]
@@ -99,8 +114,8 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
 
 if __name__ == '__main__':
 
-    task_type = 'search' 
-    # task_type = 'interactive' # Will be made as an argument
+    # task_type = 'search' 
+    task_type = 'interactive' # Will be made as an argument
 
     # np.random.seed(0)
     env = FixedArm()
@@ -114,17 +129,19 @@ if __name__ == '__main__':
     # - Difficulty in developement as the mac cannot run the xbox controller
     # - Need to write the code on mac and run it on the PC
 
-    # env = ApproximationSpace(env)
-    start_time = time.time()
-    points = np.array([env.sample_point().value for _ in range(10000)])
-    end_time = time.time()
-    print(f"Time to Sample Points: {end_time-start_time}")
+    # # env = ApproximationSpace(env)
+    # start_time = time.time()
+    # points = np.array([env.sample_point().value for _ in range(10000)])
+    # end_time = time.time()
+    # print(f"Time to Sample Points: {end_time-start_time}")
 
-    start_time = time.time()
-    point_validities = env.batch_is_valid(points)
-    obstacle_points = points[(point_validities == False)]
-    end_time = time.time()
-    print(f"Time to Validate Points: {end_time-start_time}")
+    # start_time = time.time()
+    # point_validities = env.batch_is_valid(points)
+    # obstacle_points = points[(point_validities == False)]
+    # end_time = time.time()
+    # print(f"Time to Validate Points: {end_time-start_time}")
+
+    obstacle_points = generate_obstacle_points(env)
 
     ### --- Generate Cspace Obstacle Points --- ###
 
