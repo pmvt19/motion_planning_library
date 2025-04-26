@@ -63,19 +63,6 @@ def run_visualized_search(env, obstacle_points):
     rrt = RRT(env)
     path = rrt.search(start, target, max_steps=1000)
 
-    # # env = ApproximationSpace(env)
-    # start_time = time.time()
-    # points = np.array([env.sample_point().value for _ in range(10000)])
-    # end_time = time.time()
-    # print(f"Time to Sample Points: {end_time-start_time}")
-
-    # start_time = time.time()
-    # point_validities = env.batch_is_valid(points)
-    # points = points[(point_validities == False)]
-    # end_time = time.time()
-    # print(f"Time to Validate Points: {end_time-start_time}")
-
-    # path = smooth_path(env, path)
     path = interpolate_path(path, env, 0.05)
     animate_path_and_space(path, obstacle_points, show_prev=False)
 
@@ -123,7 +110,6 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
     
     def update_robot(val):
         env.arm_link_lengths = np.array([link1_slider.val, link2_slider.val])
-        # global obstacle_points
         global my_obstacle_points
         my_obstacle_points = generate_obstacle_points(env)
 
@@ -168,12 +154,6 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
         if controller_state[XboxController.XboxControls.LBUMPER]:
             running = False
 
-        
-
-        # In Update Robot
-        # - Update the lengths of the arms for env
-        # - Update the obstacle points
-
 if __name__ == '__main__':
 
     # task_type = 'search' 
@@ -184,29 +164,7 @@ if __name__ == '__main__':
     env.arm_link_lengths = np.array([3,3]) # HACK: DO NOT CHANGE ARM LENGTHS LIKE THIS
     env.set_obstacles(TestSet())
 
-    ### --- Generate Cspace Obstacle Points --- ###
-
-    # TODO: Move Code Here
-
-    # - Difficulty in developement as the mac cannot run the xbox controller
-    # - Need to write the code on mac and run it on the PC
-
-    # # env = ApproximationSpace(env)
-    # start_time = time.time()
-    # points = np.array([env.sample_point().value for _ in range(10000)])
-    # end_time = time.time()
-    # print(f"Time to Sample Points: {end_time-start_time}")
-
-    # start_time = time.time()
-    # point_validities = env.batch_is_valid(points)
-    # obstacle_points = points[(point_validities == False)]
-    # end_time = time.time()
-    # print(f"Time to Validate Points: {end_time-start_time}")
-
-    global obstacle_points
     obstacle_points = generate_obstacle_points(env)
-
-    ### --- Generate Cspace Obstacle Points --- ###
 
     if task_type == "search":
         run_visualized_search(env, obstacle_points)
