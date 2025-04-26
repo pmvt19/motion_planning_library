@@ -1,30 +1,36 @@
 import numpy as np
 import pyvista as pv
 from space import PolygonalRobot
+from obstacle_sets import CentralObstacle
+import open3d as o3d
+
+def compute_alpha_shape_mesh(pcd, alpha=0.05):
+    """Compute mesh using alpha shape; returns a surface mesh ignoring internal points"""
+    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+    mesh.compute_vertex_normals()
+    return mesh
+
+def smooth_mesh(mesh, iterations=10):
+    """Apply Laplacian smoothing to mesh"""
+    return mesh.filter_smooth_simple(number_of_iterations=iterations)
 
 if __name__ == '__main__':
     np.random.seed(0)
     env = PolygonalRobot()
+    env.set_obstacles(CentralObstacle())
     points = [env.sample_point() for _ in range(10000)]
     points = [point for point in points if not env.is_valid(point)]
     points =  np.array([point.value for point in points])
-    # print("Created Points")
+    print("Created and Validated Points")
 
-    # # NumPy array with shape (n_points, 3)
-    # point_cloud = pv.PolyData(points)
-    # mesh = point_cloud.reconstruct_surface(nbr_sz=100, sample_spacing=0.4)
+    # Create Open3d Point Cloud
+    point_cloud = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(points))
 
-    # point_cloud.plot(eye_dome_lighting=True)
-    # mesh.plot(color='orange')
+    alpha = 0.71  # adjust based on point density
+    mesh = compute_alpha_shape_mesh(point_cloud, alpha)
 
-    import open3d as o3d
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
-    # Estimate normals for the point cloud
-    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=30))
-
-    # Apply Poisson Surface Reconstruction
-    mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=9)
-
-    # Visualize the result
+    # Optional smoothing
+    mesh = smooth_mesh(mesh, iterations=5)
+    mesh.compute_triangle_normals()
+    # Visualize
     o3d.visualization.draw_geometries([mesh])
