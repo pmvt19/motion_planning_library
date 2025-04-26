@@ -38,26 +38,26 @@ def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.
         axs[1].set_aspect('equal')
         plt.pause(frame_delay)
 
-def run_visualized_search(env):
+def run_visualized_search(env, obstacle_points):
     start, target = env.sample_valid_point(), env.sample_valid_point()
     rrt = RRT(env)
     path = rrt.search(start, target, max_steps=1000)
 
-    # env = ApproximationSpace(env)
-    start_time = time.time()
-    points = np.array([env.sample_point().value for _ in range(10000)])
-    end_time = time.time()
-    print(f"Time to Sample Points: {end_time-start_time}")
+    # # env = ApproximationSpace(env)
+    # start_time = time.time()
+    # points = np.array([env.sample_point().value for _ in range(10000)])
+    # end_time = time.time()
+    # print(f"Time to Sample Points: {end_time-start_time}")
 
-    start_time = time.time()
-    point_validities = env.batch_is_valid(points)
-    points = points[(point_validities == False)]
-    end_time = time.time()
-    print(f"Time to Validate Points: {end_time-start_time}")
+    # start_time = time.time()
+    # point_validities = env.batch_is_valid(points)
+    # points = points[(point_validities == False)]
+    # end_time = time.time()
+    # print(f"Time to Validate Points: {end_time-start_time}")
 
     # path = smooth_path(env, path)
     path = interpolate_path(path, env, 0.05)
-    animate_path_and_space(path, points, show_prev=False)
+    animate_path_and_space(path, obstacle_points, show_prev=False)
 
 def run_interactive_space(env, obstacle_points, tick_delay=0.01):
     import pygame
@@ -75,13 +75,16 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
     state = env.sample_valid_point()
 
     running = True
+    fig, axs = plt.subplots(1,2)
     while running:
         controller.update_state()
         controller_state = controller.get_contoller_state()
         x_dot = env.input_to_x_dot(controller_state)
         state = env.make_state(state.value + x_dot)
 
-        fig, axs = plt.subplots(1,2)
+        axs[0].cla()
+        axs[1].cla()
+        
         axs[1].scatter(obstacle_points[:, 0], obstacle_points[:, 1], color='red')
 
         env.draw_environment(axs[0])
@@ -111,9 +114,21 @@ if __name__ == '__main__':
     # - Difficulty in developement as the mac cannot run the xbox controller
     # - Need to write the code on mac and run it on the PC
 
+    # env = ApproximationSpace(env)
+    start_time = time.time()
+    points = np.array([env.sample_point().value for _ in range(10000)])
+    end_time = time.time()
+    print(f"Time to Sample Points: {end_time-start_time}")
+
+    start_time = time.time()
+    point_validities = env.batch_is_valid(points)
+    obstacle_points = points[(point_validities == False)]
+    end_time = time.time()
+    print(f"Time to Validate Points: {end_time-start_time}")
+
     ### --- Generate Cspace Obstacle Points --- ###
 
     if task_type == "search":
-        run_visualized_search(env)
+        run_visualized_search(env, obstacle_points)
     elif task_type == "interactive":
-        run_interactive_space(env)
+        run_interactive_space(env, obstacle_points)
