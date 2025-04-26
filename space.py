@@ -218,7 +218,7 @@ class PolygonalRobot(HolonomicRobot):
         self.angular_dims_start = 2
 
         self.robot_width = 1
-        self.robot_length = 5
+        self.robot_length = 2
 
         self.obstacles = []
 
@@ -525,7 +525,7 @@ class PlanarMobileArm(HolonomicRobot):
         return None
 
     def batch_sample_point(self, num_points):
-        issue_warning(True, "Batch Sample Points is hardcoded for planar mobile arm", 'warning')
+        # issue_warning(True, "Batch Sample Points is hardcoded for planar mobile arm", 'warning')
         return np.random.uniform(low=np.array([-10,-10,0,0,0]), high=np.array([10,10,2*np.pi,2*np.pi,2*np.pi]), size=(num_points, 5))
 
     def sample_configs_ee_target(self, target_ee_position):
@@ -571,7 +571,8 @@ class FixedArm(HolonomicRobot):
         super().__init__()
         self.angular_dims_start = 0
         self.edge_validity_delta = 0.5
-        self.arm_link_lengths = np.array([2, 2, 2, 2])
+        # self.arm_link_lengths = np.array([2, 2, 2, 2])
+        self.arm_link_lengths = np.array([2, 2])
         self.num_links = len(self.arm_link_lengths)
         self.arm_width = 0.1
 
@@ -632,6 +633,15 @@ class FixedArm(HolonomicRobot):
         lines = self.generate_robot_representation(state)
         for line in lines:
             ax.plot(*line.xy, color='blue')
+
+    def input_to_x_dot(self, inputs): 
+        dt = 0.1
+        assert(len(self.arm_link_lengths) == 2), "User Input Only Implemented for Robot with 2 Arms"
+
+        theta1_dot = inputs[XboxController.XboxControls.LTHUMBX] * dt
+        theta2_dot = inputs[XboxController.XboxControls.RTHUMBY] * dt
+
+        return np.array([theta1_dot, theta2_dot])
 
 
 class NonHolonomicRobot(RobotSpace):
