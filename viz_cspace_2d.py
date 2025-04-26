@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import time
 from utils import smooth_path, interpolate_path
 import matplotlib
+from matplotlib.widgets import Slider
 
 from rrt import RRT
 
@@ -20,7 +21,7 @@ from rrt import RRT
 def generate_obstacle_points(env):
     # env = ApproximationSpace(env)
     start_time = time.time()
-    points = np.array([env.sample_point().value for _ in range(10000)])
+    points = np.array([env.sample_point().value for _ in range(1000)])
     end_time = time.time()
     print(f"Time to Sample Points: {end_time-start_time}")
 
@@ -74,6 +75,8 @@ def run_visualized_search(env, obstacle_points):
     path = interpolate_path(path, env, 0.05)
     animate_path_and_space(path, obstacle_points, show_prev=False)
 
+
+
 def run_interactive_space(env, obstacle_points, tick_delay=0.01):
     import pygame
     from controller.xbox_controller import XboxController
@@ -91,6 +94,34 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
 
     running = True
     fig, axs = plt.subplots(1,2)
+    fig.subplots_adjust(left=0.25, bottom=0.25)
+
+    axlink1 = fig.add_axes([0.25, 0.1, 0.65, 0.03])
+    link1_slider = Slider(
+        ax=axlink1,
+        label='Link 1 Length',
+        valmin=0.1,
+        valmax=10,
+        valinit=3,
+    )
+
+    axlink2 = fig.add_axes([0.1, 0.25, 0.0225, 0.63])
+    link2_slider = Slider(
+        ax=axlink2,
+        label='Link 2 Length',
+        valmin=0.1,
+        valmax=10,
+        valinit=3,
+        orientation="vertical"
+    )
+
+
+    def update_robot(env):
+        env.arm_link_lengths = np.array([link1_slider.val, link2_slider.val])
+        global obstacle_points
+        obstacle_points = generate_obstacle_points(env)
+
+
     while running:
         controller.update_state()
         controller_state = controller.get_contoller_state()
@@ -111,6 +142,13 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
 
         if controller_state[XboxController.XboxControls.LBUMPER]:
             running = False
+
+        link1_slider.on_changed(update_robot)
+        link2_slider.on_changed(update_robot)
+
+        # In Update Robot
+        # - Update the lengths of the arms for env
+        # - Update the obstacle points
 
 if __name__ == '__main__':
 
@@ -141,6 +179,7 @@ if __name__ == '__main__':
     # end_time = time.time()
     # print(f"Time to Validate Points: {end_time-start_time}")
 
+    global obstacle_points
     obstacle_points = generate_obstacle_points(env)
 
     ### --- Generate Cspace Obstacle Points --- ###
