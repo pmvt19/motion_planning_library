@@ -22,8 +22,8 @@ from rrt import RRT
 # - Shows workspace and cspace executing a planned rrt path (Done)
 # - Add Colors to CSpace side that shows the progression of the path (Done)
 
-def generate_obstacle_points(env, sample_size=1000):
-    env = ApproximationSpace(env)
+def generate_obstacle_points(env, sample_size=10000):
+    env = ApproximationSpace(env, batch_size=1000)
     start_time = time.time()
     points = np.array([env.sample_point().value for _ in range(sample_size)])
     end_time = time.time()
