@@ -8,6 +8,10 @@ from utils import smooth_path, interpolate_path
 import matplotlib
 from matplotlib.widgets import Slider
 
+import pygame
+from controller.xbox_controller import XboxController
+
+
 from rrt import RRT
 
 # Interactive element 
@@ -78,15 +82,14 @@ def run_visualized_search(env, obstacle_points):
 
 
 def run_interactive_space(env, obstacle_points, tick_delay=0.01):
-    import pygame
-    from controller.xbox_controller import XboxController
+    global my_obstacle_points
+    my_obstacle_points = obstacle_points
 
     pygame.init()
     joysticks = []
     for i in range(0, pygame.joystick.get_count()):
         joysticks.append(pygame.joystick.Joystick(i))
         joysticks[-1].init()
-    
     
     controller = XboxController(pygame)
 
@@ -103,6 +106,7 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
         valmin=0.1,
         valmax=10,
         valinit=3,
+        dragging=True
     )
 
     axlink2 = fig.add_axes([0.1, 0.25, 0.0225, 0.63])
@@ -112,15 +116,36 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
         valmin=0.1,
         valmax=10,
         valinit=3,
-        orientation="vertical"
+        orientation="vertical",
+        dragging=True
     )
 
-
-    def update_robot(env):
+    
+    def update_robot(val):
         env.arm_link_lengths = np.array([link1_slider.val, link2_slider.val])
-        global obstacle_points
-        obstacle_points = generate_obstacle_points(env)
+        # global obstacle_points
+        global my_obstacle_points
+        my_obstacle_points = generate_obstacle_points(env)
 
+    link1_slider.on_changed(update_robot)
+    link2_slider.on_changed(update_robot)
+
+    # Disable events initially
+    link1_slider.eventson = False
+    link2_slider.eventson = False
+
+    # On mouse release, trigger the event manually
+    def on_release(event):
+        if event.inaxes == link1_slider.ax:
+            link1_slider.eventson = True  # Enable
+            link1_slider._observers.process('changed', link1_slider.val)  # Manually trigger callbacks
+            link1_slider.eventson = False  # Disable again immediately
+        if event.inaxes == link2_slider.ax:
+            link1_slider.eventson = True  # Enable
+            link1_slider._observers.process('changed', link2_slider.val)  # Manually trigger callbacks
+            link1_slider.eventson = False  # Disable again immediately
+
+    fig.canvas.mpl_connect('button_release_event', on_release)
 
     while running:
         controller.update_state()
@@ -131,7 +156,7 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
         axs[0].cla()
         axs[1].cla()
         
-        axs[1].scatter(obstacle_points[:, 0], obstacle_points[:, 1], color='red')
+        axs[1].scatter(my_obstacle_points[:, 0], obstacle_points[:, 1], color='red')
 
         env.draw_environment(axs[0])
         env.draw_state(axs[0], state)
@@ -143,8 +168,7 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
         if controller_state[XboxController.XboxControls.LBUMPER]:
             running = False
 
-        link1_slider.on_changed(update_robot)
-        link2_slider.on_changed(update_robot)
+        
 
         # In Update Robot
         # - Update the lengths of the arms for env
