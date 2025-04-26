@@ -10,8 +10,8 @@ import matplotlib
 from rrt import RRT
 
 # Interactive element 
-# - Shows workspace and cspace states as one uses the controller to manipulate the arm
-# - Potentially allow the user to change properties of the robot like arm lengths
+# - Shows workspace and cspace states as one uses the controller to manipulate the arm (Need to modify Holonomic Robots Class to make this work)
+# - Potentially allow the user to change properties of the robot like arm lengths (Specific to this file)
 
 # Search element
 # - Shows workspace and cspace executing a planned rrt path (Done)
@@ -38,14 +38,7 @@ def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.
         axs[1].set_aspect('equal')
         plt.pause(frame_delay)
 
-
-if __name__ == '__main__':
-    # np.random.seed(0)
-    env = FixedArm()
-    env.arm_link_lengths = np.array([3,3]) # HACK: DO NOT CHANGE ARM LENGTHS LIKE THIS
-    env.set_obstacles(TestSet())
-    # env.set_obstacles(ParkingSpace())
-
+def run_visualized_search(env):
     start, target = env.sample_valid_point(), env.sample_valid_point()
     rrt = RRT(env)
     path = rrt.search(start, target, max_steps=1000)
@@ -64,5 +57,63 @@ if __name__ == '__main__':
 
     # path = smooth_path(env, path)
     path = interpolate_path(path, env, 0.05)
-    animate_path_and_space(path, points)
+    animate_path_and_space(path, points, show_prev=False)
 
+def run_interactive_space(env, obstacle_points, tick_delay=0.01):
+    import pygame
+    from controller.xbox_controller import XboxController
+
+    pygame.init()
+    joysticks = []
+    for i in range(0, pygame.joystick.get_count()):
+        joysticks.append(pygame.joystick.Joystick(i))
+        joysticks[-1].init()
+    
+    
+    controller = XboxController(pygame)
+
+    state = env.sample_valid_point()
+
+    running = True
+    while running:
+        controller.update_state()
+        controller_state = controller.get_contoller_state()
+        x_dot = env.input_to_x_dot(controller_state)
+        state = env.make_state(state.value + x_dot)
+
+        fig, axs = plt.subplots(1,2)
+        axs[1].scatter(obstacle_points[:, 0], obstacle_points[:, 1], color='red')
+
+        env.draw_environment(axs[0])
+        env.draw_state(axs[0], state)
+        axs[1].scatter(state.value[0], state.value[1], color='blue', marker='^')
+        axs[0].set_aspect('equal')
+        axs[1].set_aspect('equal')
+        plt.pause(tick_delay)
+
+        if controller_state[XboxController.XboxControls.LBUMPER]:
+            running = False
+
+if __name__ == '__main__':
+
+    task_type = 'search' 
+    # task_type = 'interactive' # Will be made as an argument
+
+    # np.random.seed(0)
+    env = FixedArm()
+    env.arm_link_lengths = np.array([3,3]) # HACK: DO NOT CHANGE ARM LENGTHS LIKE THIS
+    env.set_obstacles(TestSet())
+
+    ### --- Generate Cspace Obstacle Points --- ###
+
+    # TODO: Move Code Here
+
+    # - Difficulty in developement as the mac cannot run the xbox controller
+    # - Need to write the code on mac and run it on the PC
+
+    ### --- Generate Cspace Obstacle Points --- ###
+
+    if task_type == "search":
+        run_visualized_search(env)
+    elif task_type == "interactive":
+        run_interactive_space(env)

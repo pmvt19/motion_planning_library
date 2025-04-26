@@ -13,14 +13,14 @@ from skimage.morphology import medial_axis
 if __name__ == '__main__':
     np.random.seed(0)
     env = PointRobot()
-    # env.set_obstacles(BiasedPassage(num_walls=2))
-    env.set_obstacles(RandomSamplePassage())
+    env.set_obstacles(BiasedPassage(num_walls=2))
+    # env.set_obstacles(RandomSamplePassage())
     # env.set_obstacles(TestSet())
-    env = ApproximationSpace(env, do_overapproximation=True)
+    # env = ApproximationSpace(env, do_overapproximation=True)
 
-    # plt.axis('off')
-    # env.draw_environment(plt.gca())
-    # plt.savefig("imgs/env.png", bbox_inches='tight', pad_inches=0)
+    plt.axis('off')
+    env.draw_environment(plt.gca())
+    plt.savefig("imgs/env.png", bbox_inches='tight', pad_inches=0)
 
     # data_obj = BytesIO()
     # plt.savefig(data_obj, format='png')
