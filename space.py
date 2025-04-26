@@ -642,6 +642,32 @@ class FixedArm(HolonomicRobot):
         theta2_dot = inputs[XboxController.XboxControls.RTHUMBY] * dt
 
         return np.array([theta1_dot, theta2_dot])
+    
+    ## ---- Batched Methods ---- ##
+    def batch_forward_kinematics(self, states):
+        B = states.shape[0]
+        states = np.copy(states)
+        # states[:, 3:] -= np.pi # Hack to treat angles properly
+        # arm_bases = np.vstack((states[:, 0], states[:, 1] + self.base_length/2)).T # (B, 2)
+        link_thetas = np.cumsum(states, axis=1) # (B, num_links)
+        link_cosines = np.cos(link_thetas) # (B, num_links)
+        link_sines = np.sin(link_thetas) # (B, num_links)
+        normalized_link_points = np.stack((link_cosines, link_sines), axis=2) # (B, num_links, 2)
+        point_der = self.arm_link_lengths.reshape(1, self.num_links, 1) * normalized_link_points # (B, num_links, 2)
+        joint_pos = np.cumsum(point_der, axis=1)
+        return np.concatenate((np.zeros((B, 1, 2)), joint_pos), axis=1)
+    
+    def batch_get_robot_representations(self, states):
+        segment_points = self.batch_forward_kinematics(states)
+        start_points = segment_points[:, :-1, :]
+        end_points = segment_points[:, 1:, :]
+        segments = np.concatenate((start_points, end_points), axis=2).reshape(-1, 4).reshape(-1, 2, 2)
+        return {
+            'rectangles' : np.empty((0, 4)),
+            'segments' : segments, 
+            'points' : np.empty((0, 2)),
+            'segments_radii' : 0.1, 
+        }
 
 
 class NonHolonomicRobot(RobotSpace):
