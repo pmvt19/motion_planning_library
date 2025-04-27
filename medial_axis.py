@@ -41,8 +41,10 @@ def compute_medial_axis_points(env : ApproximationSpace, percent_kept=0.1):
     ma_img = ma_img_unflipped[::-1, :]
     ys, xs = np.where(ma_img == True)
 
+    # HACK: HARDCODED
     env.x_range = [0,40]
     env.y_range = [0,10]
+    # HACK: HARDCODED
 
     scaled_ys = ((ys / ylen) * (env.y_range[1] - env.y_range[0]) + env.y_range[0])
     scaled_xs = (xs / xlen) * (env.x_range[1] - env.x_range[0]) + env.x_range[0]
@@ -68,6 +70,7 @@ def compute_medial_axis_points(env : ApproximationSpace, percent_kept=0.1):
 
 class MedialAxisRRT(BiasedSamplingRRT):
     def __init__(self, env, points_bias=0.4, delta=0.5):
+        assert (isinstance(env, ApproximationSpace)), "MedialAxisRRT is only compatible with ApproximationSpace Environments"
         
         # COMPUTE MEDIAL AXIS POINTS WORKSPACE HERE
         ma_points, ma_img = compute_medial_axis_points(env, percent_kept=0.1)
@@ -87,6 +90,7 @@ class MedialAxisRRT(BiasedSamplingRRT):
 
 class MedialAxisPRM(PRM):
     def __init__(self, env, num_samples=1000, num_neighbors=10, edge_dist_radius=None):
+        assert (isinstance(env, ApproximationSpace)), "MedialAxisPRM is only compatible with ApproximationSpace Environments"
 
         # COMPUTE MEDIAL AXIS POINTS WORKSPACE HERE
         ma_points, ma_img = compute_medial_axis_points(env, percent_kept=0.1)
