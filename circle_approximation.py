@@ -1,5 +1,5 @@
 from space import RobotSpace, PlanarMobileArm, PolygonalRobot
-from obstacle_sets import TestSet, NonRegularPolygonObst
+from obstacle_sets import TestSet#, NonRegularPolygonObst
 import math
 import numpy as np
 import matplotlib.pyplot as plt

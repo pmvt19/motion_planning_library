@@ -10,7 +10,7 @@ from state import NumpyState
 from utils import smooth_path, interpolate_edge, interpolate_path
 from path import Path
 # import threading 
-from obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage, WeavingPassage
+from obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage#, WeavingPassage
 
 class PRM():
     def __init__(self, env : RobotSpace, num_samples=10, num_neighbors=None, edge_dist_radius=None, validate_edges=False):
@@ -332,14 +332,14 @@ if __name__ == "__main__":
     # env = ApproximationSpace(env, batch_size=10000, do_overapproximation=False)
     start_time = time.time()
     # prm = PRM(env=env, num_samples=500, num_neighbors=10, validate_edges=True)
-    # prm = PRM(env=env, num_samples=20000, num_neighbors=10, validate_edges=True)
+    prm = PRM(env=env, num_samples=20000, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=1000, edge_dist_radius=2.4, validate_edges=True)
     # prm = PRM(env=env, num_samples=5000, edge_dist_radius=0.5, validate_edges=True)
     # prm = NonUniformPRM(env=env, num_samples=10000, num_neighbors=10, validate_edges=True)
     # prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
 
     # prm = IncrementalPRM(env=env, num_samples=10000, num_neighbors=5)
-    prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
+    # prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
     prm.create_graph()
     
     # plt.clf()

@@ -80,12 +80,21 @@ class MedialAxisRRT(BiasedSamplingRRT):
 
         # configs = env.batch_sample_points_around_target(ma_points) # TODO: IMPLEMENT THIS FUNCTION
         configs = ma_points
+        self.configs = configs
         super().__init__(env=env, biased_points=configs, points_bias=points_bias, delta=delta)
     
     def show_medial_axis(self):
         plt.clf()
         plt.imshow(self.ma_img)
         plt.gca().invert_yaxis()
+        plt.show()
+
+    def show_medial_axis_points(self):
+        plt.clf()
+        # plt.imshow(self.ma_img)
+        self.env.space.draw_environment(plt.gca())
+        plt.scatter(self.configs[:, 0], self.configs[:, 1], color='red', s=1)
+        # plt.gca().invert_yaxis()
         plt.show()
 
 class MedialAxisPRM(PRM):
@@ -127,9 +136,10 @@ if __name__ == '__main__':
     # rrt = MedialAxisRRT(env, prm_starting_configs, points_bias=0.7)
     rrt = MedialAxisRRT(env, points_bias=0.7)
     # rrt = RRT(env)
-    path = rrt.search(start, target, max_steps=20000, goal_bias=0.1)
+    path = rrt.search(start, target, max_steps=20000, goal_bias=0.0)
     rrt.draw_tree(plt.gca(), path=path)
     env.space.draw_environment(plt.gca())
     plt.show()
 
     rrt.show_medial_axis()
+    rrt.show_medial_axis_points()

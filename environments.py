@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from state import NumpyState, AngularNumpyState
 from shapely import affinity
-from utils import interpolate_euclidean_edge, interpolate_angular_edge, interpolate_edge, numpystate_distance
+from utils import interpolate_edge, numpystate_distance
 
 
 class Environment():
