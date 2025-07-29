@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from graph import Graph
 from space import RobotSpace, PointRobot, PolygonalRobot, PlanarMobileArm
 from circle_approximation import ApproximationSpace
+from circle_approximation_torch import ApproximationSpaceTorch
 from matplotlib.collections import LineCollection
 import time
 from heapq import heappop, heappush
@@ -305,6 +306,11 @@ class IncrementalPRM(PRM):
         # Return final Path
         return path
 
+class PRMStar(PRM):
+    def __init__(self, env, num_samples=100, edge_dist_radius=None, cache_edge_validities=True):
+        super().__init__(env=env, num_samples=num_samples, num_neighbors=None, edge_dist_radius=edge_dist_radius)
+        self.cache_graph_edge_validities = cache_edge_validities    
+    
 if __name__ == "__main__":
     seed = np.random.randint(0, 100)
     # seed = 15
@@ -330,6 +336,7 @@ if __name__ == "__main__":
 
     start, target = env.sample_task()
     # env = ApproximationSpace(env, batch_size=10000, do_overapproximation=False)
+    env = ApproximationSpaceTorch(env, batch_size=10000, do_overapproximation=False)
     start_time = time.time()
     # prm = PRM(env=env, num_samples=500, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=20000, num_neighbors=10, validate_edges=True)
@@ -338,8 +345,8 @@ if __name__ == "__main__":
     # prm = NonUniformPRM(env=env, num_samples=10000, num_neighbors=10, validate_edges=True)
     # prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
 
-    # prm = IncrementalPRM(env=env, num_samples=10000, num_neighbors=5)
-    prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
+    prm = IncrementalPRM(env=env, num_samples=10000, num_neighbors=5)
+    # prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
     prm.create_graph()
     
     # plt.clf()
