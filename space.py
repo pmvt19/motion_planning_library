@@ -140,6 +140,9 @@ class RobotSpace():
         
     def batch_get_robot_representations(self, states : np.ndarray):
         raise NotImplementedError
+    
+    def batch_sample_points_around_target(self, targets: np.ndarray):
+        raise NotImplementedError
 
 class HolonomicRobot(RobotSpace):
     def __init__(self):
@@ -203,6 +206,10 @@ class PointRobot(HolonomicRobot):
             'segments' : np.empty((0, 2, 2)), 
             'points' : states,
         }
+    
+    def batch_sample_points_around_target(self, targets):
+        validities = self.batch_is_valid(targets)
+        return targets[validities]
 
 class PolygonalRobot(HolonomicRobot):
     def __init__(self):
@@ -304,6 +311,18 @@ class PolygonalRobot(HolonomicRobot):
             'line_approx_non_aarect' : segments,
             'line_approx_non_aarect_radii' : radii,
         }
+    
+    def batch_sample_points_around_target(self, targets : np.ndarray):
+        B, _ = targets.shape
+
+        num_thetas_per_target = 20
+
+        thetas = np.random.uniform(low=0, high=2*np.pi, size=(B*num_thetas_per_target,1))
+        points = np.repeat(targets, num_thetas_per_target, axis=0)
+
+        points = np.concatenate((points,thetas), axis=1)
+        validities = self.batch_is_valid(points)
+        return points[validities]
     
 class PlanarMobileArm(HolonomicRobot):
     def __init__(self, num_links=3, arm_lengths=None):
