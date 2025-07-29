@@ -1,5 +1,5 @@
 from space import RobotSpace, PlanarMobileArm, PolygonalRobot
-from obstacle_sets import TestSet, NonRegularPolygonObst
+from obstacle_sets import TestSet#, NonRegularPolygonObst
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,8 +18,11 @@ class ApproximationSpaceTorch(RobotSpace):
         self.space = space
         self.do_overapproximation = do_overapproximation
         self.batch_size = batch_size
-        self.obstacle_circles = self.space_to_circles().type(torch.float64)
         self.device = device
+        self.obstacle_circles = self.space_to_circles().type(torch.float64)
+        
+
+        print(f"Using Device: {self.device}")
 
         
         
@@ -56,7 +59,7 @@ class ApproximationSpaceTorch(RobotSpace):
         seg_circles = self.segments_to_circles(torch.from_numpy(representations['segments']).to(self.device), torch.from_numpy(representations['segments_radii']).to(self.device)).view(B, -1, 3)
         point_circles = self.points_to_circles(torch.from_numpy(representations['points']).to(self.device)).view(B, -1, 3)
         state_circles = torch.cat((rect_circles, seg_circles, point_circles), dim=1)
-        print(f"State Circles Device: {state_circles.device}")
+        
         return state_circles
     
     def optimized_rectangle_to_circles(self, aa_rect):
@@ -83,11 +86,11 @@ class ApproximationSpaceTorch(RobotSpace):
 
         segments = torch.cat((vert_segments, horiz_segments), dim=0)
         radii = torch.cat((vert_radii, horiz_radii), dim=0) / 2
-        circles = self.segments_to_circles(segments, radii)
+        circles = self.segments_to_circles(segments.to(self.device), radii.to(self.device))
         if self.do_overapproximation:
             circles[:, 2] = circles[:, 2] * math.sqrt(2)
 
-        return circles
+        return circles.to(self.device)
 
     def segments_to_circles(self, segments : torch.Tensor, radius):
         """
@@ -99,7 +102,7 @@ class ApproximationSpaceTorch(RobotSpace):
         # segments : (B, 2, 2)
         B, *_ = segments.shape
         if B == 0:
-            return torch.empty((0, 3))
+            return torch.empty((0, 3), device=self.device)
 
         start_points = segments[:, 0, :] # (B, 2)
         end_points = segments[:, 1, :] # (B, 2)
@@ -108,9 +111,7 @@ class ApproximationSpaceTorch(RobotSpace):
         segment_lengths = torch.linalg.norm(batch_rays, dim=1).view(-1, 1) # (B,1)
 
         num_distinct_segment_lengths = len(torch.unique(torch.round(segment_lengths, decimals=10)))
-        # print(radius, segment_lengths, 'here')
-        # assert len(np.unique(np.round(segment_lengths, 10))) == 1, "All Segments currently must have the same length"
-        # assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
+
         batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
         modified_segment_lengths = segment_lengths - (2*radius)
 
@@ -128,9 +129,9 @@ class ApproximationSpaceTorch(RobotSpace):
         trajectories = torch.cumsum(repeated_rays, dim=1) + circle_start_points.view(-1, 1, 2)
 
         if isinstance(radius, float):
-            shaped_radius = torch.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius
+            shaped_radius = torch.ones((trajectories.shape[0], trajectories.shape[1], 1), device=self.device) * radius
         elif isinstance(radius, torch.Tensor):
-            shaped_radius = torch.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius.view(-1, 1, 1)
+            shaped_radius = torch.ones((trajectories.shape[0], trajectories.shape[1], 1), device=self.device) * radius.view(-1, 1, 1)
 
         circle_center_radius_pairs = torch.cat((trajectories, shaped_radius), dim=2)
 
@@ -140,19 +141,18 @@ class ApproximationSpaceTorch(RobotSpace):
             num_circles_per_segment = num_circles_per_segment.squeeze()
             circle_center_radius_pairs = torch.vstack([circle_center_radius_pairs[i, :(num_circles+1)] for i, num_circles in enumerate(num_circles_per_segment)])
 
-        return circle_center_radius_pairs
+        return circle_center_radius_pairs.to(self.device)
 
     def points_to_circles(self, points):
         # points: (B, 2)
-        radii = torch.zeros((points.shape[0], 1)) # TODO
+        radii = torch.zeros((points.shape[0], 1), device=self.device) # TODO
         zero_radius_circles = torch.cat((points, radii), dim=1)
-        return zero_radius_circles
+        return zero_radius_circles.to(self.device)
 
     def circles_to_validity(self, obstacle_circles, robot_circles):
         B = robot_circles.shape[0]
         robot_xy = robot_circles[:, :, :2]
         obst_xy = obstacle_circles[:, :2]
-        print(robot_xy.device, obst_xy.device)
         distance_mat = torch.sqrt(torch.sum(robot_xy**2, dim=2, keepdim=True) + torch.sum(obst_xy**2, dim=1, keepdim=True).T + (-2 * (robot_xy @ obst_xy.T))) # TODO
 
         min_dists = robot_circles[:, :, 2].view(B, -1, 1) + obstacle_circles[:, 2].view(1, 1, -1)
@@ -175,7 +175,7 @@ class ApproximationSpaceTorch(RobotSpace):
             validities = self.circles_to_validity(self.obstacle_circles, robot_circles[idx_start:idx_end])
             stacked_validities.append(validities)
         stacked_validities = torch.hstack(stacked_validities) # TODO
-        return (stacked_validities.numpy())
+        return (stacked_validities.cpu().numpy())
 
     def draw_state(self, ax, state):
         start_time = time.time()
