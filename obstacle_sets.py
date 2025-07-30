@@ -128,7 +128,9 @@ class CentralObstacle(ObstacleSet2d):
         y_range = [0,10]
 
         obstacles = []
-        obs = create_rectangle_geometry(5,5,5.1,5)
+        # obs = create_rectangle_geometry(5,5,5.1,5)
+        obs = create_rectangle_geometry(5,5,2,2)
+        # obs = create_rectangle_geometry(5,5,0.01,0.01)
         obstacles.append(obs)
 
         boundary = Polygon([[0, 0],
@@ -182,6 +184,48 @@ class BiasedPassage(ObstacleSet2d):
                            [sup_x_high, sup_y_low]])
             obstacles.append(obs)
 
+        super().__init__(obstacles=obstacles, boundary=boundary)
+
+class WeavingPassage(ObstacleSet2d):
+    def __init__(self):
+        
+        x_range = [0,10]
+        y_range = [0,10]
+
+        boundary = Polygon([[0, 0],
+                            [0, 10],
+                            [x_range[1], 10],
+                            [x_range[1], 0]])
+        
+        obstacles = []
+
+        num_blocks = 9
+
+        for i in range(num_blocks):
+            x_loc = 3 if i % 2 == 0 else 7
+            obstacles.append(create_rectangle_geometry(x_loc, i+1, 7, 0.9))
+
+        super().__init__(obstacles=obstacles, boundary=boundary)
+
+class NonRegularPolygonObst(ObstacleSet2d):
+    def __init__(self):
+        obstacles = []
+
+        obs = Polygon([
+            (0,0),
+            (2,1),
+            (1.6,3),
+            (1.3,3.5),
+            (1.2,3),
+            (-0.1,1.3)
+        ])
+
+        obstacles.append(obs)
+
+        x_range = [-10,10]
+        y_range = [-10,10]
+
+        boundary = Polygon([(x_range[0], y_range[0]), (x_range[0], y_range[1]), (x_range[1], y_range[1]), (x_range[1], y_range[0])])
         super().__init__(obstacles=obstacles, boundary=boundary)
 
 if __name__ == '__main__':
