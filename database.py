@@ -1,3 +1,53 @@
+import pickle
+import numpy as np
+import matplotlib.pyplot as plt 
+from matplotlib.collections import LineCollection
+
+from prm import IncrementalPRM
+from obstacle_sets import BiasedPassage
+from space import PointRobot
+from circle_approximation import ApproximationSpace
+
 class Database():
     def __init__(self):
         self.paths = []
+    
+    def set_env(self, env):
+        self.env = env
+    
+    def save_to_path(self, path):
+        pickle.dump(self, open(path, 'wb'))
+
+    def draw_paths(self, ax):
+        cmap = plt.get_cmap('tab10', len(self.paths))
+        for i, path in enumerate(self.paths):
+            path_states = np.array([state.value for state in path.path])
+            ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(i))
+            path_edges = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
+            ax.add_collection(LineCollection(path_edges, color=cmap(i)))
+    
+
+if __name__ == '__main__':
+
+    db_save_path = 'saves/database_v2.pickle'
+
+    db = Database()
+
+    for i in range(4):
+        env = PointRobot()
+        env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
+        env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
+
+        prm = IncrementalPRM(env, num_samples=1000, num_neighbors=8)
+        prm.create_graph()
+
+        for j in range(5):
+            print(f"Env {i+1}, Task {j+1}")
+            start, target = env.sample_valid_point(), env.sample_valid_point()
+
+            path = prm.search(start, target)
+            db.paths.append(path)
+
+
+
+    pickle.dump(db, open(db_save_path, 'wb'))
