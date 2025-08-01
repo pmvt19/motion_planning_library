@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from matplotlib.collections import LineCollection
 
-from prm import IncrementalPRM
+from prm import IncrementalPRM, PRM
 from obstacle_sets import BiasedPassage
 from space import PointRobot
 from circle_approximation import ApproximationSpace
@@ -22,32 +22,38 @@ class Database():
         cmap = plt.get_cmap('tab10', len(self.paths))
         for i, path in enumerate(self.paths):
             path_states = np.array([state.value for state in path.path])
-            ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(i))
+            ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(i), zorder=2)
             path_edges = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
             ax.add_collection(LineCollection(path_edges, color=cmap(i)))
+    
+    def __len__(self):
+        return len(self.paths)
     
 
 if __name__ == '__main__':
 
-    db_save_path = 'saves/database_v2.pickle'
+    db_save_path = 'saves/database_v5.pickle'
 
     db = Database()
 
-    for i in range(4):
+    for i in range(100):
         env = PointRobot()
-        env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
+        env.set_obstacles(BiasedPassage(num_walls=8, bias=0.5))
         env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
-        prm = IncrementalPRM(env, num_samples=1000, num_neighbors=8)
+        # prm = IncrementalPRM(env, num_samples=1000, num_neighbors=20)
+        prm = PRM(env, num_samples=5000, num_neighbors=10)
         prm.create_graph()
 
-        for j in range(5):
+        for j in range(10):
             print(f"Env {i+1}, Task {j+1}")
             start, target = env.sample_valid_point(), env.sample_valid_point()
 
             path = prm.search(start, target)
-            db.paths.append(path)
+            if path:
+                db.paths.append(path)
+        print(f"DB Size: {len(db)}")
 
 
-
-    pickle.dump(db, open(db_save_path, 'wb'))
+    db.save_to_path(db_save_path)
+    # pickle.dump(db, open(db_save_path, 'wb'))
