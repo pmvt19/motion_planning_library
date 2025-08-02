@@ -5,12 +5,15 @@ from collections import defaultdict
 from shapely import Polygon, Point
 import time
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from space import PointRobot, PolygonalRobot, PlanarMobileArm
+from space import PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm
 from matplotlib.collections import LineCollection
 from state import NumpyState
-from utils import smooth_path
+from utils import smooth_path, interpolate_path, issue_warning
 from path import Path
-from obstacle_sets import TestSet
+from obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, BiasedPassage, WeavingPassage
+from circle_approximation import ApproximationSpace
+
+import pickle
 
 class RRT():
     def __init__(self, env, delta=0.5):
@@ -37,7 +40,6 @@ class RRT():
             new_node = self.target
         else:
             new_node = self.env.shoot_ray(node, sampled_point, self.delta)
-            # print(new_node.value)
 
         if new_node != node:
             self.tree[node].append(new_node)
@@ -49,7 +51,7 @@ class RRT():
     def draw_tree(self, ax, path:Path = None, show_task=True):
         self.env.draw_environment(ax)
         nodes = np.array([node.value for node in self.tree.keys()])
-        # print(nodes)
+
         try:
             ax.scatter(nodes[:, 0], nodes[:, 1])
             if show_task:
@@ -90,6 +92,12 @@ class RRT():
     def init_search(self, start, target):
         self.start = start 
         self.target = target
+
+        # TODO: Clean This up with constructor (Semi-HACK)
+        self.tree = defaultdict(list)
+        self.child_to_parent = {}
+        # TODO: Clean This up with constructor (Semi-HACK)
+
         self.tree[self.start] = []
         self.child_to_parent[self.start] = None
 
@@ -309,25 +317,37 @@ if __name__ == "__main__":
     # seed = 25
     # seed = 6
     # seed = 66
-    seed = 95
+    # seed = 95
+    # seed = 82
+    # seed = 56
+    # seed = 57
+    seed = 29
     print(f"Setting Seed: {seed}")
     
     np.random.seed(seed)
-    start = (0, 0)
-    target = (9, 9)
-    
-    # env = OpenSpace2d()
-    # env = Environment2d()
-    # env = RandomSamplePassage()
-    # env = CarParkingEnv()
+    # start = (0, 0)
+    # target = (9, 9)
 
-    env = PlanarMobileArm(num_links=3)
-    env.set_obstacles(TestSet())
-    # env = PointRobot()
+
+    # env = PlanarMobileArm(num_links=3)
+    # env = FixedArm()
     # env = PolygonalRobot()
-
+    # env.set_obstacles(TestSet())
+    # env.set_obstacles(ParkingSpace())
+    env = PointRobot()
+    # env = PolygonalRobot()
+    # env = PlanarMobileArm(num_links=4)
+    # env.set_obstacles(ParkingSpace())
+    env.set_obstacles(RandomSamplePassage())
+    # env.set_obstacles(BiasedPassage(num_walls=3))
+    # env.set_obstacles(WeavingPassage())
     # env = PlanarMobileArm(num_links=4)
     start, target = env.sample_task()
+
+    # start = env.make_state(np.array([5.0, 0.1]))
+    # target = env.make_state(np.array([5.0, 9.9]))
+
+    # start, target = env.make_state(np.array([5, 2, 0.0])), env.make_state(np.array([-5, -5, 0.0]))
 
     # start = env.make_state(np.array([0.0,0.0]))
     # start = env.make_state(np.array([-9.0,-9.0]))
@@ -340,18 +360,29 @@ if __name__ == "__main__":
 
     # rrt = RRT(env)
     # rrt = RRTStar(env)
+    env = ApproximationSpace(env)
     rrt = BiDirectionalRRT(env)
     # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=750, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
-    path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=8000, goal_bias=0.1, animate_search_tree=False)
+    # path = rrt.search(start, target, max_steps=20000, goal_bias=0.1, animate_search_tree=False)
+    path = rrt.search(start, target, max_steps=4000, goal_bias=0.0, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=3000, do_rewire=True, goal_bias=0.4, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
 
-    env.animate_path(path, frame_delay=0.1)
+    path = smooth_path(env, path)
+    path = interpolate_path(path, env, 0.1)
+    rrt.draw_tree(plt.gca(), path=path)
+    plt.show()
+
+    # pickle.dump(path, open('saved_paths/rrt_path.pickle', 'wb'))
+    # path = interpolate_path(path, 0.1)
+    # env.animate_path(path, frame_delay=0.1)
     
     # smoothed_path = smooth_path(env, path)
     # rrt.draw_tree(plt.gca(), path=smoothed_path)
