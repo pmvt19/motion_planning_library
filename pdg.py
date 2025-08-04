@@ -152,6 +152,7 @@ class PDG():
             path = np.array([state.value for state in path.path])
             # path[:-1] - path[1:]
             # state_dist_to_goal = np.linalg.norm(path - target.value, axis=1) # TODO: Computation is incorrect
+            # print(path.shape)
             state_dist_to_goal = np.linalg.norm(path[:-1] - path[1:], axis=1)
             state_dist_to_goal = np.concatenate((state_dist_to_goal, np.array([0])))
             state_c2g = np.cumsum(state_dist_to_goal[::-1])[::-1]
@@ -183,7 +184,9 @@ class PDG():
         # path_rrt = rrt.search(start, target, max_steps=5)
         # self.tree = rrt.tree
         
-        for i in range(50):
+        do_rrt = False
+        for i in range(500):
+        # for i in range(8):
             tree_states = np.array([key.value for key in self.tree])
             path_starting_idxes = np.array([len(path) for path in self.validated_paths])
             path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
@@ -202,6 +205,7 @@ class PDG():
             # print(dist_mat)
             # print(tree_states)
             threshold = 1.0
+            # threshold = 10.0
             # threshold = 0.5
             # print(path_states[path_states[:, 0] < 10])
             dist_mat[dist_mat > threshold] = np.inf
@@ -219,7 +223,8 @@ class PDG():
             min_c2g_estimate = np.min(c2g_estimates)
             # print("Min value in c2g_estimates: ", min_c2g_estimate)
             expansion_tech = None
-            if min_c2g_estimate == np.inf:
+            
+            if min_c2g_estimate == np.inf or do_rrt:
                 # Do RRT for a couple of steps
                 rrt = RRT(self.env)
                 # rrt.tree = self.tree
@@ -232,10 +237,11 @@ class PDG():
                 # continue
                 # pass
                 # print("RRTing")
-                # expansion_tech = 'rrt'
+                expansion_tech = 'rrt'
+                do_rrt = False
             else:
                 # print("PDGing")
-                # expansion_tech = 'pdg'
+                expansion_tech = 'pdg'
 
                 potential_connection_edges_idxes = np.where(c2g_estimates != np.inf)
 
@@ -260,7 +266,10 @@ class PDG():
                 # c2g_estimates[:, (potential_connection_edges_idxes[1][edge_validities == False])] = np.inf
 
                 c2g_estimates[(potential_connection_edges_idxes[0][edge_validities == False]), (potential_connection_edges_idxes[1][edge_validities == False])] = np.inf
-                # c2g_estimates[:, ] = np.inf
+
+                if np.min(c2g_estimates) == np.inf:
+                    do_rrt = True
+                    continue
 
                 # print(np.argmin(c2g_estimates))
                 # print(np.where(c2g_estimates == np.min(c2g_estimates)))
@@ -268,6 +277,8 @@ class PDG():
                 # print(np.unravel_index(np.argmin(c2g_estimates), c2g_estimates.shape))
                 
                 tree_state_idx, path_state_idx = np.unravel_index(np.argmin(c2g_estimates), c2g_estimates.shape)
+
+                # print("Distance to attach to path", dist_mat[tree_state_idx, path_state_idx], np.min(c2g_estimates))
                 # print(path_starting_idxes)
                 # print(np.where(path_state_idx < path_starting_idxes))
                 path_starting_idx = np.where(path_state_idx < path_starting_idxes)[0][0] - 1
@@ -335,7 +346,7 @@ class PDG():
             # self.draw_tree(plt.gca())
 
             # plt.gca().scatter(following_path[:, 0], following_path[:, 1], color='orange', zorder=0, s=100)
-            # plt.title(expansion_tech)
+            # plt.title(f"{expansion_tech}, Step: {i}")
             # # plt.gca().set_aspect('equal')
             # plt.show()
             # plt.clf()
@@ -392,6 +403,16 @@ if __name__ == '__main__':
     # seed = 8458
 
     # seed = 7277
+    # seed = 1610
+
+    # seed = 4132
+    # seed = 9221
+    seed = 7594
+
+    # Broken Seeds (on PC)
+    # seed = 4459
+    # seed = 9264 # Broken on Mac (Fixed?)
+    # seed = 8718 # BUG SEED
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
@@ -426,7 +447,7 @@ if __name__ == '__main__':
     end_time = time.time()
     print(f"Time to compute paths: {end_time-start_time}")
 
-    # start_time = time.time()
+    start_time = time.time()
     path = pdg.search(start, target)
     end_time = time.time()
     print(f"Time to search: {end_time - start_time}")
