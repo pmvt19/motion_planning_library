@@ -89,7 +89,7 @@ class RRT():
             node = self.child_to_parent[node]
         return Path(path=path[::-1])
     
-    def init_search(self, start, target):
+    def init_search(self, start, target, starting_tree_info=None):
         self.start = start 
         self.target = target
 
@@ -101,13 +101,17 @@ class RRT():
         self.tree[self.start] = []
         self.child_to_parent[self.start] = None
 
+        if starting_tree_info:
+            self.tree=starting_tree_info[0]
+            self.child_to_parent=starting_tree_info[1]
+
     def step_search(self, goal_bias):
         exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
         cur_node = self.expand_node(exp_node, sampled_point)
         return cur_node
 
-    def search(self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False):
-        self.init_search(start, target)
+    def search(self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False, starting_tree_info=None):
+        self.init_search(start, target, starting_tree_info)
 
         cur_node = start
         num_steps = 0
@@ -361,24 +365,31 @@ if __name__ == "__main__":
     # rrt = RRT(env)
     # rrt = RRTStar(env)
     env = ApproximationSpace(env)
-    rrt = BiDirectionalRRT(env)
+    rrt = RRT(env)
+    # rrt = BiDirectionalRRT(env)
     # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=750, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=8000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=20000, goal_bias=0.1, animate_search_tree=False)
-    path = rrt.search(start, target, max_steps=4000, goal_bias=0.0, animate_search_tree=False)
+    path = rrt.search(start, target, max_steps=40, goal_bias=0.0, animate_search_tree=False)
+    
+    new_rrt = RRT(env)
+    path = new_rrt.search(start, target, max_steps=100, goal_bias=0.0, animate_search_tree=False, starting_tree=rrt.tree)
     # path = rrt.search(start, target, max_steps=3000, do_rewire=True, goal_bias=0.4, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
 
-    path = smooth_path(env, path)
-    path = interpolate_path(path, env, 0.1)
-    rrt.draw_tree(plt.gca(), path=path)
+    new_rrt.draw_tree(plt.gca(), path=path)
     plt.show()
+
+    # path = smooth_path(env, path)
+    # path = interpolate_path(path, env, 0.1)
+    # rrt.draw_tree(plt.gca(), path=path)
+    # plt.show()
 
     # pickle.dump(path, open('saved_paths/rrt_path.pickle', 'wb'))
     # path = interpolate_path(path, 0.1)
