@@ -10,7 +10,7 @@ from path import Path
 from collections import defaultdict
 from circle_approximation import ApproximationSpace
 from matplotlib.collections import LineCollection
-
+from utils import interpolate_path, smooth_path
 
 from rrt import RRT
 
@@ -71,7 +71,7 @@ from rrt import RRT
 class PDG():
     def __init__(self, env, db_path):
         self.db : Database = pickle.load(open(db_path, 'rb'))
-        self.db.paths = self.db.paths[:50]
+        # self.db.paths = self.db.paths[:50]
         self.env : RobotSpace = env
     
     def compute_retained_paths(self, target):
@@ -93,20 +93,22 @@ class PDG():
         for i, path in enumerate(self.db.paths):
             if kept_paths_mask[i]:
                 new_path = path[:closest_idxes[i]]
+                # new_path = interpolate_path(new_path, self.env, 0.1).path
+                # new_path = smooth_path(self.env, Path(new_path)).path
                 # print(len(new_path))
                 if len(new_path) > 0:
-                    retained_paths.append(Path(new_path))
+                    retained_paths.append(Path(path=new_path + [target]))
 
         # print(len(retained_paths), len(kept_paths_mask))
 
-        new_db = Database()
-        new_db.paths = retained_paths#[:1]
-        new_db.draw_paths(plt.gca())
-        self.env.draw_environment(plt.gca())
-        plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
-        plt.scatter(target.value[0], target.value[1], color='red', s=100)
-        plt.show()
-        plt.clf()
+        # new_db = Database()
+        # new_db.paths = retained_paths#[:1]
+        # new_db.draw_paths(plt.gca())
+        # self.env.draw_environment(plt.gca())
+        # plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
+        # plt.scatter(target.value[0], target.value[1], color='red', s=100)
+        # plt.show()
+        # plt.clf()
 
         # TODO: Need to validate the edge from path to goal
 
@@ -163,7 +165,7 @@ class PDG():
         self.flattened_c2gs = np.array([c2g for path in path_c2gs for c2g in path])
 
 
-    def search(self, start, target):
+    def search_step(self, start, target):
         self.start = start
         self.target = target
 
@@ -178,6 +180,7 @@ class PDG():
         rrt = RRT(self.env)
         path = rrt.search(start, target, max_steps=5)
         self.tree = rrt.tree
+        
         
         tree_states = np.array([key.value for key in self.tree])
         path_starting_idxes = np.array([len(path) for path in self.validated_paths])
@@ -254,7 +257,7 @@ class PDG():
 
         self.validated_paths[path_starting_idx] = kept_path_segment
 
-        print(following_path, path_state_validities)
+        # print(following_path, path_state_validities)
 
         parent = self.env.make_state(tree_states[tree_state_idx])
         for state in add_to_tree_segment:
@@ -279,6 +282,7 @@ class PDG():
         plt.gca().scatter(following_path[:, 0], following_path[:, 1], color='orange', zorder=0, s=100)
 
         plt.show()
+        plt.clf()
 
         # print(potential_connection_edges_idxes)
 
@@ -289,8 +293,193 @@ class PDG():
 
         # find node with lowest c2g estimate and attach to the associated path (follow until collision)
 
+    def search(self, start, target):
+        self.start = start
+        self.target = target
 
-    def draw_tree(self, ax):
+        self.tree = defaultdict(list)
+
+
+        self.tree[start]
+        self.child_to_parent = {}
+        self.child_to_parent[start] = None
+
+        # new_state = self.env.make_state(np.array([5.5, 5.5]))
+        # self.tree[start].append(new_state)
+        # self.tree[new_state]
+
+        # rrt = RRT(self.env)
+        # path_rrt = rrt.search(start, target, max_steps=5)
+        # self.tree = rrt.tree
+        
+        for i in range(50):
+            tree_states = np.array([key.value for key in self.tree])
+            path_starting_idxes = np.array([len(path) for path in self.validated_paths])
+            path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
+            path_states = np.array([state.value for path in self.validated_paths for state in path])
+
+            # print(tree_states.shape, path_states.shape)
+
+            # path_states = np.array([4, 6]).reshape(1, 2)
+
+            # pairwise dist
+
+            # distance_mat = np.sqrt(np.sum(tree_states**2, axis=2, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
+            # print(np.sum(tree_states**2, axis=1, keepdims=True), np.sum(path_states**2, axis=1, keepdims=True), 'here', (tree_states @ path_states.T))
+            dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
+
+            # print(dist_mat)
+            # print(tree_states)
+            threshold = 1.0
+            # threshold = 0.5
+            # print(path_states[path_states[:, 0] < 10])
+            dist_mat[dist_mat > threshold] = np.inf
+            # print(np.min(dist_mat))
+            c2g_estimates = dist_mat + self.flattened_c2gs
+
+            # print(self.flattened_c2gs.shape)
+            # print(np.min(c2g_estimates))
+
+            # print(c2g_estimates.shape, np.sum(c2g_estimates == np.inf, axis=1))
+            # print(c2g_estimates.shape, np.sum(c2g_estimates != np.inf, axis=1))
+
+            # TODO: if c2g  estimates becomes fully np.inf, we need to explore
+            
+            min_c2g_estimate = np.min(c2g_estimates)
+            # print("Min value in c2g_estimates: ", min_c2g_estimate)
+            expansion_tech = None
+            if min_c2g_estimate == np.inf:
+                # Do RRT for a couple of steps
+                rrt = RRT(self.env)
+                # rrt.tree = self.tree
+                # rrt.target = target
+                # for i in range(100):
+                #     exp_node, sampled_point = rrt.select_node()
+                #     cur_node = rrt.expand_node(exp_node, sampled_point)
+                path_rrt = rrt.search(start, target, max_steps=1000, starting_tree_info=(self.tree,self.child_to_parent))
+                self.tree = rrt.tree
+                # continue
+                # pass
+                # print("RRTing")
+                # expansion_tech = 'rrt'
+            else:
+                # print("PDGing")
+                # expansion_tech = 'pdg'
+
+                potential_connection_edges_idxes = np.where(c2g_estimates != np.inf)
+
+                edge_starts = tree_states[potential_connection_edges_idxes[0]]
+                edge_ends = path_states[potential_connection_edges_idxes[1]]
+
+                # print(np.hstack((edge_starts, edge_ends)))
+                # print(len(edge_starts))
+
+                start_time = time.time()
+                # print(edge_starts.shape, edge_ends.shape, "edge states shape")
+                edge_validities = self.env.batch_is_valid_edge(edge_starts, edge_ends)
+                end_time = time.time()
+                
+                # print(edge_validities)
+                # print(f"Time to Validate Edges: {end_time - start_time}")
+                # print(c2g_estimates.shape, potential_connection_edges_idxes[0].shape, 'here')
+                # print(potential_connection_edges_idxes[0], len(potential_connection_edges_idxes[0]), len(edge_validities))
+                # print(potential_connection_edges_idxes[1], len(potential_connection_edges_idxes[1]), len(edge_validities))
+                # print((potential_connection_edges_idxes[1][edge_validities == False]).shape)
+                # c2g_estimates[(potential_connection_edges_idxes[0][edge_validities == False])] = np.inf
+                # c2g_estimates[:, (potential_connection_edges_idxes[1][edge_validities == False])] = np.inf
+
+                c2g_estimates[(potential_connection_edges_idxes[0][edge_validities == False]), (potential_connection_edges_idxes[1][edge_validities == False])] = np.inf
+                # c2g_estimates[:, ] = np.inf
+
+                # print(np.argmin(c2g_estimates))
+                # print(np.where(c2g_estimates == np.min(c2g_estimates)))
+
+                # print(np.unravel_index(np.argmin(c2g_estimates), c2g_estimates.shape))
+                
+                tree_state_idx, path_state_idx = np.unravel_index(np.argmin(c2g_estimates), c2g_estimates.shape)
+                # print(path_starting_idxes)
+                # print(np.where(path_state_idx < path_starting_idxes))
+                path_starting_idx = np.where(path_state_idx < path_starting_idxes)[0][0] - 1
+                # print("path starting idx", path_starting_idx)
+
+                following_path = path_states[path_state_idx:path_starting_idxes[path_starting_idx+1]]
+                start_time = time.time()
+                path_state_validities = self.env.batch_is_valid(following_path)
+                end_time = time.time()
+                # print(f"Time to validate following path: {end_time - start_time}")
+
+                # print("INVALID IDX TEST: ", np.where(path_state_validities == False))
+
+                
+                # invalid_idx = np.where(path_state_validities == False)[0][0]
+                # print(invalid_idx, np.where(path_state_validities == False)) # TODO: There could be nothing in invalid idx, in which case we just add the entire final path
+
+                invalid_idxes = np.where(path_state_validities == False)[0]
+                if len(invalid_idxes) == 0:
+                    add_to_tree_segment = following_path
+                    kept_path_segment = following_path
+                else:
+                    invalid_idx = invalid_idxes[0]
+                    deletion_offset = 1
+                    add_to_tree_segment = following_path[:invalid_idx]
+                    kept_path_segment = following_path[invalid_idx+deletion_offset:] # TODO: Figure out logic for updating path states and all
+
+                self.validated_paths[path_starting_idx] = Path([self.env.make_state(state) for state in kept_path_segment])
+
+                # print(following_path, path_state_validities)
+
+                parent = self.env.make_state(tree_states[tree_state_idx])
+                for state in add_to_tree_segment:
+                    child = self.env.make_state(state)
+                    self.tree[parent].append(child)
+                    self.tree[child]
+
+                    self.child_to_parent[child] = parent
+                    parent = child
+
+                # path_starting_idxes[path_state_idx] 
+                # path_state_idx + 1
+
+                # tree_node = self.env.make_state(tree_states[tree_state_idx])
+                # new_child_node = self.env.make_state(path_states[path_state_idx])
+
+                # self.tree[tree_node].append(new_child_node)
+                # self.tree[new_child_node]
+
+                # print("Adding:", path_states[path_state_idx])
+
+            # self.draw_tree(plt.gca())
+
+            # plt.gca().scatter(following_path[:, 0], following_path[:, 1], color='orange', zorder=0, s=100)
+            # plt.title(expansion_tech)
+            # # plt.gca().set_aspect('equal')
+            # plt.show()
+            # plt.clf()
+            if target in self.tree:
+                return self.backtrack(target)
+            self.compute_c2g_for_paths(self.validated_paths, target)
+
+        # print(potential_connection_edges_idxes)
+
+        # print(self.flattened_c2gs)
+        # flattened_c2gs = []
+
+        # find closest on each path
+
+        # find node with lowest c2g estimate and attach to the associated path (follow until collision)
+
+    def backtrack(self, end=None):
+        if end is None or end not in self.child_to_parent:
+            return Path()
+
+        path = []
+        node = end
+        while node:
+            path.append(node)
+            node = self.child_to_parent[node]
+        return Path(path=path[::-1])
+
+    def draw_tree(self, ax, path=None):
         self.env.draw_environment(ax)
         nodes = np.array([node.value for node in self.tree.keys()])
         ax.scatter(nodes[:, 0], nodes[:, 1], color='pink')
@@ -301,8 +490,15 @@ class PDG():
         edges = LineCollection(edges, color='blue')
         ax.add_collection(edges)
 
+        if path:
+            path = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
+            ax.add_collection(LineCollection(path, color='red'))
+
 if __name__ == '__main__':
-    np.random.seed(0)
+    seed = np.random.randint(0, 10000)
+    seed = 575
+    print(f"Using Seed: {seed}")
+    np.random.seed(seed)
 
     # db_save_path = 'saves/database.pickle'
     # db = pickle.load(open(db_save_path, 'rb'))
@@ -327,14 +523,22 @@ if __name__ == '__main__':
     pdg = PDG(env, db_save_path)
 
     # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([15.0, 5.0]))
-    start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([45.0, 5.0]))
+    # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([45.0, 5.0]))
+    start, target = env.space.sample_task()
 
     start_time = time.time()
     pdg.compute_retained_paths(target)
     end_time = time.time()
     print(f"Time to compute paths: {end_time-start_time}")
 
-    pdg.search(start, target)
+    start_time = time.time()
+    path = pdg.search(start, target)
+    end_time = time.time()
+    print(f"Time to search: {end_time - start_time}")
+    pdg.draw_tree(plt.gca(), path)
+    plt.show()
+
+    print(path.path)
 
     # pdg.search(start, target)
     
