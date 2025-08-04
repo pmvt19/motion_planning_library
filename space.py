@@ -4,7 +4,7 @@ from state import NumpyState, AngularNumpyState
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from obstacle_sets import ObstacleSet, ParkingSpace
-from utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge, rad2deg
+from utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge, batch_interpolate_edge_uniform, rad2deg
 import time
 from collections import defaultdict
 from sklearn.metrics import pairwise_distances
@@ -134,11 +134,23 @@ class RobotSpace():
         pt_validities = self.batch_is_valid(pts).reshape(B, -1)
         edge_validities = np.array([np.all(pt_validities[i, :steps[i]]) for i in range(len(steps))])
         return edge_validities
+
+    def batch_is_valid_edge_uniform(self, start_states : np.ndarray, end_states : np.ndarray):
+        B, d = start_states.shape
+        # start_states: (B, d), end_states: (B, d)
+        pts = batch_interpolate_edge_uniform(start_states, end_states, self.edge_validity_delta, self.angular_dims_start)
+        pts = pts.reshape(-1, d)
+        pt_validities = self.batch_is_valid(pts).reshape(B, -1)
+        edge_validities = np.all(pt_validities, axis=1)
+        return edge_validities
     
     def batch_sample_point(self, num_points):
         raise NotImplementedError
         
     def batch_get_robot_representations(self, states : np.ndarray):
+        raise NotImplementedError
+    
+    def batch_sample_points_around_target(self, targets: np.ndarray):
         raise NotImplementedError
 
 class HolonomicRobot(RobotSpace):
@@ -203,6 +215,10 @@ class PointRobot(HolonomicRobot):
             'segments' : np.empty((0, 2, 2)), 
             'points' : states,
         }
+    
+    def batch_sample_points_around_target(self, targets):
+        validities = self.batch_is_valid(targets)
+        return targets[validities]
 
 class PolygonalRobot(HolonomicRobot):
     def __init__(self):
@@ -304,6 +320,18 @@ class PolygonalRobot(HolonomicRobot):
             'line_approx_non_aarect' : segments,
             'line_approx_non_aarect_radii' : radii,
         }
+    
+    def batch_sample_points_around_target(self, targets : np.ndarray):
+        B, _ = targets.shape
+
+        num_thetas_per_target = 20
+
+        thetas = np.random.uniform(low=0, high=2*np.pi, size=(B*num_thetas_per_target,1))
+        points = np.repeat(targets, num_thetas_per_target, axis=0)
+
+        points = np.concatenate((points,thetas), axis=1)
+        validities = self.batch_is_valid(points)
+        return points[validities]
     
 class PlanarMobileArm(HolonomicRobot):
     def __init__(self, num_links=3, arm_lengths=None):
@@ -525,7 +553,7 @@ class PlanarMobileArm(HolonomicRobot):
         return None
 
     def batch_sample_point(self, num_points):
-        # issue_warning(True, "Batch Sample Points is hardcoded for planar mobile arm", 'warning')
+        issue_warning(True, "Batch Sample Points is hardcoded for planar mobile arm", 'warning')
         return np.random.uniform(low=np.array([-10,-10,0,0,0]), high=np.array([10,10,2*np.pi,2*np.pi,2*np.pi]), size=(num_points, 5))
 
     def sample_configs_ee_target(self, target_ee_position):
@@ -553,12 +581,94 @@ class PlanarMobileArm(HolonomicRobot):
         joint_pos = np.cumsum(point_der, axis=1) + arm_bases.reshape(-1, 1, 2) # (B, num_links, 2)
         return np.concatenate((arm_bases.reshape(-1, 1, 2), joint_pos), axis=1)
     
+    def batch_create_end_effector_segments(self, base_points : np.ndarray, thetas : np.ndarray):
+        """
+        base_points: (N, 2) batch of N points from the end_effector joint
+        """
+        N, _ = base_points.shape
+
+        xs = base_points[:, 0]
+        ys = base_points[:, 1]
+
+        ee_lengths = [0.5, 0.2]
+        ee_angles = [np.pi/6, 2*np.pi/3]
+
+        r_joint_pos1 = np.array([
+            ee_lengths[0] * np.cos(ee_angles[0]),
+            ee_lengths[0] * np.sin(ee_angles[0]),
+        ]).reshape(1, 2) + base_points
+
+        r_joint_pos2 = r_joint_pos1 + np.array([
+            ee_lengths[1] * np.cos(ee_angles[0] + ee_angles[1]),
+            ee_lengths[1] * np.sin(ee_angles[0] + ee_angles[1]),
+        ])
+
+        p1 = np.pi - ee_angles[0]
+        p2 = 2*np.pi - ee_angles[1]
+
+        l_joint_pos1 = np.array([
+            ee_lengths[0] * np.cos(p1),
+            ee_lengths[0] * np.sin(p1),
+        ]).reshape(1, 2) + base_points
+
+        l_joint_pos2 = l_joint_pos1 + np.array([
+            ee_lengths[1] * np.cos(p1+p2),
+            ee_lengths[1] * np.sin(p1+p2),
+        ])
+
+        ee_arm_1 = np.stack((base_points, l_joint_pos1), axis=2).transpose(0, 2, 1)
+        ee_arm_2 = np.stack((l_joint_pos1, l_joint_pos2), axis=2).transpose(0, 2, 1)
+        ee_arm_3 = np.stack((base_points, r_joint_pos1), axis=2).transpose(0, 2, 1)
+        ee_arm_4 = np.stack((r_joint_pos1, r_joint_pos2), axis=2).transpose(0, 2, 1)
+
+        batch_ee_points = np.concatenate((ee_arm_1, ee_arm_2, ee_arm_3, ee_arm_4), axis=0)
+
+        cos = np.cos(thetas)
+        sin = np.sin(thetas)
+
+        rotation_mats = np.array([[cos, -sin, -xs*cos+ys*sin+xs],
+                                  [sin, cos, -xs*sin-ys*cos+ys],
+                                  [np.zeros_like(cos), np.zeros_like(cos), np.ones_like(cos)]])
+        
+        batch_ee_points_homogeneous = np.concatenate((batch_ee_points, np.ones(shape=(len(base_points)*4, 2, 1))), axis=2).reshape(-1, 4, 2, 3)
+
+        rotation_mats = rotation_mats.transpose(2, 0, 1)
+
+        batch_ee_points_rotated = rotation_mats @ batch_ee_points_homogeneous.reshape(-1, 8, 3).transpose(0, 2, 1)
+
+        batch_ee_points_rotated = batch_ee_points_rotated.transpose(0, 2, 1).reshape(-1, 4, 2, 3)
+        batch_ee_points_rotated = batch_ee_points_rotated[:, :, :, :2]
+        batch_ee_points_rotated = batch_ee_points_rotated.reshape(-1, 2, 2)
+
+        return batch_ee_points_rotated
+    
     def batch_get_robot_representations(self, states : np.ndarray):
         rectangles = np.stack((states[:, 0], states[:, 1], np.ones((states.shape[0])) * self.base_width, np.ones((states.shape[0])) * self.base_length), axis=1)
         segment_points = self.batch_forward_kinematics(states)#.reshape(-1, 2, 2)
         start_points = segment_points[:, :-1, :]
         end_points = segment_points[:, 1:, :]
         segments = np.concatenate((start_points, end_points), axis=2).reshape(-1, 4).reshape(-1, 2, 2)
+
+        ## Handling End Effector Lines -- BEGIN
+        """
+        While this does work, in practice it is not the most efficient. 
+
+        This is due to the fact that the segments of the robot arms and the ee lines are 
+        not the same lengths. ApproximationSpace is better optimized for lines of the same length. 
+
+        Since adding the end effector lines breaks this same length status, ApproximationSpace must use a for loop for some verification, 
+        causing the inefficiency.
+
+        Therefore, these segments will be commented out unless desired by the end user
+        """
+
+        # rotation_offset = np.pi/2 if self.num_links % 2 == 0 else -np.pi/2
+        # summed_thetas = np.sum(states[:, 2:], axis=1) + rotation_offset
+        # ee_segments = self.batch_create_end_effector_segments(end_points[:, -1, :], summed_thetas)
+        # segments = np.concatenate((segments, ee_segments), axis=0)
+
+        ## Handling End Effector Lines -- END
+
         return {
             'rectangles' : rectangles,
             'segments' : segments, 

@@ -104,6 +104,28 @@ def batch_interpolate_edge(start_states : np.ndarray, end_states : np.ndarray, d
     edge_states[np.arange(B), (num_steps-1), :] = end_states
     return edge_states, num_steps
 
+def batch_interpolate_edge_uniform(start_states : np.ndarray, end_states : np.ndarray, delta : float, angular_dims_start):
+    # (B, d), # (B, d)
+    B, d  = start_states.shape
+    gradients = (end_states - start_states)
+    gradients = batch_calculate_gradient(start_states, end_states, angular_dims_start)
+
+    lengths = np.linalg.norm(gradients, axis=1)
+    normalized_gradients = gradients / lengths.reshape(-1, 1)
+
+    num_steps = np.ceil((lengths / delta) + 1).astype(np.int32)
+    max_steps = np.max(num_steps).astype(np.int32)
+
+    deltas = (lengths / max_steps).reshape(-1, 1, 1)
+
+    normalized_gradients = normalized_gradients.reshape(-1, 1, d) # Reshape normalized vectors for repeating function
+    scaled_gradients = normalized_gradients * deltas
+    edge_states_derivative = np.repeat(scaled_gradients.astype(np.float32), (max_steps), axis=1) # (B, max_steps, d)
+    edge_states_derivative[:,0,:] = 0
+    edge_states = np.cumsum(edge_states_derivative, axis=1) + start_states.reshape(-1, 1, d) # (B, max_steps, d) + (B,1,d)
+    edge_states[:, (max_steps-1), :] = end_states # DONE
+    return edge_states
+
 def euclidean_distance(start, end):
     return np.linalg.norm(end-start)
 
