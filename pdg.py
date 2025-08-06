@@ -106,7 +106,7 @@ class PDG():
         new_db.draw_paths(plt.gca())
         self.env.draw_environment(plt.gca())
         plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
-        plt.scatter(target.value[0], target.value[1], color='red', s=100)
+        plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
         plt.show()
         plt.clf()
 
@@ -132,15 +132,16 @@ class PDG():
             else:
                 validated_paths.append(Path(path.path))
         
-        # new_db = Database()
-        # new_db.paths = validated_paths
-        # new_db.draw_paths(plt.gca())
-        # self.env.draw_environment(plt.gca())
-        # plt.scatter(target.value[0], target.value[1], color='red', s=100)
-        # plt.show()
-        # plt.clf()
-        # self.validated_paths = validated_paths
-        self.validated_paths = retained_paths
+        new_db = Database()
+        new_db.paths = validated_paths
+        new_db.draw_paths(plt.gca())
+        self.env.draw_environment(plt.gca())
+        plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
+        plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
+        plt.show()
+        plt.clf()
+        self.validated_paths = validated_paths
+        # self.validated_paths = retained_paths
         self.compute_c2g_for_paths(self.validated_paths, target)
 
     def compute_c2g_for_paths(self, paths, target):
@@ -210,7 +211,7 @@ class PDG():
             
             if min_c2g_estimate == np.inf or do_rrt:
                 # Do RRT for a couple of steps
-                rrt = RRT(self.env, delta=5)
+                rrt = RRT(self.env, delta=2)
                 path_rrt = rrt.search(start, target, max_steps=10, starting_tree_info=(self.tree,self.child_to_parent))
                 # path_rrt = rrt.search(start, target, max_steps=1000, starting_tree_info=(self.tree,self.child_to_parent))
                 self.tree = rrt.tree
@@ -313,6 +314,7 @@ class PDG():
                 timing_dict['add_states_to_tree'].append(end_time - start_time)
             
             if target in self.tree:
+                print(f"Found Path in {i} iterations")
                 self.timing_dict = timing_dict
                 return self.backtrack(target)
             
@@ -334,16 +336,18 @@ class PDG():
             node = self.child_to_parent[node]
         return Path(path=path[::-1])
 
-    def draw_tree(self, ax, path=None):
+    def draw_tree(self, ax, path=None, show_task=True):
         self.env.draw_environment(ax)
         nodes = np.array([node.value for node in self.tree.keys()])
         ax.scatter(nodes[:, 0], nodes[:, 1], color='pink')
-        ax.scatter(self.start.value[0], self.start.value[1], s=100, c='green')
-        ax.scatter(self.target.value[0], self.target.value[1], s=100, c='red')
 
         edges = [[(p.value[0], p.value[1]), (c.value[0], c.value[1])] for p in self.tree for c in self.tree[p]]
         edges = LineCollection(edges, color='blue')
         ax.add_collection(edges)
+
+        if show_task:
+            ax.scatter(self.start.value[0], self.start.value[1], s=100, c='green')
+            ax.scatter(self.target.value[0], self.target.value[1], s=100, c='red')
 
         if path:
             path = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
@@ -397,11 +401,11 @@ if __name__ == '__main__':
 
     # path_states = np.array(path_states)
 
-    # db_save_path = 'saves/database_v5.pickle'
-    db_save_path = 'saves/database_v1_bpe3.pickle'
+    db_save_path = 'saves/database_v5.pickle'
+    # db_save_path = 'saves/database_v1_bpe3.pickle'
     
     env = PointRobot()
-    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
+    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=8))
     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
     pdg = PDG(env, db_save_path)
@@ -418,7 +422,7 @@ if __name__ == '__main__':
     start_time = time.time()
     path = pdg.search(start, target)
     end_time = time.time()
-    print(f"Time to search: {end_time - start_time}")
+    print(f"Time to search: {end_time - start_time}", len(path))
 
     for key in pdg.timing_dict:
         print(f"{key}: {np.sum(pdg.timing_dict[key])}")
