@@ -104,7 +104,7 @@ class Lightning():
 
         for seg_start_idx, seg_end_idx in intervals:
 
-            repaired_segment = rrt.search(path[seg_start_idx-1], path[seg_end_idx+1], max_steps=self.max_repair_steps)
+            repaired_segment = rrt.search(path[seg_start_idx-1], path[seg_end_idx], max_steps=self.max_repair_steps)
             repaired_segments.append(repaired_segment)
 
         for i in reversed(range(len(intervals))):
@@ -122,10 +122,11 @@ class Lightning():
         self.start = start
         self.target = target
 
-        self.env = env
+        self.env = env # BUG: This doens't belong here, all other search interfaces initialize env in the constructor
         path_idx, path_validity = self.compute_candidate_paths(start, target, n)
         print(f"Time to compute Candidate Paths: {time.time() - start_time}")
         self.path_idx = path_idx
+        self.path_validity = path_validity
         # Get Validities
         path = self.db.paths[path_idx]
         # path_states = np.array([state.value for state in path])
@@ -144,7 +145,21 @@ class Lightning():
 
         return Path(path=repaired_path)
     
-    def draw(self, ax, path, show_task=True, show_used_path=True):
+    def _compute_interval_segments(self):
+        prev = True
+        intervals_segs = [0]
+        self.path_validity[35:37] = False
+        for idx, validity in enumerate(self.path_validity):
+            if prev != validity and validity == False:
+                intervals_segs.append(idx)
+            elif prev == False and validity == True:
+                intervals_segs.append(idx)
+            prev = validity
+        intervals_segs.append(len(self.path_validity))
+        return intervals_segs
+        
+    
+    def draw(self, ax, path, show_task=True, show_unrepaired_path=True, verbose=True):
         self.env.draw_environment(ax)
         path_states = np.array([state.value for state in path.path])
         ax.scatter(path_states[:, 0], path_states[:, 1])
@@ -155,7 +170,7 @@ class Lightning():
             ax.scatter(self.start.value[0], self.start.value[1], s=100, c='green')
             ax.scatter(self.target.value[0], self.target.value[1], s=100, c='red')
 
-        if show_used_path:
+        if show_unrepaired_path and not verbose:
             unrepaired_path = self.db.paths[self.path_idx]
             unrepaired_path_states = np.array([state.value for state in unrepaired_path.path])
 
@@ -163,7 +178,26 @@ class Lightning():
             unrepaired_path_edges = [(unrepaired_path[i].value[:2], unrepaired_path[i+1].value[:2]) for i in range(len(unrepaired_path)-1)]
             ax.add_collection(LineCollection(unrepaired_path_edges, color='purple'))
 
-            # Explore ability to make invalid segments of paths clearer
+        elif show_unrepaired_path and verbose:
+            unrepaired_path = self.db.paths[self.path_idx]
+            unrepaired_path_states = np.array([state.value for state in unrepaired_path.path])
+
+            intervals_segs = self._compute_interval_segments()
+            for i in range(len(intervals_segs)-1):
+                start_idx = intervals_segs[i]
+                end_idx = intervals_segs[i+1]
+
+                if self.path_validity[start_idx]:
+                    alpha_val = 1
+                    edge_zorder = 2
+                    unrepaired_path_edges = [(unrepaired_path[i].value[:2], unrepaired_path[i+1].value[:2]) for i in range(start_idx, end_idx-1)]
+                else:
+                    unrepaired_path_edges = [(unrepaired_path[i].value[:2], unrepaired_path[i+1].value[:2]) for i in range(start_idx-1, end_idx)]
+                    alpha_val = 0.8
+                    edge_zorder = 0
+
+                ax.scatter(unrepaired_path_states[start_idx:end_idx, 0], unrepaired_path_states[start_idx:end_idx, 1], color='orange', alpha=alpha_val)
+                ax.add_collection(LineCollection(unrepaired_path_edges, color='purple', alpha=alpha_val, zorder=edge_zorder))
         
 
 
