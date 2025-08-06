@@ -119,11 +119,13 @@ class Lightning():
 
     def search(self, env, start, target, n=10):
         start_time = time.time()
+        self.start = start
+        self.target = target
 
         self.env = env
         path_idx, path_validity = self.compute_candidate_paths(start, target, n)
         print(f"Time to compute Candidate Paths: {time.time() - start_time}")
-
+        self.path_idx = path_idx
         # Get Validities
         path = self.db.paths[path_idx]
         # path_states = np.array([state.value for state in path])
@@ -142,21 +144,38 @@ class Lightning():
 
         return Path(path=repaired_path)
     
-    def draw(self, ax, path):
+    def draw(self, ax, path, show_task=True, show_used_path=True):
         self.env.draw_environment(ax)
         path_states = np.array([state.value for state in path.path])
-        ax.scatter(path_states[:, 0], path_states[:, 1], color='red')
+        ax.scatter(path_states[:, 0], path_states[:, 1])
         path_edges = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
         ax.add_collection(LineCollection(path_edges, color='red'))
+
+        if show_task:
+            ax.scatter(self.start.value[0], self.start.value[1], s=100, c='green')
+            ax.scatter(self.target.value[0], self.target.value[1], s=100, c='red')
+
+        if show_used_path:
+            unrepaired_path = self.db.paths[self.path_idx]
+            unrepaired_path_states = np.array([state.value for state in unrepaired_path.path])
+
+            ax.scatter(unrepaired_path_states[:, 0], unrepaired_path_states[:, 1], color='orange')
+            unrepaired_path_edges = [(unrepaired_path[i].value[:2], unrepaired_path[i+1].value[:2]) for i in range(len(unrepaired_path)-1)]
+            ax.add_collection(LineCollection(unrepaired_path_edges, color='purple'))
+
+            # Explore ability to make invalid segments of paths clearer
         
 
 
 if __name__ == '__main__':
     db_path = 'saves/database_v4.pickle'
+    # db_path = 'saves/database_v1_bpe3.pickle'
     seed = np.random.randint(0, 100000)
     # seed = 5093
     # seed = 75809
-    seed = 61606
+    # seed = 61606
+    # seed = 9222
+    seed = 19695
     print(f"Seed: {seed}")
     np.random.seed(seed)
 
