@@ -48,6 +48,7 @@ class PDG():
         self.env.draw_environment(plt.gca())
         plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
         plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
+        
         plt.show()
         plt.clf()
 
