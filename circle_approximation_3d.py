@@ -57,13 +57,38 @@ def rect_prism_to_circles_v2(aa_rect_prism):
     xs = np.array(xs)
     zs = np.array(zs)
 
-    print(xs)
-    print(zs)
-
     output = np.array(np.meshgrid(xs,zs)).T.reshape(-1, 2)
-    # points = np.hstack((np.ones((output.shape[0],1))*y, output))
-    print(output.shape, np.ones((output.shape[0],1)).shape, output[:, 0].shape, output[:, 1].shape)
     points = np.hstack((output[:, 1].reshape(-1, 1), np.ones((output.shape[0],1))*y, output[:, 0].reshape(-1, 1)))
+
+    return points
+
+def rect_prism_to_circles_v3(aa_rect_prism):
+    # aa_rect (x,y,z,xl,yl,zl)
+
+    radii = aa_rect_prism[5] / 2
+    x, y, z, xl, yl, zl = aa_rect_prism
+
+    segment_lengths = xl - (2*radii)
+    num_points = math.ceil(segment_lengths / (2*radii))
+    delta = segment_lengths / num_points
+
+    xs = [x-xl/2+radii]
+    for i in range(num_points):
+        xs.append(xs[-1] + delta)
+
+    segment_lengths = yl - (2*radii)
+    num_points = math.ceil(segment_lengths / (2*radii))
+    delta = segment_lengths / num_points
+
+    ys = [y-yl/2+radii]
+    for i in range(num_points):
+        ys.append(ys[-1] + delta)
+
+    xs = np.array(xs)
+    ys = np.array(ys)
+
+    output = np.array(np.meshgrid(xs,ys)).T.reshape(-1, 2)
+    points = np.hstack((output, np.ones((output.shape[0],1))*x))
 
     return points
 
@@ -142,12 +167,14 @@ if __name__ == '__main__':
     # aa_rect_prism = np.array([0,0,0,2,11.34,21.67])
 
 
-    aa_rect_prism = np.array([0,0,0,20.82,2,21.67])
+    # aa_rect_prism = np.array([0,0,0,20.82,2,21.67])
+    aa_rect_prism = np.array([0,0,0,20.82,21.67,2])
 
     ordered_verts = xyzwhl_to_ordered_vertices(aa_rect_prism)
 
     # circles = rect_prism_to_circles(aa_rect_prism)
-    circles = rect_prism_to_circles_v2(aa_rect_prism)
+    # circles = rect_prism_to_circles_v2(aa_rect_prism)
+    circles = rect_prism_to_circles_v3(aa_rect_prism)
 
     ax = plt.axes(projection='3d')
     for a,b in edges:
