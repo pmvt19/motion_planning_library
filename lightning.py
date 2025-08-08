@@ -16,9 +16,9 @@ from utils import smooth_path, interpolate_path
 
 
 class Lightning():
-    def __init__(self, db_path, max_repair_steps=10000):
+    def __init__(self, env, db_path, max_repair_steps=10000):
         self.db : Database = pickle.load(open(db_path, 'rb'))
-        self.env : RobotSpace = None
+        self.env : RobotSpace = env
         self.max_repair_steps : int = max_repair_steps
 
     def count_invalid_segments(self, path_validities):
@@ -117,12 +117,11 @@ class Lightning():
         return start_to_path.path + path + path_to_target.path
 
 
-    def search(self, env, start, target, n=10):
+    def search(self, start, target, n=10):
         start_time = time.time()
         self.start = start
         self.target = target
 
-        self.env = env # BUG: This doens't belong here, all other search interfaces initialize env in the constructor
         path_idx, path_validity = self.compute_candidate_paths(start, target, n)
         print(f"Time to compute Candidate Paths: {time.time() - start_time}")
         self.path_idx = path_idx
@@ -225,14 +224,14 @@ if __name__ == '__main__':
 
 
 
-    lightning = Lightning(db_path=db_path)
+    lightning = Lightning(env=env, db_path=db_path)
     
     # env.space.draw_environment(plt.gca())
     # lightning.db.draw_paths(plt.gca())
     # plt.show()
     # plt.clf()
 
-    path = lightning.search(env, start, target)
+    path = lightning.search(start, target)
 
     lightning.draw(plt.gca(), path)
     plt.show()
