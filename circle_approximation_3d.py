@@ -2,7 +2,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-def rect_prism_to_circles(aa_rect_prism):
+def rect_prism_to_circles_x_short(aa_rect_prism):
     # aa_rect (x,y,z,xl,yl,zl)
 
     radii = aa_rect_prism[3] / 2
@@ -28,11 +28,11 @@ def rect_prism_to_circles(aa_rect_prism):
     zs = np.array(zs)
 
     output = np.array(np.meshgrid(ys,zs)).T.reshape(-1, 2)
-    points = np.hstack((np.ones((output.shape[0],1))*x, output))
+    points = np.hstack((np.ones((output.shape[0],1))*x, output, np.ones((output.shape[0],1))*xl/2))
 
     return points
 
-def rect_prism_to_circles_v2(aa_rect_prism):
+def rect_prism_to_circles_y_short(aa_rect_prism):
     # aa_rect (x,y,z,xl,yl,zl)
 
     radii = aa_rect_prism[4] / 2
@@ -58,11 +58,11 @@ def rect_prism_to_circles_v2(aa_rect_prism):
     zs = np.array(zs)
 
     output = np.array(np.meshgrid(xs,zs)).T.reshape(-1, 2)
-    points = np.hstack((output[:, 1].reshape(-1, 1), np.ones((output.shape[0],1))*y, output[:, 0].reshape(-1, 1)))
+    points = np.hstack((output[:, 1].reshape(-1, 1), np.ones((output.shape[0],1))*y, output[:, 0].reshape(-1, 1), np.ones((output.shape[0],1))*yl/2))
 
     return points
 
-def rect_prism_to_circles_v3(aa_rect_prism):
+def rect_prism_to_circles_z_short(aa_rect_prism):
     # aa_rect (x,y,z,xl,yl,zl)
 
     radii = aa_rect_prism[5] / 2
@@ -88,9 +88,39 @@ def rect_prism_to_circles_v3(aa_rect_prism):
     ys = np.array(ys)
 
     output = np.array(np.meshgrid(xs,ys)).T.reshape(-1, 2)
-    points = np.hstack((output, np.ones((output.shape[0],1))*x))
+    points = np.hstack((output, np.ones((output.shape[0],1))*z, np.ones((output.shape[0],1))*zl/2))
 
     return points
+
+def rect_prisms_to_circles(aa_rect_prisms):
+    """
+    aa_rect_prisms: (B, 6)
+    """
+
+    dim_sizes = aa_rect_prisms[:, 3:6]
+    min_dims = np.argmin(dim_sizes, axis=1)
+
+    x_min_dim_mask = min_dims[min_dims==0]
+    y_min_dim_mask = min_dims[min_dims==1]
+    z_min_dim_mask = min_dims[min_dims==2]
+
+    x_min_prisms = aa_rect_prisms[x_min_dim_mask]
+    y_min_prisms = aa_rect_prisms[y_min_dim_mask]
+    z_min_prisms = aa_rect_prisms[z_min_dim_mask]
+
+    circles = []
+    for prism in x_min_prisms:
+        circles.append(rect_prism_to_circles_x_short(prism))
+    for prism in y_min_prisms:
+        circles.append(rect_prism_to_circles_y_short(prism))
+    for prism in z_min_prisms:
+        circles.append(rect_prism_to_circles_z_short(prism))
+    return np.array(circles)
+        
+
+    # rect_prism_to_circles_x_short(aa_rect_prisms[x_min_dim_mask])
+    # rect_prism_to_circles_y_short(aa_rect_prisms[y_min_dim_mask])
+    # rect_prism_to_circles_z_short(aa_rect_prisms[z_min_dim_mask])
 
 def xyzwhl_to_ordered_vertices(aa_rect_prism):
     # aa_rect (x,y,z,xl,yl,zl)
@@ -120,7 +150,6 @@ def drawSphere(xCenter, yCenter, zCenter, r):
     return (x,y,z)
 
 if __name__ == '__main__':
-    pass
 
     center = (0,0,0)
     lengths = (2,2,2)
@@ -161,6 +190,37 @@ if __name__ == '__main__':
     #     ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
     # plt.show()
 
+    aa_rect_prism1 = np.array([0,0,0,1,5,5])
+    aa_rect_prism2 = np.array([0,2.5,0,5,1,5])
+    aa_rect_prism3 = np.array([0,-2.5,0,5,1,5])
+
+    prisms = np.array([aa_rect_prism1, aa_rect_prism3])
+    circles = rect_prisms_to_circles(prisms).reshape(-1, 4)
+
+    ax = plt.axes(projection='3d')
+    for prism in prisms:
+        ordered_verts = xyzwhl_to_ordered_vertices(prism)
+        for a,b in edges:
+            point_a = ordered_verts[a]
+            point_b = ordered_verts[b]
+            ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
+        ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
+        # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
+        ax.set_box_aspect([1,1,1])
+        amin = -11
+        amax = 11
+        ax.set_xlim(amin, amax)
+        ax.set_ylim(amin, amax)
+        ax.set_zlim(amin, amax)
+    
+    for x,y,z,r in circles:
+        # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
+        cpx, cpy, cpz = drawSphere(x,y,z,r)
+        # ax.plot_wireframe(cpx, cpy, cpz, color="r")
+        ax.plot_surface(cpx, cpy, cpz, color="r")
+    plt.show()
+
+
     # aa_rect_prism = np.array([0,0,0,2,3,3.1])
     # aa_rect_prism = np.array([0,0,0,2,3.1,3])
 
@@ -168,44 +228,31 @@ if __name__ == '__main__':
 
 
     # aa_rect_prism = np.array([0,0,0,20.82,2,21.67])
-    aa_rect_prism = np.array([0,0,0,20.82,21.67,2])
 
-    ordered_verts = xyzwhl_to_ordered_vertices(aa_rect_prism)
 
-    # circles = rect_prism_to_circles(aa_rect_prism)
-    # circles = rect_prism_to_circles_v2(aa_rect_prism)
-    circles = rect_prism_to_circles_v3(aa_rect_prism)
+    # aa_rect_prism = np.array([0,0,0,20.82,21.67,2])
+    # ordered_verts = xyzwhl_to_ordered_vertices(aa_rect_prism)
 
-    ax = plt.axes(projection='3d')
-    for a,b in edges:
-        point_a = ordered_verts[a]
-        point_b = ordered_verts[b]
-        ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
-    ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
-    # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
-    ax.set_box_aspect([1,1,1])
-    amin = -11
-    amax = 11
-    ax.set_xlim(amin, amax)
-    ax.set_ylim(amin, amax)
-    ax.set_zlim(amin, amax)
+    # ax = plt.axes(projection='3d')
+    # for a,b in edges:
+    #     point_a = ordered_verts[a]
+    #     point_b = ordered_verts[b]
+    #     ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
+    # ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
+    # # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
+    # ax.set_box_aspect([1,1,1])
+    # amin = -11
+    # amax = 11
+    # ax.set_xlim(amin, amax)
+    # ax.set_ylim(amin, amax)
+    # ax.set_zlim(amin, amax)
 
-    for x,y,z in circles:
-        # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
-        cpx, cpy, cpz = drawSphere(x,y,z,1)
-        # ax.plot_wireframe(cpx, cpy, cpz, color="r")
-        ax.plot_surface(cpx, cpy, cpz, color="r")
+    # for x,y,z,r in circles:
+    #     # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
+    #     cpx, cpy, cpz = drawSphere(x,y,z,r)
+    #     # ax.plot_wireframe(cpx, cpy, cpz, color="r")
+    #     ax.plot_surface(cpx, cpy, cpz, color="r")
 
-    plt.show()
+    # plt.show()
 
-    
-
-    # draw sphere
-    # u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-    # x = np.cos(u)*np.sin(v)
-    # y = np.sin(u)*np.sin(v)
-    # z = np.cos(v)
-    # ax.plot_wireframe(x, y, z, color="r")
-
-    
 
