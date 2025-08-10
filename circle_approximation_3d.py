@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import open3d as o3d
 
 from space import RobotSpace, HolonomicRobot
-from utils import numpystate_distance
+from utils import numpystate_distance, interpolate_path
 from state import NumpyState
 
 from prm import PRM
@@ -517,7 +517,20 @@ class SphereRobot(HolonomicRobot):
     
     def draw_state(self, ax, state):
         cpx, cpy, cpz = self.generate_robot_representation(state)
-        ax.plot_surface(cpx, cpy, cpz, color="r")
+        # ax.plot_surface(cpx, cpy, cpz, color="r")
+        ax.plot_wireframe(cpx, cpy, cpz, color="r")
+
+    def draw_environment(self, ax):
+        ax.set_xlim(self.x_range[0], self.x_range[1])
+        ax.set_ylim(self.y_range[0], self.y_range[1])
+        ax.set_zlim(self.z_range[0], self.z_range[1])
+        
+        for prism in prisms:
+            ordered_verts = xyzwhl_to_ordered_vertices(prism)
+            for a,b in edges:
+                point_a = ordered_verts[a]
+                point_b = ordered_verts[b]
+                ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
 
     def batch_get_robot_representations(self, states):
         return {
@@ -654,13 +667,39 @@ if __name__ == '__main__':
     #     ax.plot_surface(cpx, cpy, cpz, color="r")
 
     # plt.show()
-
+    import time
     env = SphereRobot()
     env = ApproximationSpace3D(env)
     prm = PRM(env, num_samples=1000, num_neighbors=5)
+    
+    start_time = time.time()
     prm.create_graph()
-    start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
+    end_time = time.time()
+    print(f"Time to create graph: {end_time - start_time}")
+    # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
+    start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+    start_time = time.time()
     path = prm.search(start, target)
+    end_time = time.time()
+    print(f"Time to Search: {end_time - start_time}")
     print(path.path)
 
     print([state.value for state in path])
+
+    
+    # prm.draw(plt.gca())
+    # plt.show()
+
+    plt.clf()
+    ax = plt.axes(projection='3d')
+    env.space.draw_environment(ax)
+    env.space.draw_state(ax, path[0])
+    plt.show()
+
+    plt.clf()
+    path = interpolate_path(path, env, 0.1)
+    for i in range(len(path)):
+        ax = plt.axes(projection='3d')
+        env.space.draw_environment(ax)
+        env.space.draw_state(ax, path[i])
+        plt.pause(0.1)
