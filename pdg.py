@@ -101,14 +101,14 @@ class PDG():
 
         # print(len(retained_paths), len(kept_paths_mask))
 
-        new_db = Database()
-        new_db.paths = retained_paths#[:1]
-        new_db.draw_paths(plt.gca())
-        self.env.draw_environment(plt.gca())
-        plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
-        plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
-        plt.show()
-        plt.clf()
+        # new_db = Database()
+        # new_db.paths = retained_paths#[:1]
+        # new_db.draw_paths(plt.gca())
+        # self.env.draw_environment(plt.gca())
+        # plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
+        # plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
+        # plt.show()
+        # plt.clf()
 
         # TODO: Need to validate the edge from path to goal
 
@@ -132,16 +132,17 @@ class PDG():
             else:
                 validated_paths.append(Path(path.path))
         
-        new_db = Database()
-        new_db.paths = validated_paths
-        new_db.draw_paths(plt.gca())
-        self.env.draw_environment(plt.gca())
-        plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
-        plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
-        plt.show()
-        plt.clf()
-        self.validated_paths = validated_paths
-        # self.validated_paths = retained_paths
+        # new_db = Database()
+        # new_db.paths = validated_paths
+        # new_db.draw_paths(plt.gca())
+        # self.env.draw_environment(plt.gca())
+        # plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
+        # plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
+        # plt.show()
+        # plt.clf()
+        # self.validated_paths = validated_paths
+        self.validated_paths = retained_paths
+        print(f"Number of Paths to Start with: {len(self.validated_paths)}")
         self.compute_c2g_for_paths(self.validated_paths, target)
 
     def compute_c2g_for_paths(self, paths, target):
@@ -165,6 +166,128 @@ class PDG():
         # print(path_c2gs)
 
         self.flattened_c2gs = np.array([c2g for path in path_c2gs for c2g in path])
+
+    def get_tree_path_state_info(self):
+        tree_states = np.array([key.value for key in self.tree])
+        path_starting_idxes = np.array([len(path) for path in self.validated_paths])
+        path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
+        path_states = np.array([state.value for path in self.validated_paths for state in path])
+        return tree_states, path_starting_idxes, path_states
+
+    def compute_c2g_estimates(self, tree_states, path_states):
+        threshold = 5.0
+        if len(path_states) == 0:
+            # If no paths to follow, do rrt
+            self.do_rrt = True
+            return
+
+        dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
+
+        dist_mat[dist_mat > threshold] = np.inf
+        dist_mat[dist_mat == 0.0] = np.inf
+        c2g_estimates = dist_mat + self.flattened_c2gs
+
+        return c2g_estimates
+    
+    def filter_connection_attempts(self, c2g_estimates, tree_states, path_states):
+        potential_connection_edges_idxes = np.where(c2g_estimates != np.inf)
+
+        vals = c2g_estimates[potential_connection_edges_idxes[0], potential_connection_edges_idxes[1]]
+
+        # num_connections_to_keep = 1500
+        num_connections_to_keep = 4500
+        # num_connections_to_keep = 9000
+
+        best_n_connections = np.argsort(vals)[:num_connections_to_keep]
+        other_n_connections = np.argsort(vals)[num_connections_to_keep:]
+
+        edge_starts = tree_states[potential_connection_edges_idxes[0][best_n_connections]]
+        edge_ends = path_states[potential_connection_edges_idxes[1][best_n_connections]]
+
+        edge_validities = self.env.batch_is_valid_edge_uniform(edge_starts, edge_ends)
+
+        c2g_estimates[(potential_connection_edges_idxes[0][best_n_connections][edge_validities == False]), (potential_connection_edges_idxes[1][best_n_connections][edge_validities == False])] = np.inf
+        c2g_estimates[(potential_connection_edges_idxes[0][other_n_connections]), (potential_connection_edges_idxes[1][other_n_connections])] = np.inf
+
+        return c2g_estimates
+
+    def get_follow_path(self, c2g_estimates, path_starting_idxes, path_states):
+        tree_state_idx, path_state_idx = np.unravel_index(np.argmin(c2g_estimates), c2g_estimates.shape)
+        path_starting_idx = np.where(path_state_idx < path_starting_idxes)[0][0] - 1
+        following_path = path_states[path_state_idx:path_starting_idxes[path_starting_idx+1]]
+        return tree_state_idx, following_path, path_starting_idx
+
+    def update_path_database(self, kept_path_segment, path_starting_idx):
+        self.validated_paths[path_starting_idx] = Path([self.env.make_state(state) for state in kept_path_segment])
+
+        if len(self.validated_paths[path_starting_idx]) == 0:
+            self.validated_paths.pop(path_starting_idx)
+    
+    def step_search(self, iteration):
+        tree_states, path_starting_idxes, path_states = self.get_tree_path_state_info()
+        c2g_estimates = self.compute_c2g_estimates(tree_states, path_states)
+
+        min_c2g_estimate = np.min(c2g_estimates)
+
+        if min_c2g_estimate == np.inf or self.do_rrt:
+            # Do RRT for a couple of steps
+            rrt = RRT(self.env, delta=2)
+            path_rrt = rrt.search(start, target, max_steps=10, starting_tree_info=(self.tree,self.child_to_parent))
+
+            # path_rrt = rrt.search(start, target, max_steps=1000, starting_tree_info=(self.tree,self.child_to_parent))
+            self.tree = rrt.tree
+            self.child_to_parent = rrt.child_to_parent
+
+            # print("RRTing")
+            expansion_tech = 'rrt'
+            self.do_rrt = False
+        else:
+            expansion_tech = 'pdg'
+
+            c2g_estimates = self.filter_connection_attempts(c2g_estimates, tree_states, path_states)
+            if np.min(c2g_estimates) == np.inf:
+                self.do_rrt = True
+                return
+
+            tree_state_idx, following_path, path_starting_idx = self.get_follow_path(c2g_estimates, path_starting_idxes, path_states)
+
+            path_validity = self.validate_follow_path(following_path)
+            add_to_tree_segment, kept_path_segment = self.filter_invalid_segments_of_follow_path(following_path, path_validity)
+
+            self.update_path_database(kept_path_segment, path_starting_idx)
+
+            parent_node = self.env.make_state(tree_states[tree_state_idx])
+            self.add_states_from_path_to_tree(parent_node, add_to_tree_segment)
+        
+        if self.target in self.tree:
+            print(f"Found Path in {iteration} iterations")
+            return
+            
+            # return self.backtrack(self.target)
+
+        self.compute_c2g_for_paths(self.validated_paths, self.target)
+
+
+    def search_v2(self, start, target, max_steps=500):
+        
+        self.start = start
+        self.target = target
+
+        self.tree = defaultdict(list)
+
+
+        self.tree[self.start]
+        self.child_to_parent = {}
+        self.child_to_parent[self.start] = None
+        self.do_rrt = False
+        for i in range(max_steps):
+            self.step_search(i)
+
+            if self.target in self.tree:
+                return self.backtrack(self.target)
+
+        return Path([])
+
 
     def search(self, start, target):
 
@@ -192,6 +315,7 @@ class PDG():
 
             # pairwise dist
             start_time = time.time()
+            #### Compute tree node c2g estimates
             dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
 
             
@@ -203,6 +327,7 @@ class PDG():
             dist_mat[dist_mat == 0.0] = np.inf
             
             c2g_estimates = dist_mat + self.flattened_c2gs
+            #### Compute tree node c2g estimates
             end_time = time.time()
             timing_dict['dist_c2g_calc_time'].append(end_time - start_time)
             
@@ -223,6 +348,7 @@ class PDG():
                 # print("PDGing")
                 expansion_tech = 'pdg'
 
+                #### Filter connection attempts
                 potential_connection_edges_idxes = np.where(c2g_estimates != np.inf)
 
                 vals = c2g_estimates[potential_connection_edges_idxes[0], potential_connection_edges_idxes[1]]
@@ -246,47 +372,64 @@ class PDG():
 
                 c2g_estimates[(potential_connection_edges_idxes[0][best_n_connections][edge_validities == False]), (potential_connection_edges_idxes[1][best_n_connections][edge_validities == False])] = np.inf
                 c2g_estimates[(potential_connection_edges_idxes[0][other_n_connections]), (potential_connection_edges_idxes[1][other_n_connections])] = np.inf
+                #### Filter connection attempts
 
                 if np.min(c2g_estimates) == np.inf:
                     do_rrt = True
                     continue
                 
+                #### Pick Path to Follow
                 tree_state_idx, path_state_idx = np.unravel_index(np.argmin(c2g_estimates), c2g_estimates.shape)
 
                 path_starting_idx = np.where(path_state_idx < path_starting_idxes)[0][0] - 1
 
                 following_path = path_states[path_state_idx:path_starting_idxes[path_starting_idx+1]]
+                #### Pick Path to Follow
                 start_time = time.time()
-                path_state_validities = self.env.batch_is_valid(following_path)
+
+                #### Validate Path to Follow (Self-Contained)
+                # # Inputs following_path
+                path_validity = self.validate_follow_path(following_path)
+                
+                end_time = time.time()
+                timing_dict['validate_follow_path'].append(end_time - start_time)
+                # path_state_validities = self.env.batch_is_valid(following_path)
                 
 
-                if len(following_path) == 1:
-                    path_edge_validities = []
-                else: 
-                    start_edge_states = following_path[:-1]
-                    end_edge_states = following_path[1:]
+                # if len(following_path) == 1:
+                #     path_edge_validities = []
+                # else: 
+                #     start_edge_states = following_path[:-1]
+                #     end_edge_states = following_path[1:]
 
-                    path_edge_validities = self.env.batch_is_valid_edge(start_edge_states, end_edge_states)
-                    end_time = time.time()
-                    timing_dict['validate_follow_path'].append(end_time - start_time)
+                #     path_edge_validities = self.env.batch_is_valid_edge(start_edge_states, end_edge_states)
+                # end_time = time.time()
+                # timing_dict['validate_follow_path'].append(end_time - start_time)
+                
 
-                path_edge_validities = np.concatenate(([True], path_edge_validities))
-                path_validity = np.logical_and(path_state_validities, path_edge_validities)
+                # path_edge_validities = np.concatenate(([True], path_edge_validities))
+                # path_validity = np.logical_and(path_state_validities, path_edge_validities)
+                #### Validate Path to Follow
 
-
+                #### Filter to Valid Segments of Path to Follow (Self-Contained)
                 start_time = time.time()
-                invalid_idxes = np.where(path_validity == False)[0]
-                if len(invalid_idxes) == 0:
-                    add_to_tree_segment = following_path
-                    kept_path_segment = following_path
-                else:
-                    invalid_idx = invalid_idxes[0]
-                    deletion_offset = 1
-                    add_to_tree_segment = following_path[:invalid_idx]
-                    kept_path_segment = following_path[invalid_idx+deletion_offset:] # TODO: Figure out logic for updating path states and all
+                # Inputs needed (following_path, path_validity)
+                # invalid_idxes = np.where(path_validity == False)[0]
+                # if len(invalid_idxes) == 0:
+                #     add_to_tree_segment = following_path
+                #     kept_path_segment = following_path
+                # else:
+                #     invalid_idx = invalid_idxes[0]
+                #     deletion_offset = 1
+                #     add_to_tree_segment = following_path[:invalid_idx]
+                #     kept_path_segment = following_path[invalid_idx+deletion_offset:] # TODO: Figure out logic for updating path states and all
+                add_to_tree_segment, kept_path_segment = self.filter_invalid_segments_of_follow_path(following_path, path_validity)
+                #### Filter to Valid Segments of Path to Follow
+
                 end_time = time.time()
                 timing_dict['filter_following_path'].append(end_time - start_time)
 
+                #### Update Path to Follow in "Database" of Paths
                 start_time = time.time()
                 self.validated_paths[path_starting_idx] = Path([self.env.make_state(state) for state in kept_path_segment])
                 
@@ -294,36 +437,89 @@ class PDG():
                     self.validated_paths.pop(path_starting_idx)
                 end_time = time.time()
                 timing_dict['update_saved_paths'].append(end_time - start_time)
+                #### Update Path to Follow in "Database" of Paths
 
+                #### Add Path to Follow States to Search Tree
                 start_time = time.time()
-                parent = self.env.make_state(tree_states[tree_state_idx])
-                for state in add_to_tree_segment:
-                    if np.all(parent.value == state): # HACK: This might be a hack (may need to figure out why this is happening)
-                        continue
+                # parent = self.env.make_state(tree_states[tree_state_idx])
+                # for state in add_to_tree_segment:
+                #     if np.all(parent.value == state): # HACK: This might be a hack (may need to figure out why this is happening)
+                #         continue
                     
-                    child = self.env.make_state(state)
-                    if child in self.tree:
-                        break
+                #     child = self.env.make_state(state)
+                #     if child in self.tree:
+                #         break
 
-                    self.tree[parent].append(child)
-                    self.tree[child]
+                #     self.tree[parent].append(child)
+                #     self.tree[child]
 
-                    self.child_to_parent[child] = parent
-                    parent = child
+                #     self.child_to_parent[child] = parent
+                #     parent = child
+                parent_node = self.env.make_state(tree_states[tree_state_idx])
+                self.add_states_from_path_to_tree(parent_node, add_to_tree_segment)
                 end_time = time.time()
                 timing_dict['add_states_to_tree'].append(end_time - start_time)
+                #### Add Path to Follow States to Search Tree
             
             if target in self.tree:
                 print(f"Found Path in {i} iterations")
                 self.timing_dict = timing_dict
                 return self.backtrack(target)
             
+            #### Recompute Cost-to-go (MODULARIZED)
             start_time = time.time()
             self.compute_c2g_for_paths(self.validated_paths, target)
             end_time = time.time()
             timing_dict['recompute_cost_to_gos'].append(end_time - start_time)
+            #### Recompute Cost-to-go
 
             self.timing_dict = timing_dict
+
+    def validate_follow_path(self, following_path):
+        path_state_validities = self.env.batch_is_valid(following_path)
+
+        if len(following_path) == 1:
+            path_edge_validities = []
+        else: 
+            start_edge_states = following_path[:-1]
+            end_edge_states = following_path[1:]
+
+            path_edge_validities = self.env.batch_is_valid_edge(start_edge_states, end_edge_states)
+
+        path_edge_validities = np.concatenate(([True], path_edge_validities))
+        path_validity = np.logical_and(path_state_validities, path_edge_validities)
+
+        return path_validity
+
+    def filter_invalid_segments_of_follow_path(self, following_path, path_validity):
+        invalid_idxes = np.where(path_validity == False)[0]
+        if len(invalid_idxes) == 0:
+            # IF HERE, SHOULD ALWAYS TAKE TREE STRAIGHT TO TARGET
+            add_to_tree_segment = following_path
+            kept_path_segment = following_path 
+        else:
+            invalid_idx = invalid_idxes[0]
+            deletion_offset = 1
+            add_to_tree_segment = following_path[:invalid_idx]
+            kept_path_segment = following_path[invalid_idx+deletion_offset:]
+
+        return add_to_tree_segment, kept_path_segment
+    
+    def add_states_from_path_to_tree(self, parent, add_to_tree_segment):
+
+        for state in add_to_tree_segment:
+            if np.all(parent.value == state): # HACK: This might be a hack (may need to figure out why this is happening)
+                continue
+            
+            child = self.env.make_state(state)
+            if child in self.tree: # HACK: This might be a hack (may need to figure out why this is happening)
+                break
+
+            self.tree[parent].append(child)
+            self.tree[child]
+
+            self.child_to_parent[child] = parent
+            parent = child
 
     def backtrack(self, end=None):
         if end is None or end not in self.child_to_parent:
@@ -380,10 +576,23 @@ if __name__ == '__main__':
     # seed = 4092
     # seed = 4501
 
+    # seed = 6172
+    # seed = 641
+
     # Broken Seeds (on PC)
     # seed = 4459
     # seed = 9264 # Broken on Mac (Fixed?)
     # seed = 8718 # BUG SEED
+
+    # seed = 1394 # BUG: Can't draw validated paths (Goal is not valid)
+
+    # Testing from optimized_pdg.py
+    # seed = 1136
+    # seed = 1119
+    # seed = 6473
+    # seed = 277
+    # seed = 7936
+    # seed = 551
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
@@ -401,11 +610,11 @@ if __name__ == '__main__':
 
     # path_states = np.array(path_states)
 
-    db_save_path = 'saves/database_v5.pickle'
-    # db_save_path = 'saves/database_v1_bpe3.pickle'
+    # db_save_path = 'saves/database_v5.pickle'
+    db_save_path = 'saves/database_v1_bpe3.pickle'
     
     env = PointRobot()
-    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=8))
+    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
     pdg = PDG(env, db_save_path)
@@ -423,6 +632,15 @@ if __name__ == '__main__':
     path = pdg.search(start, target)
     end_time = time.time()
     print(f"Time to search: {end_time - start_time}", len(path))
+
+    pdg.draw_tree(plt.gca(), path)
+    plt.show()
+
+    pdg.compute_retained_paths(target)
+    start_time = time.time()
+    path = pdg.search_v2(start, target)
+    end_time = time.time()
+    print(f"Time to search v2: {end_time - start_time}", len(path))
 
     for key in pdg.timing_dict:
         print(f"{key}: {np.sum(pdg.timing_dict[key])}")
