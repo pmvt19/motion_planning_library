@@ -14,60 +14,6 @@ from utils import interpolate_path, smooth_path
 
 from rrt import RRT
 
-# class Database():
-#     def __init__(self):
-#         self.paths = []
-
-    # def save_db(self, save_path):
-    #     pickle.dump(self, save_path)
-
-
-# class PDG():
-#     def __init__(self, db, delta=0.5, dist_threshold=0.5):
-#         self.db = db
-#         self.dist_threshold = dist_threshold
-
-#     def compute_path_metadata(self):
-#         self.path_lengths = [0]
-#         self.path_states = []
-#         self.path_idx_tracker = []
-
-#         for path in self.db.paths:
-#             path = path.path[:-1] # TODO: Remove this HACK
-#             self.path_lengths.append(len(path))
-#             self.path_states.extend([state.value for state in path])
-
-#         self.path_states = np.array(self.path_states)
-#         self.path_states_dists = None
-
-#         min_dists = np.min(self.path_states_dists, axis=1)
-
-#         keep_paths_mask = min_dists < self.dist_threshold
-
-#         keep_paths = np.unique(self.path_idx_tracker[keep_paths_mask])
-
-#     def search(self, start, target):
-#         self.paths = []
-
-#         for path in self.db.paths:
-#             # path = path.path[:-1] # TODO: Remove this HACK
-#             self.paths.append(np.array([state.value for state in path]))
-        
-#         self.path_cum_dists = []
-#         for path in self.paths:
-#             path_states1 = path[1:]
-#             path_states2 = path[:-1]
-
-#             adj_dists = np.linalg.norm(path_states1 - path_states2, axis=1)
-
-#             cum_dists = np.cumsum(adj_dists[::-1])[::-1]
-#             cum_dists = np.append(cum_dists, [0])
-
-#             self.path_cum_dists.append(cum_dists)
-
-#         for path in self.paths:
-#             pass
-
 class PDG():
     def __init__(self, env, db_path):
         self.db : Database = pickle.load(open(db_path, 'rb'))
