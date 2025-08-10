@@ -223,71 +223,6 @@ class PDG():
         if len(self.validated_paths[path_starting_idx]) == 0:
             self.validated_paths.pop(path_starting_idx)
     
-    def step_search(self, iteration):
-        tree_states, path_starting_idxes, path_states = self.get_tree_path_state_info()
-        c2g_estimates = self.compute_c2g_estimates(tree_states, path_states)
-
-        min_c2g_estimate = np.min(c2g_estimates)
-
-        if min_c2g_estimate == np.inf or self.do_rrt:
-            # Do RRT for a couple of steps
-            rrt = RRT(self.env, delta=2)
-            path_rrt = rrt.search(start, target, max_steps=10, starting_tree_info=(self.tree,self.child_to_parent))
-
-            # path_rrt = rrt.search(start, target, max_steps=1000, starting_tree_info=(self.tree,self.child_to_parent))
-            self.tree = rrt.tree
-            self.child_to_parent = rrt.child_to_parent
-
-            # print("RRTing")
-            expansion_tech = 'rrt'
-            self.do_rrt = False
-        else:
-            expansion_tech = 'pdg'
-
-            c2g_estimates = self.filter_connection_attempts(c2g_estimates, tree_states, path_states)
-            if np.min(c2g_estimates) == np.inf:
-                self.do_rrt = True
-                return
-
-            tree_state_idx, following_path, path_starting_idx = self.get_follow_path(c2g_estimates, path_starting_idxes, path_states)
-
-            path_validity = self.validate_follow_path(following_path)
-            add_to_tree_segment, kept_path_segment = self.filter_invalid_segments_of_follow_path(following_path, path_validity)
-
-            self.update_path_database(kept_path_segment, path_starting_idx)
-
-            parent_node = self.env.make_state(tree_states[tree_state_idx])
-            self.add_states_from_path_to_tree(parent_node, add_to_tree_segment)
-        
-        if self.target in self.tree:
-            print(f"Found Path in {iteration} iterations")
-            return
-            
-            # return self.backtrack(self.target)
-
-        self.compute_c2g_for_paths(self.validated_paths, self.target)
-
-
-    def search(self, start, target, max_steps=500):
-        
-        self.start = start
-        self.target = target
-
-        self.tree = defaultdict(list)
-
-
-        self.tree[self.start]
-        self.child_to_parent = {}
-        self.child_to_parent[self.start] = None
-        self.do_rrt = False
-        for i in range(max_steps):
-            self.step_search(i)
-
-            if self.target in self.tree:
-                return self.backtrack(self.target)
-
-        return Path([])
-
     def validate_follow_path(self, following_path):
         path_state_validities = self.env.batch_is_valid(following_path)
 
@@ -333,6 +268,70 @@ class PDG():
 
             self.child_to_parent[child] = parent
             parent = child
+
+    def step_search(self, iteration):
+        tree_states, path_starting_idxes, path_states = self.get_tree_path_state_info()
+        c2g_estimates = self.compute_c2g_estimates(tree_states, path_states)
+
+        min_c2g_estimate = np.min(c2g_estimates)
+
+        if min_c2g_estimate == np.inf or self.do_rrt:
+            # Do RRT for a couple of steps
+            rrt = RRT(self.env, delta=2)
+            path_rrt = rrt.search(start, target, max_steps=10, starting_tree_info=(self.tree,self.child_to_parent))
+
+            # path_rrt = rrt.search(start, target, max_steps=1000, starting_tree_info=(self.tree,self.child_to_parent))
+            self.tree = rrt.tree
+            self.child_to_parent = rrt.child_to_parent
+
+            # print("RRTing")
+            expansion_tech = 'rrt'
+            self.do_rrt = False
+        else:
+            expansion_tech = 'pdg'
+
+            c2g_estimates = self.filter_connection_attempts(c2g_estimates, tree_states, path_states)
+            if np.min(c2g_estimates) == np.inf:
+                self.do_rrt = True
+                return
+
+            tree_state_idx, following_path, path_starting_idx = self.get_follow_path(c2g_estimates, path_starting_idxes, path_states)
+
+            path_validity = self.validate_follow_path(following_path)
+            add_to_tree_segment, kept_path_segment = self.filter_invalid_segments_of_follow_path(following_path, path_validity)
+
+            self.update_path_database(kept_path_segment, path_starting_idx)
+
+            parent_node = self.env.make_state(tree_states[tree_state_idx])
+            self.add_states_from_path_to_tree(parent_node, add_to_tree_segment)
+        
+        if self.target in self.tree:
+            print(f"Found Path in {iteration} iterations")
+            return
+            
+            # return self.backtrack(self.target)
+
+        self.compute_c2g_for_paths(self.validated_paths, self.target)
+
+    def search(self, start, target, max_steps=500):
+        
+        self.start = start
+        self.target = target
+
+        self.tree = defaultdict(list)
+
+
+        self.tree[self.start]
+        self.child_to_parent = {}
+        self.child_to_parent[self.start] = None
+        self.do_rrt = False
+        for i in range(max_steps):
+            self.step_search(i)
+
+            if self.target in self.tree:
+                return self.backtrack(self.target)
+
+        return Path([])
 
     def backtrack(self, end=None):
         if end is None or end not in self.child_to_parent:
