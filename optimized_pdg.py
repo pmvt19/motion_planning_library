@@ -11,10 +11,11 @@ from collections import defaultdict
 from circle_approximation import ApproximationSpace
 from matplotlib.collections import LineCollection
 from utils import interpolate_path, smooth_path
+from sklearn.neighbors import KDTree
 
 from rrt import RRT
 
-class PDG():
+class OptimizedPDG():
     def __init__(self, env, db_path):
         self.db : Database = pickle.load(open(db_path, 'rb'))
         # self.db.paths = self.db.paths[:50]
@@ -42,15 +43,15 @@ class PDG():
                 if len(new_path) > 0:
                     retained_paths.append(Path(path=new_path + [target]))
 
-        new_db = Database()
-        new_db.paths = retained_paths#[:1]
-        new_db.draw_paths(plt.gca())
-        self.env.draw_environment(plt.gca())
-        plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
-        plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
-        
-        plt.show()
-        plt.clf()
+        # new_db = Database()
+        # new_db.paths = retained_paths#[:1]
+        # new_db.draw_paths(plt.gca())
+        # self.env.draw_environment(plt.gca())
+        # plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
+        # plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
+
+        # plt.show()
+        # plt.clf()
 
         # TODO: Need to validate the edge from path to goal
 
@@ -108,6 +109,23 @@ class PDG():
 
         self.flattened_c2gs = np.array([c2g for path in path_c2gs for c2g in path])
 
+    def optimized_compute_c2g_for_paths(self):
+        pass
+
+    def compute_c2g_estimates_for_states(self, tree_states, path_states):
+        if tree_states.shape[0] == 0:
+            return np.empty((0, len(path_states)))
+        dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
+
+        threshold = 5.0
+        dist_mat[dist_mat > threshold] = np.inf
+        dist_mat[dist_mat == 0.0] = np.inf
+
+        c2g_estimates = dist_mat + self.flattened_c2gs
+
+        return c2g_estimates
+
+
     def search(self, start, target):
 
         timing_dict = defaultdict(list)
@@ -123,44 +141,58 @@ class PDG():
         self.child_to_parent[start] = None
         
         do_rrt = False
-        for i in range(500):
+
+        tree_states = np.array([key.value for key in self.tree])
+        path_starting_idxes = np.array([len(path) for path in self.validated_paths])
+        path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
+        path_states = np.array([state.value for path in self.validated_paths for state in path])
+        c2g_estimates = self.compute_c2g_estimates_for_states(tree_states, path_states)
+        for i in range(5000):
             start_time = time.time()
-            tree_states = np.array([key.value for key in self.tree])
+            
             path_starting_idxes = np.array([len(path) for path in self.validated_paths])
             path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
-            path_states = np.array([state.value for path in self.validated_paths for state in path])
+            # path_states = np.array([state.value for path in self.validated_paths for state in path])
             end_time = time.time()
             timing_dict['flattening_states_time'].append(end_time - start_time)
 
             # pairwise dist
-            start_time = time.time()
-            dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
+
+            # start_time = time.time()
+            # dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
 
             
             # threshold = 1.0
-            threshold = 5.0
+            # threshold = 5.0
             # threshold = 0.5
             
-            dist_mat[dist_mat > threshold] = np.inf
-            dist_mat[dist_mat == 0.0] = np.inf
+            # dist_mat[dist_mat > threshold] = np.inf
+            # dist_mat[dist_mat == 0.0] = np.inf
             
-            c2g_estimates = dist_mat + self.flattened_c2gs
-            end_time = time.time()
-            timing_dict['dist_c2g_calc_time'].append(end_time - start_time)
+            # c2g_estimates = dist_mat + self.flattened_c2gs
+            # end_time = time.time()
+            # timing_dict['dist_c2g_calc_time'].append(end_time - start_time)
             
             min_c2g_estimate = np.min(c2g_estimates)
             expansion_tech = None
             
             if min_c2g_estimate == np.inf or do_rrt:
                 # Do RRT for a couple of steps
+
+
                 rrt = RRT(self.env, delta=2)
                 path_rrt = rrt.search(start, target, max_steps=10, starting_tree_info=(self.tree,self.child_to_parent))
                 # path_rrt = rrt.search(start, target, max_steps=1000, starting_tree_info=(self.tree,self.child_to_parent))
                 self.tree = rrt.tree
                 self.child_to_parent = rrt.child_to_parent
+
+
                 # print("RRTing")
                 expansion_tech = 'rrt'
                 do_rrt = False
+
+                # exp_node, sampled_point = self.select_node(goal_bias=0)
+                # cur_node = self.expand_node(exp_node, sampled_point)
             else:
                 # print("PDGing")
                 expansion_tech = 'pdg'
@@ -221,11 +253,40 @@ class PDG():
                 if len(invalid_idxes) == 0:
                     add_to_tree_segment = following_path
                     kept_path_segment = following_path
+
+                    updated_path_states = path_states
+                    updated_flattened_c2gs = self.flattened_c2gs
+                    updated_c2g_estimates = c2g_estimates
+
                 else:
                     invalid_idx = invalid_idxes[0]
                     deletion_offset = 1
+                    # print(path_starting_idx, invalid_idx, 'here')
                     add_to_tree_segment = following_path[:invalid_idx]
+                    # print(add_to_tree_segment)
+                    si = path_starting_idxes[path_starting_idx]
+                    # print(path_states[si:path_state_idx+invalid_idx])
+
+                    # print("before path states:")
+                    # print(path_states[:si])
+                    # print("After path states:")
+                    # print(path_states[path_state_idx+invalid_idx+deletion_offset:])
+                    # print(path_states[:si].shape, path_states[path_state_idx+invalid_idx+deletion_offset:].shape)
+                    # print(self.flattened_c2gs[:si].shape, self.flattened_c2gs[path_state_idx+invalid_idx+deletion_offset:].shape)
+
+                    updated_path_states = np.vstack((path_states[:si], path_states[path_state_idx+invalid_idx+deletion_offset:]))
+                    updated_flattened_c2gs = np.concatenate((self.flattened_c2gs[:si], self.flattened_c2gs[path_state_idx+invalid_idx+deletion_offset:]), axis=0)
+
+                    updated_c2g_estimates = np.concatenate((c2g_estimates[:, :si], c2g_estimates[:, path_state_idx+invalid_idx+deletion_offset:]), axis=1)
+
+                    
+                    # print()
+                    # print(np.array([state.value for state in self.validated_paths[path_starting_idx]]))
+                    # print()
+                    
                     kept_path_segment = following_path[invalid_idx+deletion_offset:] # TODO: Figure out logic for updating path states and all
+                    # print(kept_path_segment)
+                    # exit()
                 end_time = time.time()
                 timing_dict['filter_following_path'].append(end_time - start_time)
 
@@ -239,6 +300,7 @@ class PDG():
 
                 start_time = time.time()
                 parent = self.env.make_state(tree_states[tree_state_idx])
+                added_states = []
                 for state in add_to_tree_segment:
                     if np.all(parent.value == state): # HACK: This might be a hack (may need to figure out why this is happening)
                         continue
@@ -249,23 +311,59 @@ class PDG():
 
                     self.tree[parent].append(child)
                     self.tree[child]
+                    added_states.append(state)
 
                     self.child_to_parent[child] = parent
                     parent = child
                 end_time = time.time()
                 timing_dict['add_states_to_tree'].append(end_time - start_time)
+
+                added_states = np.array(added_states)
+                # print(tree_states.shape, added_states.reshape(-1, 2).shape)
+                tree_states = np.vstack((tree_states, added_states.reshape(-1, 2))) # TODO HACK BUG HARDCODED!!!
+
+
+                
+                
+
+                
+
+
+
+
+                # timing_dict['add_states_to_tree'].append(end_time - start_time)
+                
+                start_time = time.time()
+                path_states = updated_path_states
+                self.flattened_c2gs = updated_flattened_c2gs
+                
+                
+                end_time = time.time()
+                timing_dict['recompute_cost_to_gos'].append(end_time - start_time)
+
+
+                start_time = time.time()
+                # print(added_states.shape, updated_path_states.shape)
+                new_states_c2g_estimates = self.compute_c2g_estimates_for_states(added_states, updated_path_states)
+                updated_c2g_estimates_full = np.concatenate((updated_c2g_estimates, new_states_c2g_estimates), axis=0)
+                c2g_estimates = updated_c2g_estimates_full
+                end_time = time.time()
+                timing_dict['dist_c2g_calc_time'].append(end_time - start_time)
             
             if target in self.tree:
                 print(f"Found Path in {i} iterations")
                 self.timing_dict = timing_dict
                 return self.backtrack(target)
             
-            start_time = time.time()
-            self.compute_c2g_for_paths(self.validated_paths, target)
-            end_time = time.time()
-            timing_dict['recompute_cost_to_gos'].append(end_time - start_time)
+            
+            # self.compute_c2g_for_paths(self.validated_paths, target)
+            # path_states = updated_path_states
+            # self.flattened_c2gs = updated_flattened_c2gs
+            # end_time = time.time()
+            # timing_dict['recompute_cost_to_gos'].append(end_time - start_time)
 
             self.timing_dict = timing_dict
+        print(f"Iteration: {i}")
 
     def backtrack(self, end=None):
         if end is None or end not in self.child_to_parent:
@@ -294,6 +392,33 @@ class PDG():
         if path:
             path = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
             ax.add_collection(LineCollection(path, color='red'))
+        
+    def select_node(self, goal_bias=0):
+        if np.random.random() < goal_bias:
+            sampled_point = self.target
+        else:
+            sampled_point = self.env.sample_valid_point()
+        nodes = np.array([node.value for node in self.tree.keys()])
+        kdt = KDTree(nodes)
+        _, ind = kdt.query(np.array([sampled_point.value]), k=1)
+        idx = ind[0][0]
+        return self.env.make_state(nodes[idx]), sampled_point
+
+    def expand_node(self, node, sampled_point):
+        self.delta = 0.5
+        if np.linalg.norm(self.target.value - node.value) < self.delta:
+            new_node = self.target
+        else:
+            # print(np.linalg.norm(sampled_point.value - node.value), 'dist')
+            # new_node = self.env.shoot_ray(node, sampled_point, self.delta)
+            new_node = self.env.shoot_ray(node, sampled_point, min(self.delta, np.linalg.norm(sampled_point.value - node.value)))
+            # assert(new_node.value[1] < 10), "ERROR EXPAND NODE"
+        if new_node != node:
+            self.tree[node].append(new_node)
+            self.tree[new_node]
+            self.child_to_parent[new_node] = node
+
+        return new_node
 
 if __name__ == '__main__':
     seed = np.random.randint(0, 10000)
@@ -326,6 +451,12 @@ if __name__ == '__main__':
     # seed = 4459
     # seed = 9264 # Broken on Mac (Fixed?)
     # seed = 8718 # BUG SEED
+
+    # Optimization Seed
+    # seed = 4054 #IMportant
+
+    # seed = 1119
+    # seed = 6473
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
@@ -347,10 +478,10 @@ if __name__ == '__main__':
     # db_save_path = 'saves/database_v1_bpe3.pickle'
     
     env = PointRobot()
-    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=8))
+    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
-    pdg = PDG(env, db_save_path)
+    pdg = OptimizedPDG(env, db_save_path)
 
     # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([15.0, 5.0]))
     # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([45.0, 5.0]))
@@ -364,7 +495,7 @@ if __name__ == '__main__':
     start_time = time.time()
     path = pdg.search(start, target)
     end_time = time.time()
-    print(f"Time to search: {end_time - start_time}", len(path))
+    print(f"Time to search: {end_time - start_time}")
 
     for key in pdg.timing_dict:
         print(f"{key}: {np.sum(pdg.timing_dict[key])}")
