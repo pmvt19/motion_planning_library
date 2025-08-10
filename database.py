@@ -7,6 +7,7 @@ from prm import IncrementalPRM, PRM
 from obstacle_sets import BiasedPassage
 from space import PointRobot
 from circle_approximation import ApproximationSpace
+from path import Path
 
 class Database():
     def __init__(self):
@@ -23,11 +24,12 @@ class Database():
         for i, path in enumerate(self.paths):
             path_states = np.array([state.value for state in path.path])
             ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(i), zorder=2)
-            path_edges = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
+            path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
             ax.add_collection(LineCollection(path_edges, color=cmap(i)))
     
     def add_path(self, path):
-        raise NotImplementedError
+        assert(isinstance(path, Path))
+        self.paths.append(path)
 
     def merge_dbs(self, other_db):
         raise NotImplementedError
@@ -39,7 +41,7 @@ class Database():
         raise NotImplementedError
     
     def __getitem__(self, idx):
-        raise NotImplementedError
+        return self.paths[idx]
     
     def populate_db(self, env, num_envs, num_paths_per_env):
         raise NotImplementedError
@@ -54,11 +56,11 @@ if __name__ == '__main__':
 
     for i in range(20):
         env = PointRobot()
-        env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
+        env.set_obstacles(BiasedPassage(num_walls=8, bias=0.5))
         env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
-        # prm = IncrementalPRM(env, num_samples=1000, num_neighbors=20)
-        prm = PRM(env, num_samples=5000, num_neighbors=10)
+        prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
+        # prm = PRM(env, num_samples=5000, num_neighbors=10)
         prm.create_graph()
 
         for j in range(20):
@@ -71,4 +73,4 @@ if __name__ == '__main__':
         print(f"DB Size: {len(db)}")
 
 
-    db.save_to_path(db_save_path)
+    # db.save_to_path(db_save_path)
