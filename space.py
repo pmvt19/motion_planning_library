@@ -213,6 +213,7 @@ class PointRobot(HolonomicRobot):
         return {
             'rectangles' : np.empty((0, 4)),
             'segments' : np.empty((0, 2, 2)), 
+            'segments_radii' : 0.0, 
             'points' : states,
         }
     
