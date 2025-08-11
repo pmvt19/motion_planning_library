@@ -11,6 +11,7 @@ from collections import defaultdict
 from circle_approximation import ApproximationSpace
 from matplotlib.collections import LineCollection
 from utils import interpolate_path, smooth_path
+from sklearn.neighbors import KDTree
 
 from rrt import RRT
 
@@ -259,8 +260,7 @@ class PDG():
 
         self.compute_c2g_for_paths(self.validated_paths, self.target)
 
-    def search(self, start, target, max_steps=500):
-        
+    def init_search(self, start, target):
         self.start = start
         self.target = target
 
@@ -271,6 +271,20 @@ class PDG():
         self.child_to_parent = {}
         self.child_to_parent[self.start] = None
         self.do_rrt = False
+
+    def search(self, start, target, max_steps=500):
+        
+        # self.start = start
+        # self.target = target
+
+        # self.tree = defaultdict(list)
+
+
+        # self.tree[self.start]
+        # self.child_to_parent = {}
+        # self.child_to_parent[self.start] = None
+        # self.do_rrt = False
+        self.init_search(start, target)
         for i in range(max_steps):
             self.step_search(i)
 
@@ -306,6 +320,85 @@ class PDG():
         if path:
             path = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
             ax.add_collection(LineCollection(path, color='red'))
+
+class BiDirectionalPDG():
+    def __init__(self, env, db_path):
+        self.env = env
+        self.db_path = db_path
+
+        self.max_connection_distance = 0.5
+
+    def attempt_tree_connection(self, forward_pdg, backward_pdg):
+        forward_tree_nodes = np.array([node.value for node in forward_pdg.tree.keys()])
+        backward_tree_nodes = np.array([node.value for node in backward_pdg.tree.keys()])
+
+        kdt = KDTree(forward_tree_nodes)
+        dist, ind = kdt.query(backward_tree_nodes, k=1)
+        dist = dist.flatten()
+        ind = ind.flatten()
+
+        if np.min(dist) < self.max_connection_distance:
+            backward_tree_node_idx = np.argmin(dist)
+            forward_tree_node_idx = ind[backward_tree_node_idx]
+            return self.env.is_valid_edge(self.env.make_state(forward_tree_nodes[forward_tree_node_idx]), self.env.make_state(backward_tree_nodes[backward_tree_node_idx])), \
+                    (self.env.make_state(forward_tree_nodes[forward_tree_node_idx]), self.env.make_state(backward_tree_nodes[backward_tree_node_idx]))
+        return False, None
+    
+    def delete_duplicate_states_in_path(self, path):
+        i = len(path) - 1
+        while i > 0:
+            if np.all(path[i-1] == path[i]):
+                path.pop(i)
+            i -= 1
+        return path
+
+    def backtrack(self, forward_pdg, backward_pdg, connection):
+        if connection is None:
+            return Path()
+        forward_end_state, backward_end_state = connection
+        forward_path = forward_pdg.backtrack(end=forward_end_state)
+        backward_path = backward_pdg.backtrack(end=backward_end_state)
+
+        # Join Both Paths and Reverse the backward PDG Tree path
+        joined_path = forward_path.path + backward_path.path[::-1] 
+        joined_path = self.delete_duplicate_states_in_path(joined_path)
+        return Path(path=joined_path)
+
+    def search(self, start, target, max_steps=500):
+        self.start = start
+        self.target = target
+
+
+        self.forward_pdg = PDG(self.env, self.db_path)
+        self.backward_pdg = PDG(self.env, self.db_path)
+
+        
+
+        self.forward_pdg.compute_retained_paths(self.target)
+        self.backward_pdg.compute_retained_paths(self.start)
+
+        self.forward_pdg.init_search(start, target)
+        self.backward_pdg.init_search(target, start)
+
+        start_time = time.time()
+        for i in range(max_steps):
+            self.forward_pdg.step_search(i)
+            self.backward_pdg.step_search(i)
+            is_connected, connection = self.attempt_tree_connection(self.forward_pdg, self.backward_pdg)
+
+            if is_connected:
+                break
+        end_time = time.time()
+        print(f"Time to search (without computing retained paths): {end_time - start_time}")
+        
+        if is_connected:
+            return self.backtrack(self.forward_pdg, self.backward_pdg, connection)
+        else:
+            return Path([])
+
+
+
+
 
 if __name__ == '__main__':
     seed = np.random.randint(0, 10000)
@@ -351,6 +444,11 @@ if __name__ == '__main__':
     # seed = 277
     # seed = 7936
     # seed = 551
+
+    ## (CHECK PATH LENGTH FOR BI)
+    # seed = 1231 
+    # seed = 6351 (Check why this is so slow for BiPDG)
+    # seed = 896
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
@@ -368,11 +466,11 @@ if __name__ == '__main__':
 
     # path_states = np.array(path_states)
 
-    # db_save_path = 'saves/database_v5.pickle'
-    db_save_path = 'saves/database_v1_bpe3.pickle'
+    db_save_path = 'saves/database_v5.pickle'
+    # db_save_path = 'saves/database_v1_bpe3.pickle'
     
     env = PointRobot()
-    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
+    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=8))
     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
     pdg = PDG(env, db_save_path)
@@ -394,18 +492,31 @@ if __name__ == '__main__':
     pdg.draw_tree(plt.gca(), path)
     plt.show()
 
-    pdg.compute_retained_paths(target)
+    bipdg = BiDirectionalPDG(env, db_save_path)
+
+    # start_time = time.time()
+    # bipdg.compute_retained_paths(target, start)
+    # end_time = time.time()
+    # print(f"Time to compute paths (BiPDG): {end_time-start_time}")
+
     start_time = time.time()
-    path = pdg.search_v2(start, target)
+    path = bipdg.search(start, target)
     end_time = time.time()
-    print(f"Time to search v2: {end_time - start_time}", len(path))
+    print(f"Time to search (BiPDG): {end_time - start_time}", len(path))
 
-    for key in pdg.timing_dict:
-        print(f"{key}: {np.sum(pdg.timing_dict[key])}")
-        # print(pdg.timing_dict[key])
-
-    pdg.draw_tree(plt.gca(), path)
+    plt.clf()
+    bipdg.forward_pdg.draw_tree(plt.gca(), path)
+    bipdg.backward_pdg.draw_tree(plt.gca(), path)
     plt.show()
+
+    # print([state.value for state in path])
+
+
+    # for key in pdg.timing_dict:
+    #     print(f"{key}: {np.sum(pdg.timing_dict[key])}")
+    #     # print(pdg.timing_dict[key])
+
+    
 
     # pdg.search(start, target)
     
