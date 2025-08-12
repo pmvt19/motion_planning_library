@@ -127,10 +127,18 @@ class PDG():
             # If no paths to follow, do rrt
             self.do_rrt = True
             return
+        # print(tree_states.shape, path_states.shape)
+        temp_mat = np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T))
+        # print(np.min(temp_mat), np.max(temp_mat))
+        # print(np.sort(temp_mat))
+        tree_state_idx, path_state_idx = np.unravel_index(np.argmin(temp_mat), temp_mat.shape)
 
-        dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
+        # print(tree_states[tree_state_idx], path_states[path_state_idx])
 
-        dist_mat[dist_mat > threshold] = np.inf
+        # dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
+        dist_mat = np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T))
+
+        dist_mat[dist_mat > (threshold**2)] = np.inf
         dist_mat[dist_mat == 0.0] = np.inf
         c2g_estimates = dist_mat + self.flattened_c2gs
 
@@ -449,6 +457,9 @@ if __name__ == '__main__':
     # seed = 1231 
     # seed = 6351 (Check why this is so slow for BiPDG)
     # seed = 896
+
+    # Check Invalid values in SQRT
+    # seed = 142
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
