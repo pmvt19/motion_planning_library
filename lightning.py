@@ -100,7 +100,7 @@ class Lightning():
         intervals = list(zip(intervals_start, intervals_end))
 
         repaired_segments = []
-        rrt = RRT(env)
+        rrt = RRT(self.env)
 
         for seg_start_idx, seg_end_idx in intervals:
 
@@ -111,8 +111,8 @@ class Lightning():
             seg_start_idx, seg_end_idx = intervals[i]
             path = path[0:seg_start_idx] + repaired_segments[i].path + path[seg_end_idx+1:]
     
-        start_to_path = rrt.search(start, path[0], max_steps=self.max_repair_steps)
-        path_to_target = rrt.search(path[-1], target, max_steps=self.max_repair_steps)
+        start_to_path = rrt.search(self.start, path[0], max_steps=self.max_repair_steps)
+        path_to_target = rrt.search(path[-1], self.target, max_steps=self.max_repair_steps)
         
         return start_to_path.path + path + path_to_target.path
 
