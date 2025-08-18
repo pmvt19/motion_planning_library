@@ -2,6 +2,7 @@ import numpy as np
 
 class Path():
     def __init__(self, path=[]):
+        assert(isinstance(path, list)), "Path must be of type list"
         self.path : list = path 
     
     def __len__(self):

@@ -16,9 +16,9 @@ from utils import smooth_path, interpolate_path
 
 
 class Lightning():
-    def __init__(self, db_path, max_repair_steps=10000):
+    def __init__(self, env, db_path, max_repair_steps=10000):
         self.db : Database = pickle.load(open(db_path, 'rb'))
-        self.env : RobotSpace = None
+        self.env : RobotSpace = env
         self.max_repair_steps : int = max_repair_steps
 
     def count_invalid_segments(self, path_validities):
@@ -100,30 +100,32 @@ class Lightning():
         intervals = list(zip(intervals_start, intervals_end))
 
         repaired_segments = []
-        rrt = RRT(env)
+        rrt = RRT(self.env)
 
         for seg_start_idx, seg_end_idx in intervals:
 
-            repaired_segment = rrt.search(path[seg_start_idx-1], path[seg_end_idx+1], max_steps=self.max_repair_steps)
+            repaired_segment = rrt.search(path[seg_start_idx-1], path[seg_end_idx], max_steps=self.max_repair_steps)
             repaired_segments.append(repaired_segment)
 
         for i in reversed(range(len(intervals))):
             seg_start_idx, seg_end_idx = intervals[i]
             path = path[0:seg_start_idx] + repaired_segments[i].path + path[seg_end_idx+1:]
     
-        start_to_path = rrt.search(start, path[0], max_steps=self.max_repair_steps)
-        path_to_target = rrt.search(path[-1], target, max_steps=self.max_repair_steps)
+        start_to_path = rrt.search(self.start, path[0], max_steps=self.max_repair_steps)
+        path_to_target = rrt.search(path[-1], self.target, max_steps=self.max_repair_steps)
         
         return start_to_path.path + path + path_to_target.path
 
 
-    def search(self, env, start, target, n=10):
+    def search(self, start, target, n=10):
         start_time = time.time()
+        self.start = start
+        self.target = target
 
-        self.env = env
         path_idx, path_validity = self.compute_candidate_paths(start, target, n)
         print(f"Time to compute Candidate Paths: {time.time() - start_time}")
-
+        self.path_idx = path_idx
+        self.path_validity = path_validity
         # Get Validities
         path = self.db.paths[path_idx]
         # path_states = np.array([state.value for state in path])
@@ -142,21 +144,71 @@ class Lightning():
 
         return Path(path=repaired_path)
     
-    def draw(self, ax, path):
+    def _compute_interval_segments(self):
+        prev = True
+        intervals_segs = [0]
+        self.path_validity[35:37] = False
+        for idx, validity in enumerate(self.path_validity):
+            if prev != validity and validity == False:
+                intervals_segs.append(idx)
+            elif prev == False and validity == True:
+                intervals_segs.append(idx)
+            prev = validity
+        intervals_segs.append(len(self.path_validity))
+        return intervals_segs
+        
+    
+    def draw(self, ax, path, show_task=True, show_unrepaired_path=True, verbose=True):
         self.env.draw_environment(ax)
         path_states = np.array([state.value for state in path.path])
-        ax.scatter(path_states[:, 0], path_states[:, 1], color='red')
+        ax.scatter(path_states[:, 0], path_states[:, 1])
         path_edges = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
         ax.add_collection(LineCollection(path_edges, color='red'))
+
+        if show_task:
+            ax.scatter(self.start.value[0], self.start.value[1], s=100, c='green')
+            ax.scatter(self.target.value[0], self.target.value[1], s=100, c='red')
+
+        if show_unrepaired_path and not verbose:
+            unrepaired_path = self.db.paths[self.path_idx]
+            unrepaired_path_states = np.array([state.value for state in unrepaired_path.path])
+
+            ax.scatter(unrepaired_path_states[:, 0], unrepaired_path_states[:, 1], color='orange')
+            unrepaired_path_edges = [(unrepaired_path[i].value[:2], unrepaired_path[i+1].value[:2]) for i in range(len(unrepaired_path)-1)]
+            ax.add_collection(LineCollection(unrepaired_path_edges, color='purple'))
+
+        elif show_unrepaired_path and verbose:
+            unrepaired_path = self.db.paths[self.path_idx]
+            unrepaired_path_states = np.array([state.value for state in unrepaired_path.path])
+
+            intervals_segs = self._compute_interval_segments()
+            for i in range(len(intervals_segs)-1):
+                start_idx = intervals_segs[i]
+                end_idx = intervals_segs[i+1]
+
+                if self.path_validity[start_idx]:
+                    alpha_val = 1
+                    edge_zorder = 2
+                    unrepaired_path_edges = [(unrepaired_path[i].value[:2], unrepaired_path[i+1].value[:2]) for i in range(start_idx, end_idx-1)]
+                else:
+                    unrepaired_path_edges = [(unrepaired_path[i].value[:2], unrepaired_path[i+1].value[:2]) for i in range(start_idx-1, end_idx)]
+                    alpha_val = 0.8
+                    edge_zorder = 0
+
+                ax.scatter(unrepaired_path_states[start_idx:end_idx, 0], unrepaired_path_states[start_idx:end_idx, 1], color='orange', alpha=alpha_val)
+                ax.add_collection(LineCollection(unrepaired_path_edges, color='purple', alpha=alpha_val, zorder=edge_zorder))
         
 
 
 if __name__ == '__main__':
     db_path = 'saves/database_v4.pickle'
+    # db_path = 'saves/database_v1_bpe3.pickle'
     seed = np.random.randint(0, 100000)
     # seed = 5093
     # seed = 75809
-    seed = 61606
+    # seed = 61606
+    # seed = 9222
+    seed = 19695
     print(f"Seed: {seed}")
     np.random.seed(seed)
 
@@ -172,14 +224,14 @@ if __name__ == '__main__':
 
 
 
-    lightning = Lightning(db_path=db_path)
+    lightning = Lightning(env=env, db_path=db_path)
     
     # env.space.draw_environment(plt.gca())
     # lightning.db.draw_paths(plt.gca())
     # plt.show()
     # plt.clf()
 
-    path = lightning.search(env, start, target)
+    path = lightning.search(start, target)
 
     lightning.draw(plt.gca(), path)
     plt.show()
