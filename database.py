@@ -2,6 +2,9 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt 
 from matplotlib.collections import LineCollection
+import time
+import multiprocessing
+import concurrent.futures
 
 from prm import IncrementalPRM, PRM
 from obstacle_sets import BiasedPassage
@@ -32,13 +35,14 @@ class Database():
         self.paths.append(path)
 
     def merge_dbs(self, other_db):
-        raise NotImplementedError
+        self.paths = self.paths + other_db.paths
     
     def __len__(self):
         return len(self.paths)
 
     def __add__(self, other_db):
-        raise NotImplementedError
+        self.merge_dbs(other_db)
+        return self
     
     def __getitem__(self, idx):
         return self.paths[idx]
@@ -46,15 +50,17 @@ class Database():
     def populate_db(self, env, num_envs, num_paths_per_env):
         raise NotImplementedError
     
+def merge_db_lists(dbs):
+    db = Database()
+    for other_db in dbs:
+        db = db + other_db
+    return db
 
-if __name__ == '__main__':
-
-    # db_save_path = 'saves/database_v6.pickle'
-    db_save_path = 'saves/database_v1_bpe3.pickle'
-
+def generate_database(db_save_path=None):
+    print("WARNING: Hard Coded")
     db = Database()
 
-    for i in range(20):
+    for i in range(2):
         env = PointRobot()
         env.set_obstacles(BiasedPassage(num_walls=8, bias=0.5))
         env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
@@ -71,6 +77,65 @@ if __name__ == '__main__':
             if path:
                 db.paths.append(path)
         print(f"DB Size: {len(db)}")
+
+    if db_save_path:
+        print(f"Saving Database to {db_save_path}")
+        db.save_to_path(db_save_path)
+    return db
+
+def generate_database_parallel(db_save_path=None):
+
+    # processes = []
+    # for _ in range(10):
+    #     p = multiprocessing.Process(target=generate_database)
+    #     p.start()
+    #     processes.append(p)
+    
+    # for p in processes:
+    #     p.join()
+    dbs = []
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        results = [executor.submit(generate_database) for _ in range(10)]
+
+        for f in concurrent.futures.as_completed(results):
+            dbs.append(f.result())
+    
+    # for db in dbs:
+    #     print(len(db))
+    
+    return merge_db_lists(dbs)
+
+    
+
+if __name__ == '__main__':
+
+    # db_save_path = 'saves/database_v6.pickle'
+    db_save_path = 'saves/database_v1_bpe3.pickle'
+
+    db = Database()
+
+    start_time = time.time()
+    # for i in range(20):
+    #     env = PointRobot()
+    #     env.set_obstacles(BiasedPassage(num_walls=8, bias=0.5))
+    #     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
+
+    #     prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
+    #     # prm = PRM(env, num_samples=5000, num_neighbors=10)
+    #     prm.create_graph()
+
+    #     for j in range(20):
+    #         print(f"Env {i+1}, Task {j+1}")
+    #         start, target = env.sample_valid_point(), env.sample_valid_point()
+
+    #         path = prm.search(start, target)
+    #         if path:
+    #             db.paths.append(path)
+    #     print(f"DB Size: {len(db)}")
+    new_db = generate_database_parallel()
+    end_time = time.time()
+    print(f"Database Size: {len(new_db)}")
+    print(f"Time to create database: {end_time-start_time}")
 
 
     # db.save_to_path(db_save_path)
