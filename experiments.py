@@ -27,7 +27,7 @@ def run_experiment(seed, timing_dict, path_dict):
     db_path = "saves/database_v1_bpe3.pickle"
 
     rrt = RRT(env)
-    prm = PRM(env, num_samples=5000, num_neighbors=10)
+    prm = PRM(env, num_samples=5000, num_neighbors=10, validate_edges=True)
     lightning = Lightning(env, db_path=db_path)
     pdg = PDG(env=env, db_path=db_path)
     optimized_pdg = OptimizedPDG(env=env, db_path=db_path)

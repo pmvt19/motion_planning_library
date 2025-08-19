@@ -233,7 +233,7 @@ class PDG():
         if min_c2g_estimate == np.inf or self.do_rrt:
             # Do RRT for a couple of steps
             rrt = RRT(self.env, delta=2)
-            path_rrt = rrt.search(start, target, max_steps=10, starting_tree_info=(self.tree,self.child_to_parent))
+            path_rrt = rrt.search(self.start, self.target, max_steps=10, starting_tree_info=(self.tree,self.child_to_parent))
 
             # path_rrt = rrt.search(start, target, max_steps=1000, starting_tree_info=(self.tree,self.child_to_parent))
             self.tree = rrt.tree
