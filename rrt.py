@@ -39,8 +39,10 @@ class RRT():
         if np.linalg.norm(self.target.value - node.value) < self.delta:
             new_node = self.target
         else:
-            new_node = self.env.shoot_ray(node, sampled_point, self.delta)
-
+            # print(np.linalg.norm(sampled_point.value - node.value), 'dist')
+            # new_node = self.env.shoot_ray(node, sampled_point, self.delta)
+            new_node = self.env.shoot_ray(node, sampled_point, min(self.delta, np.linalg.norm(sampled_point.value - node.value)))
+            # assert(new_node.value[1] < 10), "ERROR EXPAND NODE"
         if new_node != node:
             self.tree[node].append(new_node)
             self.tree[new_node]
