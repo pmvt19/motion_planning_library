@@ -418,9 +418,10 @@ class ApproximationSpace3D(RobotSpace):
 
         distance_mat = np.sqrt(np.sum(robot_xyz**2, axis=2, keepdims=True) + np.sum(obst_xyz**2, axis=1, keepdims=True).T + (-2 * (robot_xyz @ obst_xyz.T)))
 
-        min_dists = robot_circles[:, :, 2].reshape(B, -1, 1) + obstacle_circles[:, 2].reshape(1, 1, -1)
+        min_dists = robot_circles[:, :, 3].reshape(B, -1, 1) + obstacle_circles[:, 3].reshape(1, 1, -1)
 
         validity_mask = distance_mat > min_dists
+        # print(min_dists, distance_mat)
         validity_mask = validity_mask.reshape(B, -1)
         validities = np.all(validity_mask, axis=1)
         return validities
@@ -501,16 +502,21 @@ class ApproximationSpace3D(RobotSpace):
         # vis.add_geometry(mesh_circles + state_spheres)
         for geom in mesh_circles + state_spheres:
             vis.add_geometry(geom)
+        vis.run()
 
         for state in path:
             print(state.value)
+            # time.sleep(0.5)
+            vis.clear_geometries()
             mesh_circles, state_spheres = self.draw_state_env(None, state, None)
             # vis.update_geometry(mesh_circles + state_spheres)
             for geom in mesh_circles + state_spheres:
-                vis.update_geometry(geom)
+                # vis.update_geometry(geom)
+                vis.add_geometry(geom)
             vis.poll_events()
             vis.update_renderer()
-            time.sleep(1)
+            vis.run()
+            time.sleep(0.01)
 
     def sample_point(self):
         return self.space.sample_point()
@@ -528,7 +534,7 @@ class SphereRobot(HolonomicRobot):
     def __init__(self):
         super().__init__()
 
-        self.edge_validity_delta = 0.5
+        self.edge_validity_delta = 0.1
 
         self.x_range = [-10,10]
         self.y_range = [-10,10]
@@ -537,7 +543,7 @@ class SphereRobot(HolonomicRobot):
         # self.theta_range = [0, 2*np.pi]
         # self.angular_dims_start = 2
 
-        self.robot_radius = 1
+        self.robot_radius = 0.5
 
         self.obstacles = []
 
@@ -744,7 +750,8 @@ if __name__ == '__main__':
     end_time = time.time()
     print(f"Time to create graph: {end_time - start_time}")
     # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
-    start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+    # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+    start, target = env.make_state(np.array([1.5,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
     start_time = time.time()
     path = prm.search(start, target)
     end_time = time.time()
@@ -752,8 +759,13 @@ if __name__ == '__main__':
     print(path.path)
 
     print([state.value for state in path])
-
+    path_states = np.array([state.value for state in path])
+    print(env.batch_is_valid(path_states))
+    path = interpolate_path(path, env, 0.1)
+    path_states = np.array([state.value for state in path])
+    print(env.batch_is_valid(path_states))
     env.animate_path(path)
+
     # prm.draw(plt.gca())
     # plt.show()
 
