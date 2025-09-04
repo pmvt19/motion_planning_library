@@ -1,5 +1,8 @@
-saved_paths/
 __pycache__/
 imgs/
 saves/
 saved_paths/
+trajectory_optimization/
+
+polygon_approx.py
+robot.py
