@@ -1,5 +1,5 @@
 import numpy as np
-from space import FixedArm
+from space import FixedArm, DiscRobot
 from circle_approximation import ApproximationSpace
 from obstacle_sets import TestSet, ParkingSpace
 import matplotlib.pyplot as plt
@@ -11,7 +11,6 @@ from matplotlib.widgets import Slider
 import pygame
 from controller.xbox_controller import XboxController
 
-
 from rrt import RRT
 
 # Interactive element 
@@ -22,7 +21,7 @@ from rrt import RRT
 # - Shows workspace and cspace executing a planned rrt path (Done)
 # - Add Colors to CSpace side that shows the progression of the path (Done)
 
-def generate_obstacle_points(env, sample_size=10000):
+def generate_obstacle_points(env, sample_size=100000):
     env = ApproximationSpace(env, batch_size=1000)
     start_time = time.time()
     points = np.array([env.sample_point().value for _ in range(sample_size)])
@@ -44,6 +43,9 @@ def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.
     fig, axs = plt.subplots(1,2)
     axs[1].scatter(obstacle_points[:, 0], obstacle_points[:, 1], color='red')
 
+    start = path[0]
+    target = path[-1]
+
     for i, c in enumerate(path.path):
         axs[0].cla()
 
@@ -54,15 +56,24 @@ def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.
         env.draw_environment(axs[0])
         env.draw_state(axs[0], c)
         axs[1].scatter(c.value[0], c.value[1], color=colors[i], marker='^')
+
+        axs[1].scatter(start.value[0], start.value[1], color='green', marker='*')
+        axs[1].scatter(target.value[0], target.value[1], color='red', marker='*')
+
         axs[0].set_aspect('equal')
         axs[1].set_aspect('equal')
+
+        axs[0].set_title("Workspace")
+        axs[1].set_title("Configuration Space")
         plt.pause(frame_delay)
 
 def run_visualized_search(env, obstacle_points):
     start, target = env.sample_valid_point(), env.sample_valid_point()
-    rrt = RRT(env)
-    path = rrt.search(start, target, max_steps=1000)
 
+    rrt = RRT(env)
+    path = rrt.search(start, target, max_steps=5000)
+    print(f"Path Length: {len(path)}")
+    path = smooth_path(env, path) # Should be optional
     path = interpolate_path(path, env, 0.05)
     animate_path_and_space(path, obstacle_points, show_prev=False)
 
@@ -156,16 +167,15 @@ def run_interactive_space(env, obstacle_points, tick_delay=0.01):
 
 if __name__ == '__main__':
 
-    # task_type = 'search' 
-    task_type = 'interactive' # Will be made as an argument
+    task_type = 'search' 
+    # task_type = 'interactive' # Will be made as an argument
 
-    # np.random.seed(0)
+    np.random.seed(0)
     env = FixedArm()
     env.arm_link_lengths = np.array([3,3]) # HACK: DO NOT CHANGE ARM LENGTHS LIKE THIS
     env.set_obstacles(TestSet())
 
     obstacle_points = generate_obstacle_points(env)
-
     if task_type == "search":
         run_visualized_search(env, obstacle_points)
     elif task_type == "interactive":
