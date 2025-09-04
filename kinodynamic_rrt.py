@@ -73,71 +73,26 @@ class KinodynamicRRT(RRT):
 
 if __name__ == "__main__":
     seed = np.random.randint(0, 100) # Use seed 6 for an interesting path
-    # seed = 15
-    # Dubin's Car Environment
-    # seed = 49 
-    # seed = 9
-    # seed = 4 #debug
-    # seed = 1
-    # seed = 42
-    # seed = 21
-    # seed = 85
-    # seed = 86 # Interesting S-shaped Path
-    # seed = 91
-    # seed = 30
-    # seed = 81
-    # seed = 53
-    # seed = 45 # USE FOR SKID STEER CAR AND PARKING SPACE
-    # seed = 0 # WORKS FOR DUBINS CAR AND FIXED TASK
-    # seed = 60
-    # seed = 57
-    # seed = 59
     
     print(f"Setting Seed: {seed}") 
     np.random.seed(seed)
-    # env = CarParkingEnv()
-    # env = DubinsCarEnv()
+
     env = DubinsCar()
     # env = SkidSteerCar()
+
     env.set_obstacles(ParkingSpace())
-    # start, target = env.sample_task()
-    # start, target = env.sample_point(), env.sample_point()
     start, target = env.sample_valid_point(), env.sample_valid_point()
     # start = env.make_state(np.array([3.0, 2.75, 0, 0, 0]))
     # target = env.make_state(np.array([-4.5, -4.75, 0, 0, 0]))
 
-    # start, target = env.get_fixed_task()
-    # start = env.make_state(np.array([2.0, 2.75, 0]))
-    # target = env.make_state(np.array([-3.0, -2.25, 0]))
-
-    # rrt = KinodynamicRRT(env, goal_radius=1, max_time_horizon=0.1) # For use in CarParkingEnv
-    # rrt = KinodynamicRRT(env, goal_radius=4, max_time_horizon=0.5) # For use in Dubins Car
-    # rrt = KinodynamicRRT(env, goal_radius=4, max_time_horizon=0.5) # For use in Dubins Car
     rrt = KinodynamicRRT(env, goal_radius=4, max_time_horizon=0.5)
-
-    # state = env.make_state(np.array([6.8738416, 7.59822891, 1.62531756, 0.44829068, 3.03860264]))
-    # control = env.make_control(np.array([2.76940055, 0.55987465]))
-    # print(env.extend_state(state, 0.4, control)[0].value)
-    # exit()
-    # path = rrt.search(start, target, max_steps=5000, goal_bias=0.4)
     path = rrt.search(start, target, max_steps=2000, goal_bias=0.1)
-    # path = rrt.search(start, target, max_steps=5000, goal_bias=0.1)
-    print(len(rrt.tree))
+
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
-
-    # env.animate_path(path, frame_delay=0.001)
-
-    # rrt.draw_tree(plt.gca(), path=path, hold=True)
 
     controls = path.controls
     state_seqs = env.simulate(start, controls)
 
     env.animate_path(state_seqs, frame_delay=0.1)
-
-    # for p in path:
-        # print(p.value)
-
-    # for i in range(len(path)):
-    #     print(path[i].value, controls[i][0].value, controls[i][1])
 
