@@ -66,8 +66,8 @@ class KinodynamicRRT(RRT):
 
         return KinodynamicPath(path=path[::-1][:-1], controls=control_seq[::-1][1:-1], dt=self.env.dt)
     
-    def init_search(self, start, target):
-        super().init_search(start, target)
+    def init_search(self, start, target, starting_tree_info=None):
+        super().init_search(start, target, starting_tree_info)
         self.tree[self.start] = []
         self.child_to_parent[self.start] = (None, None, None)
 
