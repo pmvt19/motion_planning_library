@@ -215,6 +215,69 @@ class PointRobot(HolonomicRobot):
             'segments' : np.empty((0, 2, 2)), 
             'segments_radii' : 0.0, 
             'points' : states,
+            'points_radius': 0.0
+        }
+    
+    def batch_sample_points_around_target(self, targets):
+        validities = self.batch_is_valid(targets)
+        return targets[validities]
+
+class DiscRobot(HolonomicRobot):
+    def __init__(self):
+        super().__init__()
+        self.edge_validity_delta = 0.5
+        self.disc_radius = 1.5
+
+        self.x_range = [-10,10]
+        self.y_range = [-10,10]
+
+    def make_state(self, state):
+        return NumpyState(state)
+
+    def generate_robot_representation(self, state):
+        # TODO
+        state = self.get_state_value(state)
+        robot = Point(state).buffer(self.disc_radius)
+        return robot
+    
+    def sample_point(self):
+        x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
+        y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
+        return self.make_state(np.array([x, y]))
+    
+    def dist(self, state1, state2):
+        return np.linalg.norm(self.get_state_value(state1) - self.get_state_value(state2))
+    
+    def is_valid(self, state):
+        self.num_collision_checks += 1
+        robot = self.generate_robot_representation(state)
+
+        if not robot.within(self.boundary):
+            return False
+        
+        for obs in self.obstacles:
+            # if robot.within(obs):
+            if obs.intersects(robot):
+                return False
+        return True
+
+    def draw_state(self, ax, state):
+        # TODO:
+        robot = self.generate_robot_representation(state)
+        xr, yr = robot.exterior.xy
+        ax.fill(xr, yr, color='red')
+
+    ## ---- Batched Methods ---- ##
+
+    def batch_get_robot_representations(self, states : np.ndarray):
+        # TODO:
+        # states # (B, 2)
+        return {
+            'rectangles' : np.empty((0, 4)),
+            'segments' : np.empty((0, 2, 2)), 
+            'segments_radii' : 0.0, 
+            'points' : states,
+            'points_radius': self.disc_radius
         }
     
     def batch_sample_points_around_target(self, targets):
@@ -317,6 +380,7 @@ class PolygonalRobot(HolonomicRobot):
             'rectangles' : np.empty((0, 4)),
             'segments' : segments, 
             'points' : np.empty((0, 2)),
+            'points_radius': 0.0,
             'segments_radii' : radii, 
             'line_approx_non_aarect' : segments,
             'line_approx_non_aarect_radii' : radii,
@@ -674,6 +738,7 @@ class PlanarMobileArm(HolonomicRobot):
             'rectangles' : rectangles,
             'segments' : segments, 
             'points' : np.empty((0, 2)),
+            'points_radius': 0.0,
             'segments_radii' : 0.1, 
         }
 
@@ -777,6 +842,7 @@ class FixedArm(HolonomicRobot):
             'rectangles' : np.empty((0, 4)),
             'segments' : segments, 
             'points' : np.empty((0, 2)),
+            'points_radius': 0.0,
             'segments_radii' : 0.1, 
         }
 
@@ -1092,7 +1158,8 @@ class DubinsCar(NonHolonomicRobot):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    env = PolygonalRobot()
+    env = DiscRobot()
+    # env = PolygonalRobot()
     # env = PlanarMobileArm(num_links=3)
     # env = FixedArm()
     # env = SkidSteerCar()
@@ -1119,7 +1186,8 @@ if __name__ == '__main__':
     # env.draw_state(plt.gca(), ik_state)
     # for state in sampled_states:
         # env.draw_state(plt.gca(), env.make_state(state))
-    env.draw_state(plt.gca(), env.make_state(np.array([0.0,0.0,0.0])))
+    # env.draw_state(plt.gca(), env.make_state(np.array([0.0,0.0,0.0])))
+    env.draw_state(plt.gca(), state1)
     plt.show()
 
     # print(env.forward_kinematics(ik_state))
