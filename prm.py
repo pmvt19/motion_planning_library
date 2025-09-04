@@ -179,10 +179,10 @@ class LazyPRM(PRM):
     def __init__(self, env, num_samples=10, num_neighbors=10):
         super().__init__(env, num_samples=num_samples, num_neighbors=num_neighbors, validate_edges=False)
     
-    def lazy_search(self, start : NumpyState, end : NumpyState):
+    def lazy_search(self, start : NumpyState, target : NumpyState):
         q = []
         start_idx = self.graph.vertex_to_idx[tuple(start.value)]
-        end_idx = self.graph.vertex_to_idx[tuple(end.value)]
+        end_idx = self.graph.vertex_to_idx[tuple(target.value)]
         visited = {}
         
         heappush(q, (0, start_idx, None))
@@ -200,7 +200,7 @@ class LazyPRM(PRM):
 
             for i, nidx in enumerate(self.graph.edges[node]):
                 if nidx != -1:
-                    edge_is_valid = self.env.is_valid_edge(self.graph.vertices[nidx], self.graph.vertices[node])
+                    edge_is_valid = self.env.is_valid_edge(self.env.make_state(self.graph.vertices[nidx]), self.env.make_state(self.graph.vertices[node]))
                     if edge_is_valid:
                         ext_dist = np.linalg.norm(self.graph.vertices[nidx] - self.graph.vertices[node])
                         heappush(q, (dist + ext_dist, nidx, node))
@@ -217,7 +217,7 @@ class LazyPRM(PRM):
         self.graph.add_vertex(target.value)
 
         # Solve with A* or Dijkstra's Algorithm
-        path = self.lazy_search(start=start, end=target)
+        path = self.lazy_search(start=start, target=target)
         if path:
             path = Path([self.env.make_state(p) for p in path])
         # Return final Path
@@ -312,20 +312,20 @@ class PRMStar(PRM):
         self.cache_graph_edge_validities = cache_edge_validities    
     
 if __name__ == "__main__":
-    seed = np.random.randint(0, 100)
+    seed = np.random.randint(0, 10000)
     # seed = 15
     # seed = 37 # Goes through the gap for PolygonRobot and ParkingSpace
     # seed = 41
     # seed = 91
     # seed = 83
     # seed = 46
-    seed = 3
+    # seed = 3
     print(f"Seed: {seed}")
     np.random.seed(seed)
 
     # env = PointRobot()
-    env = PolygonalRobot()
-    # env = PlanarMobileArm()
+    # env = PolygonalRobot()
+    env = PlanarMobileArm()
 
     env.set_obstacles(ParkingSpace())
     # env.set_obstacles(WeavingPassage())
@@ -335,17 +335,17 @@ if __name__ == "__main__":
     # env.set_obstacles(TestSet())
 
     start, target = env.sample_task()
-    # env = ApproximationSpace(env, batch_size=10000, do_overapproximation=False)
-    env = ApproximationSpaceTorch(env, batch_size=10000, do_overapproximation=False)
+    # env = ApproximationSpace(env, batch_size=1000, do_overapproximation=False)
+    # env = ApproximationSpaceTorch(env, batch_size=10000, do_overapproximation=False)
     start_time = time.time()
-    # prm = PRM(env=env, num_samples=500, num_neighbors=10, validate_edges=True)
+    # prm = PRM(env=env, num_samples=5000, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=20000, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=1000, edge_dist_radius=2.4, validate_edges=True)
     # prm = PRM(env=env, num_samples=5000, edge_dist_radius=0.5, validate_edges=True)
     # prm = NonUniformPRM(env=env, num_samples=10000, num_neighbors=10, validate_edges=True)
-    # prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
+    prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
 
-    prm = IncrementalPRM(env=env, num_samples=10000, num_neighbors=5)
+    # prm = IncrementalPRM(env=env, num_samples=10000, num_neighbors=5)
     # prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
     prm.create_graph()
     
@@ -381,7 +381,7 @@ if __name__ == "__main__":
     # env.draw_environment(plt.gca())
     plt.show()
     interpolated_path = []
-    path = smooth_path(env, path)
+    # path = smooth_path(env, path)
     plt.clf()
     env.draw_environment(plt.gca())
     # env.space.draw_environment(plt.gca())
