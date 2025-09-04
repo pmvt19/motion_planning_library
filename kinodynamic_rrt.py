@@ -88,7 +88,7 @@ if __name__ == "__main__":
     # seed = 81
     # seed = 53
     # seed = 45 # USE FOR SKID STEER CAR AND PARKING SPACE
-    seed = 0 # WORKS FOR DUBINS CAR AND FIXED TASK
+    # seed = 0 # WORKS FOR DUBINS CAR AND FIXED TASK
     # seed = 60
     # seed = 57
     # seed = 59
@@ -103,8 +103,8 @@ if __name__ == "__main__":
     # start, target = env.sample_task()
     # start, target = env.sample_point(), env.sample_point()
     start, target = env.sample_valid_point(), env.sample_valid_point()
-    start = env.make_state(np.array([3.0, 2.75, 0, 0, 0]))
-    target = env.make_state(np.array([-4.5, -4.75, 0, 0, 0]))
+    # start = env.make_state(np.array([3.0, 2.75, 0, 0, 0]))
+    # target = env.make_state(np.array([-4.5, -4.75, 0, 0, 0]))
 
     # start, target = env.get_fixed_task()
     # start = env.make_state(np.array([2.0, 2.75, 0]))
@@ -112,14 +112,16 @@ if __name__ == "__main__":
 
     # rrt = KinodynamicRRT(env, goal_radius=1, max_time_horizon=0.1) # For use in CarParkingEnv
     # rrt = KinodynamicRRT(env, goal_radius=4, max_time_horizon=0.5) # For use in Dubins Car
-    rrt = KinodynamicRRT(env, goal_radius=4, max_time_horizon=0.5) # For use in Dubins Car
+    # rrt = KinodynamicRRT(env, goal_radius=4, max_time_horizon=0.5) # For use in Dubins Car
+    rrt = KinodynamicRRT(env, goal_radius=4, max_time_horizon=0.5)
 
     # state = env.make_state(np.array([6.8738416, 7.59822891, 1.62531756, 0.44829068, 3.03860264]))
     # control = env.make_control(np.array([2.76940055, 0.55987465]))
     # print(env.extend_state(state, 0.4, control)[0].value)
     # exit()
-    path = rrt.search(start, target, max_steps=5000, goal_bias=0.4)
-    # path = rrt.search(start, target, max_steps=20000, goal_bias=0.0)
+    # path = rrt.search(start, target, max_steps=5000, goal_bias=0.4)
+    path = rrt.search(start, target, max_steps=2000, goal_bias=0.1)
+    # path = rrt.search(start, target, max_steps=5000, goal_bias=0.1)
     print(len(rrt.tree))
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
