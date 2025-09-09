@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from lidar import Lidar
 from obstacle_sets import BiasedPassage
 
+from heapq import *
+
 def line_seg_to_points_dist(p1: np.ndarray, p2: np.ndarray, points: np.ndarray) -> np.ndarray:
     """
     Compute the shortest distance between a line segment (p1, p2) and a set of points.
@@ -44,8 +46,14 @@ def line_seg_to_points_dist(p1: np.ndarray, p2: np.ndarray, points: np.ndarray) 
 
     return dists
 
+EMPTY = 0.1
+UNKNOWN = 0.5
+OCCUPIED = 1
+
 class OccupancyMap():
     def __init__(self, resolution=0.1):
+
+        
 
         self.res = resolution
 
@@ -72,7 +80,7 @@ class OccupancyMap():
         self.x_idxes = (self.x_points - self.x_range[0]) / self.res
         self.y_idxes = (self.y_points - self.y_range[0]) / self.res
 
-        x_ind, y_ind = np.meshgrid(self.x_idxes.astype(np.int32), self.y_idxes.astype(np.int32))
+        x_ind, y_ind = np.meshgrid(np.round(self.x_idxes, 0).astype(np.int32), np.round(self.y_idxes, 0).astype(np.int32))
         self.inds = np.stack((x_ind, y_ind), axis=2)
         self.inds = self.inds.reshape(-1, 2)
 
@@ -80,7 +88,7 @@ class OccupancyMap():
         # print(self.y_idxes)
 
         # self.map = np.zeros((len(self.x_points), len(self.y_points)))
-        self.map = np.ones((len(self.x_points), len(self.y_points))) * 0.5
+        self.map = np.ones((len(self.x_points), len(self.y_points))) * UNKNOWN
 
         x_cir, y_cir = np.meshgrid(self.x_points_centered, self.y_points_centered)
 
@@ -116,7 +124,7 @@ class OccupancyMap():
             _, point, _, last_point = reading
             if point:
                 idx = self.coord_to_idx(point.value)
-                self.map[idx[0], idx[1]] = 1
+                self.map[idx[0], idx[1]] = OCCUPIED
                 # self.map[idx[1], idx[0]] = 1
 
                 # print(line_seg_to_points_dist(sensor_position.value, point.value, self.circles[:, :2]).shape)
@@ -126,22 +134,66 @@ class OccupancyMap():
 
                 inds = self.inds[mask]
 
-                self.map[inds[:, 0], inds[:, 1]] = 0
+                self.map[inds[:, 0], inds[:, 1]] = EMPTY
 
                 self.lines.append(((x, y), self.coord_to_idx(point.value)))
-            # else:
-            #     dists = line_seg_to_points_dist(sensor_position.value, last_point.value, self.circles[:, :2])
-            #     mask = dists < self.circles[:, 2]
-            #     inds = self.inds[mask]
-            #     self.map[inds[:, 0], inds[:, 1]] = 0
+            else:
+                dists = line_seg_to_points_dist(sensor_position.value, last_point.value, self.circles[:, :2])
+                mask = dists < self.circles[:, 2]
+                inds = self.inds[mask]
+                self.map[inds[:, 0], inds[:, 1]] = EMPTY
 
+    def backtrack(self, visited, end):
+        path_idxs = []
+        node = end
+        while node:
+            path_idxs.append(node)
+            node = visited[node]
+
+        # path = [self.vertices[idx] for idx in path_idxs]
+        return path_idxs[::-1]
                 
+    def search(self, start, target):
+        start_idx = self.coord_to_idx(start.value)
+        target_idx = self.coord_to_idx(target.value)
+
+        q = []
+        heappush(q, (0, (start_idx[0], start_idx[1]), None))
+        visited = {}
+
+        while q:
+            dist, (x, y), parent = heappop(q)
+
+            if target_idx[0] == x and target_idx[1] == y:
+                visited[(x,y)] = parent
+                print("Found Goal")
+                return self.backtrack(visited, tuple(target_idx))
+
+            if (x, y) in visited:
+                continue
+
+            visited[(x,y)] = parent
+
+            # neighbors = [(x+1,y),(x-1,y),(x,y-1),(x,y+1),(x+1,y+1),(x+1,y-1),(x-1,y+1),(x-1,y-1)]
+            neighbors = [(x+1,y),(x-1,y),(x,y-1),(x,y+1)]
+
+            for nx, ny in neighbors:
+                if (nx >= 0 and nx < len(self.x_idxes) and ny >= 0 and ny < len(self.y_idxes)) and self.map[nx,ny] < 0.5:
+                    heappush(q, (dist + self.map[nx,ny], (nx, ny), (x,y)))
+        return None
+
+    def add_path_to_map(self, path):
+        for p in path:
+            self.map[p[0], p[1]] = 1.5
         
     
     def draw_map(self, ax):
         ax.imshow(self.map)
         ax.minorticks_on()
         # ax.yaxis.set_inverted(False)
+
+        # ax.invert_yaxis()
+        # ax.invert_xaxis()
         # ax.rot90()
 
         ax.grid(which='minor', linestyle=':', alpha=0.6)
@@ -152,6 +204,7 @@ class OccupancyMap():
 
 
 if __name__ == '__main__':
+    np.random.seed(0)
     om = OccupancyMap()
     ls = Lidar(0, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
 
@@ -166,13 +219,25 @@ if __name__ == '__main__':
     om.draw_map(plt.gca())
     plt.show()
 
-    for i in range(10):
+    for i in range(20):
         print(f"Running Iteration: {i}")
         loc = ls.engine.sample_valid_point()
         readings = ls.read_sensor(loc)
         om.update_map(loc, readings)
     om.draw_map(plt.gca())
     plt.show()
+
+    start = ls.engine.make_state(np.array([5.0,5.0]))
+    # target = ls.engine.make_state(np.array([15.0,5.0]))
+    target = ls.engine.make_state(np.array([18.0,1.0]))
+
+    path = om.search(start, target)
+    om.add_path_to_map(path)
+
+    om.draw_map(plt.gca())
+    plt.show()
+
+
 
     
 
