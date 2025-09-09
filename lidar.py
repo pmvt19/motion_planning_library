@@ -66,10 +66,11 @@ class Lidar():
                     obstacle_point = self.engine.make_state(state)
                     break
             # print(type(sensor_position), )
+            last_point = points[-1]
             if obstacle_point:
-                readings.append((angle, obstacle_point, self.engine.dist(self.engine.make_state(sensor_position), obstacle_point)))
+                readings.append((angle, obstacle_point, self.engine.dist(self.engine.make_state(sensor_position), obstacle_point), self.engine.make_state(last_point)))
             else:
-                readings.append((angle, obstacle_point, np.inf))
+                readings.append((angle, obstacle_point, np.inf, self.engine.make_state(last_point)))
 
 
         return readings

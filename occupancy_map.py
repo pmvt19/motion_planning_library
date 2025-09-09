@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -90,6 +91,8 @@ class OccupancyMap():
         # print(self.circles.shape)
         # print(self.circles)
 
+        self.lines = []
+
     def idx_to_coord(self, idx : np.ndarray):
         # idx is the map based numbers, coord is the env based numbers
         pass
@@ -110,7 +113,7 @@ class OccupancyMap():
         x, y = self.coord_to_idx(sensor_position.value)
         self.map[x, y] = 0
         for reading in sensor_readings:
-            _, point, _ = reading
+            _, point, _, last_point = reading
             if point:
                 idx = self.coord_to_idx(point.value)
                 self.map[idx[0], idx[1]] = 1
@@ -119,11 +122,18 @@ class OccupancyMap():
                 # print(line_seg_to_points_dist(sensor_position.value, point.value, self.circles[:, :2]).shape)
 
                 dists = line_seg_to_points_dist(sensor_position.value, point.value, self.circles[:, :2])
-                mask = dists < self.circles[:, 2]
+                mask = dists < (self.circles[:, 2] * math.sqrt(2))
 
                 inds = self.inds[mask]
 
                 self.map[inds[:, 0], inds[:, 1]] = 0
+
+                self.lines.append(((x, y), self.coord_to_idx(point.value)))
+            # else:
+            #     dists = line_seg_to_points_dist(sensor_position.value, last_point.value, self.circles[:, :2])
+            #     mask = dists < self.circles[:, 2]
+            #     inds = self.inds[mask]
+            #     self.map[inds[:, 0], inds[:, 1]] = 0
 
                 
         
@@ -133,16 +143,12 @@ class OccupancyMap():
         ax.minorticks_on()
         # ax.yaxis.set_inverted(False)
         # ax.rot90()
+
         ax.grid(which='minor', linestyle=':', alpha=0.6)
         ax.grid(which='major', linestyle=':', linewidth=0.6)
 
-        # mx, my = np.meshgrid(self.x_points, self.y_points)
-
-        # ax.scatter(self.x_points, self.y_points, marker='*', s=1)
-        # ax.scatter(mx, my, marker='*', s=1)
-        # ax.scatter(self.x_points_centered, self.y_points_centered, marker='^', s=1)
-        # ax.scatter(self.cell_points_x, self.cell_points_y, marker='*', s=1)
-        # ax.scatter(self.cell_points_centers_x, self.cell_points_centers_y, marker='^', s=1)
+        # for line in self.lines:
+        #     ax.plot([line[0][1], line[1][1]], [line[0][0], line[1][0]])
 
 
 if __name__ == '__main__':
