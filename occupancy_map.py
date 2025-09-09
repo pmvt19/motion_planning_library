@@ -3,8 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from lidar import Lidar
-from obstacle_sets import BiasedPassage
+from obstacle_sets import BiasedPassage, RandomSamplePassage
+from space import PointRobot
 
+from scipy.signal import convolve2d
 from heapq import *
 
 def line_seg_to_points_dist(p1: np.ndarray, p2: np.ndarray, points: np.ndarray) -> np.ndarray:
@@ -49,6 +51,7 @@ def line_seg_to_points_dist(p1: np.ndarray, p2: np.ndarray, points: np.ndarray) 
 EMPTY = 0.1
 UNKNOWN = 0.5
 OCCUPIED = 1
+PATH = 1.5
 
 class OccupancyMap():
     def __init__(self, resolution=0.1):
@@ -119,12 +122,12 @@ class OccupancyMap():
         # Sensor Readings: Set of Lidar Readings for different angles
 
         x, y = self.coord_to_idx(sensor_position.value)
-        self.map[x, y] = 0
+        self.map[x, y] = EMPTY
         for reading in sensor_readings:
             _, point, _, last_point = reading
             if point:
                 idx = self.coord_to_idx(point.value)
-                self.map[idx[0], idx[1]] = OCCUPIED
+                
                 # self.map[idx[1], idx[0]] = 1
 
                 # print(line_seg_to_points_dist(sensor_position.value, point.value, self.circles[:, :2]).shape)
@@ -135,6 +138,7 @@ class OccupancyMap():
                 inds = self.inds[mask]
 
                 self.map[inds[:, 0], inds[:, 1]] = EMPTY
+                self.map[idx[0], idx[1]] = OCCUPIED
 
                 self.lines.append(((x, y), self.coord_to_idx(point.value)))
             else:
@@ -143,15 +147,66 @@ class OccupancyMap():
                 inds = self.inds[mask]
                 self.map[inds[:, 0], inds[:, 1]] = EMPTY
 
+                # for ind in inds:
+                #     if self.map[ind[0], ind[1]] == UNKNOWN:
+                #         self.map[ind[0], ind[1]] = EMPTY
+
+                # self.map[inds[:, 0], inds[:, 1]] = EMPTY
+
+    def spread_values(self, spread_value=0.4):
+        # Define 4-neighborhood kernel (up, down, left, right)
+        # kernel = np.array([[1,1,1],
+        #                    [1,0,1],
+        #                    [1,1,1]])
+
+        kernel = np.array([
+                [1,1,1,1,1],
+                [1,1,1,1,1],
+                [1,1,0,1,1],
+                [1,1,1,1,1],
+                [1,1,1,1,1]
+            ])
+
+        # kernel = np.array([
+        #         [1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1],
+        #         [1,1,1,0,1,1,1],
+        #         [1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1],
+        #     ])
+
+        # kernel = np.array([
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,0,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #         [1,1,1,1,1,1,1,1,1,1,1],
+        #     ])
+
+
+        # Convolve: counts neighbors of "1"s
+        neighbor_mask = convolve2d((self.map == OCCUPIED).astype(int), kernel, mode="same", boundary="fill", fillvalue=0)
+
+        # Where neighbor_mask > 0 (adjacent to a 1) and current value != 1
+        self.map[(neighbor_mask > 0) & (self.map != 1) & (self.map != UNKNOWN)] = spread_value
+
+
     def backtrack(self, visited, end):
-        path_idxs = []
+        path = []
         node = end
         while node:
-            path_idxs.append(node)
+            path.append(node)
             node = visited[node]
 
-        # path = [self.vertices[idx] for idx in path_idxs]
-        return path_idxs[::-1]
+        return path[::-1]
                 
     def search(self, start, target):
         start_idx = self.coord_to_idx(start.value)
@@ -183,12 +238,13 @@ class OccupancyMap():
         return None
 
     def add_path_to_map(self, path):
-        for p in path:
-            self.map[p[0], p[1]] = 1.5
+        if path:
+            for p in path:
+                self.map[p[0], p[1]] = PATH
         
     
     def draw_map(self, ax):
-        ax.imshow(self.map)
+        ax.imshow(np.rot90(self.map, k=1))
         ax.minorticks_on()
         # ax.yaxis.set_inverted(False)
 
@@ -202,13 +258,27 @@ class OccupancyMap():
         # for line in self.lines:
         #     ax.plot([line[0][1], line[1][1]], [line[0][0], line[1][0]])
 
+            # ax.plot([line[0][1], line[1][0]], [line[0][0], line[1][1]])
+            # ax.plot([line[0][0], line[1][0]], [line[0][1], line[1][1]])
+
+
 
 if __name__ == '__main__':
     np.random.seed(0)
     om = OccupancyMap()
-    ls = Lidar(0, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    # os = BiasedPassage(num_walls=2)
+    os = RandomSamplePassage(num_walls=1)
+    env = PointRobot()
+    env.set_obstacles(os)
+    env.draw_environment(plt.gca())
+    plt.show()
+    ls = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
 
-    readings = ls.read_sensor(np.array((5.0,5.0)))
+    # readings = ls.read_sensor(np.array((5.0,5.0)))
+
+    readings = ls.read_sensor(np.array((3.68408613, 2.37189632)))
+    print(np.array([r[1].value for r in readings if r[1] is not None]))
+    # readings = ls.read_sensor(np.array((13.71025438, 7.16023921)))
 
 
 
@@ -218,18 +288,38 @@ if __name__ == '__main__':
     om.update_map(ls.engine.make_state(np.array([5.0, 5.0])), readings)
     om.draw_map(plt.gca())
     plt.show()
-
+    # exit()
+    all_lps = []
     for i in range(20):
         print(f"Running Iteration: {i}")
         loc = ls.engine.sample_valid_point()
         readings = ls.read_sensor(loc)
         om.update_map(loc, readings)
+
+        lidar_points = np.array([r[1].value for r in readings if r[1] is not None])
+        all_lps.append(lidar_points)
+
+        # env.draw_environment(plt.gca())
+        # plt.title(loc.value)
+        # plt.scatter(loc.value[0], loc.value[1], marker='*', color='green')
+        # plt.scatter(lidar_points[:, 0], lidar_points[:, 1], color='blue')
+        # plt.show()
     om.draw_map(plt.gca())
     plt.show()
 
+    om.spread_values()
+    om.draw_map(plt.gca())
+    plt.show()
+
+    env.draw_environment(plt.gca())
+    all_lps = np.vstack(all_lps)
+    plt.scatter(all_lps[:, 0], all_lps[:, 1], color='blue')
+    plt.show()
+
+
     start = ls.engine.make_state(np.array([5.0,5.0]))
-    # target = ls.engine.make_state(np.array([15.0,5.0]))
-    target = ls.engine.make_state(np.array([18.0,1.0]))
+    target = ls.engine.make_state(np.array([15.0,5.0]))
+    # target = ls.engine.make_state(np.array([18.0,1.0]))
 
     path = om.search(start, target)
     om.add_path_to_map(path)
