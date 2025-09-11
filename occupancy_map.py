@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from lidar import Lidar
-from obstacle_sets import BiasedPassage, RandomSamplePassage
+from obstacle_sets import BiasedPassage, RandomSamplePassage, ParkingSpace
 from space import PointRobot
 
 from scipy.signal import convolve2d
@@ -49,7 +49,9 @@ def line_seg_to_points_dist(p1: np.ndarray, p2: np.ndarray, points: np.ndarray) 
     return dists
 
 EMPTY = 0.1
+SOFT_BUFFER = 0.4
 UNKNOWN = 0.5
+HARD_BUFFER = 0.9
 OCCUPIED = 1
 PATH = 1.5
 
@@ -65,6 +67,9 @@ class OccupancyMap():
 
         self.x_range = [0, 20]
         self.y_range = [0, 10]
+
+        # self.x_range = [-15,15]
+        # self.y_range = [-15,15]
 
         self.x_points = np.arange(self.x_range[0]-resolution, self.x_range[1]+resolution, resolution)
         self.y_points = np.arange(self.y_range[0]-resolution, self.y_range[1]+resolution, resolution)
@@ -106,7 +111,12 @@ class OccupancyMap():
 
     def idx_to_coord(self, idx : np.ndarray):
         # idx is the map based numbers, coord is the env based numbers
-        pass
+        x_idx, y_idx = idx
+
+        x_coord = (x_idx * self.res) + self.x_range[0]
+        y_coord = self.y_range[1] - ((y_idx * self.res) + self.y_range[0])
+
+        return np.array([x_coord, y_coord])
 
     def coord_to_idx(self, coord : np.ndarray):
         # idx is the map based numbers, coord is the env based numbers
@@ -153,11 +163,7 @@ class OccupancyMap():
 
                 # self.map[inds[:, 0], inds[:, 1]] = EMPTY
 
-    def spread_values(self, spread_value=0.4):
-        # Define 4-neighborhood kernel (up, down, left, right)
-        # kernel = np.array([[1,1,1],
-        #                    [1,0,1],
-        #                    [1,1,1]])
+    def buffer_obstacles(self, spread_value=0.4):
 
         kernel = np.array([
                 [1,1,1,1,1],
@@ -166,31 +172,6 @@ class OccupancyMap():
                 [1,1,1,1,1],
                 [1,1,1,1,1]
             ])
-
-        # kernel = np.array([
-        #         [1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1],
-        #         [1,1,1,0,1,1,1],
-        #         [1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1],
-        #     ])
-
-        # kernel = np.array([
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,0,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #         [1,1,1,1,1,1,1,1,1,1,1],
-        #     ])
-
 
         # Convolve: counts neighbors of "1"s
         neighbor_mask = convolve2d((self.map == OCCUPIED).astype(int), kernel, mode="same", boundary="fill", fillvalue=0)
@@ -233,7 +214,7 @@ class OccupancyMap():
             neighbors = [(x+1,y),(x-1,y),(x,y-1),(x,y+1)]
 
             for nx, ny in neighbors:
-                if (nx >= 0 and nx < len(self.x_idxes) and ny >= 0 and ny < len(self.y_idxes)) and self.map[nx,ny] < 0.5:
+                if (nx >= 0 and nx < len(self.x_idxes) and ny >= 0 and ny < len(self.y_idxes)) and self.map[nx,ny] < 0.6:
                     heappush(q, (dist + self.map[nx,ny], (nx, ny), (x,y)))
         return None
 
@@ -266,17 +247,21 @@ class OccupancyMap():
 if __name__ == '__main__':
     np.random.seed(0)
     om = OccupancyMap()
-    # os = BiasedPassage(num_walls=2)
-    os = RandomSamplePassage(num_walls=1)
+    os = BiasedPassage(num_walls=1)
+    # os = RandomSamplePassage(num_walls=1)
+    # os = ParkingSpace()
     env = PointRobot()
     env.set_obstacles(os)
     env.draw_environment(plt.gca())
     plt.show()
+    # ls = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
     ls = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
 
     # readings = ls.read_sensor(np.array((5.0,5.0)))
 
-    readings = ls.read_sensor(np.array((3.68408613, 2.37189632)))
+    sensor_loc = np.array((3.68408613, 2.37189632))
+
+    readings = ls.read_sensor(sensor_loc)
     print(np.array([r[1].value for r in readings if r[1] is not None]))
     # readings = ls.read_sensor(np.array((13.71025438, 7.16023921)))
 
@@ -285,7 +270,8 @@ if __name__ == '__main__':
     # om.draw_map(plt.gca())
     # plt.show()
 
-    om.update_map(ls.engine.make_state(np.array([5.0, 5.0])), readings)
+    # om.update_map(ls.engine.make_state(np.array([5.0, 5.0])), readings)
+    om.update_map(ls.engine.make_state(sensor_loc), readings)
     om.draw_map(plt.gca())
     plt.show()
     # exit()
@@ -307,7 +293,7 @@ if __name__ == '__main__':
     om.draw_map(plt.gca())
     plt.show()
 
-    om.spread_values()
+    om.buffer_obstacles()
     om.draw_map(plt.gca())
     plt.show()
 
