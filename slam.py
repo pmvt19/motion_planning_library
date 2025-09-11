@@ -34,18 +34,19 @@ class SLAM():
         # while not np.isclose(loc.value, self.target):
         for _ in range(100):
             cur_path = self.om.search(loc_state, self.target)
-            
-            loc = self.om.idx_to_coord(np.array(cur_path[6]))
-            # print(type(loc), loc)
-            print(loc, np.array(cur_path[6]))
+            # print(cur_path)
+            choose_idx = 10 if len(cur_path) >= 11 else -1
+            loc = self.om.idx_to_coord(np.array(cur_path[choose_idx]))
+            print(loc)
+            # print(loc, np.array(cur_path[6]))
             loc_state = self.lidar.engine.make_state(loc)
-            self.draw(loc_state, cur_path)
-            
-            plt.pause(0.5)
+
+            # self.draw(loc_state, cur_path)
+            # plt.pause(0.5)
 
             readings = self.lidar.read_sensor(loc)
             self.om.update_map(self.lidar.engine.make_state(loc), readings)
-            self.om.buffer_obstacles()
+            self.om.buffer_obstacles(spread_value=0.4)
 
             self.draw(loc_state, cur_path)
             plt.pause(0.5)
@@ -80,14 +81,21 @@ class SLAM():
 
 
 if __name__ == '__main__':
-    env = DiscRobot()
+    np.random.seed(1)
+    env = DiscRobot(disc_radius=0.2)
     slam = SLAM(env=env) # internally takes care of Obstacle Set
 
     slam.draw()
-    plt.show()
-
+    # plt.show()
+    # start_np = np.array([14.72, 9.72])
+    # start_np = np.array([14.72, 9.72])
     start_np = np.array([5.0, 5.0])
     target_np = np.array([15.0, 5.0])
+
+    start_idx = slam.om.coord_to_idx(start_np)
+    start_coord = slam.om.idx_to_coord(start_idx)
+
+    print(start_np, start_idx, start_coord)
 
     start = env.make_state(start_np)
     target = env.make_state(target_np)
