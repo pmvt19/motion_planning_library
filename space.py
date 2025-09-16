@@ -223,10 +223,10 @@ class PointRobot(HolonomicRobot):
         return targets[validities]
 
 class DiscRobot(HolonomicRobot):
-    def __init__(self):
+    def __init__(self, disc_radius=1.5):
         super().__init__()
         self.edge_validity_delta = 0.5
-        self.disc_radius = 1.5
+        self.disc_radius = disc_radius
 
         self.x_range = [-10,10]
         self.y_range = [-10,10]
@@ -297,8 +297,8 @@ class PolygonalRobot(HolonomicRobot):
 
         self.angular_dims_start = 2
 
-        self.robot_width = 1
-        self.robot_length = 2
+        self.robot_width = 0.5
+        self.robot_length = 6
 
         self.obstacles = []
 
