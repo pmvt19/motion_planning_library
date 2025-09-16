@@ -5,7 +5,7 @@ from collections import defaultdict
 from shapely import Polygon, Point
 import time
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from space import PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm
+from space import PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm, DiscRobot
 from matplotlib.collections import LineCollection
 from state import NumpyState
 from utils import smooth_path, interpolate_path, issue_warning
@@ -78,7 +78,7 @@ class RRT():
         nodes = np.array([node.value for node in self.tree.keys()])
         vor = Voronoi(nodes)
         fig = voronoi_plot_2d(vor, show_vertices=False, line_colors='orange', line_width=2, line_alpha=0.6, point_size=2)
-        self.draw_tree(fig.gca(), hold=True)
+        self.draw_tree(fig.gca())
 
     def backtrack(self, end=None):
         if end is None or end not in self.child_to_parent:
@@ -340,15 +340,17 @@ if __name__ == "__main__":
     # env = PolygonalRobot()
     # env.set_obstacles(TestSet())
     # env.set_obstacles(ParkingSpace())
-    env = PointRobot()
+    # env = PointRobot()
+    env = DiscRobot()
     # env = PolygonalRobot()
     # env = PlanarMobileArm(num_links=4)
     # env.set_obstacles(ParkingSpace())
-    env.set_obstacles(RandomSamplePassage())
-    # env.set_obstacles(BiasedPassage(num_walls=3))
+    # env.set_obstacles(RandomSamplePassage())
+    env.set_obstacles(BiasedPassage(num_walls=1))
     # env.set_obstacles(WeavingPassage())
     # env = PlanarMobileArm(num_links=4)
-    start, target = env.sample_task()
+    # start, target = env.sample_task()
+    start, target = env.make_state(np.array([2.5, 5.0])), env.make_state(np.array([17.5, 5.0]))
 
     # start = env.make_state(np.array([5.0, 0.1]))
     # target = env.make_state(np.array([5.0, 9.9]))
@@ -361,12 +363,12 @@ if __name__ == "__main__":
     # target = env.make_state(np.array([15.0, 2.0]))
     # target = env.make_state(np.array([35.0, 2.0]))
 
-    max_steps = 10
-    goal_bias = 0.1
+    # max_steps = 10
+    # goal_bias = 0.1
 
     # rrt = RRT(env)
     # rrt = RRTStar(env)
-    env = ApproximationSpace(env)
+    # env = ApproximationSpace(env)
     rrt = RRT(env)
     # rrt = BiDirectionalRRT(env)
     # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
@@ -375,18 +377,26 @@ if __name__ == "__main__":
     # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=8000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=20000, goal_bias=0.1, animate_search_tree=False)
-    path = rrt.search(start, target, max_steps=40, goal_bias=0.0, animate_search_tree=False)
+    path = rrt.search(start, target, max_steps=4000, goal_bias=0.0, animate_search_tree=False)
     
-    new_rrt = RRT(env)
-    path = new_rrt.search(start, target, max_steps=100, goal_bias=0.0, animate_search_tree=False, starting_tree=rrt.tree)
+    # new_rrt = RRT(env)
+    # path = new_rrt.search(start, target, max_steps=100, goal_bias=0.0, animate_search_tree=False, starting_tree=rrt.tree)
     # path = rrt.search(start, target, max_steps=3000, do_rewire=True, goal_bias=0.4, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
     # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
-    rrt.draw_tree(plt.gca(), path=path)
+    # rrt.draw_tree(plt.gca(), path=path)
+    # plt.show()
+
+    # rrt.draw_voronoi_diagram()
+    # plt.show()
+
+    rrt.draw_tree(plt.gca(), path, show_task=True)
     plt.show()
 
-    new_rrt.draw_tree(plt.gca(), path=path)
-    plt.show()
+    env.animate_path(path)
+
+    # new_rrt.draw_tree(plt.gca(), path=path)
+    # plt.show()
 
     # path = smooth_path(env, path)
     # path = interpolate_path(path, env, 0.1)

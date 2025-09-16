@@ -45,7 +45,7 @@ class ApproximationSpace(RobotSpace):
         # rect_circles = self.rectangles_to_circles(representations['rectangles']).reshape(B, -1, 3)
         rect_circles = self.optimized_rectangle_to_circles(representations['rectangles']).reshape(B, -1, 3)
         seg_circles = self.segments_to_circles(representations['segments'], representations['segments_radii']).reshape(B, -1, 3)
-        point_circles = self.points_to_circles(representations['points']).reshape(B, -1, 3)
+        point_circles = self.points_to_circles(representations['points'], representations['points_radius']).reshape(B, -1, 3)
         state_circles = np.concatenate((rect_circles, seg_circles, point_circles), axis=1)
         return state_circles
 
@@ -134,7 +134,6 @@ class ApproximationSpace(RobotSpace):
             2 : This value is fixed at two since a segment must have only 2 end points
             2 : Dimension of the segment
         """
-
         # segments : (B, 2, 2)
         B, *_ = segments.shape
         if B == 0:
@@ -181,9 +180,54 @@ class ApproximationSpace(RobotSpace):
 
         return circle_center_radius_pairs
 
-    def points_to_circles(self, points):
+    def optimized_segments_to_circles(self, segments : np.ndarray, radius):
+        """
+            B : Number of entries in the batch
+            2 : This value is fixed at two since a segment must have only 2 end points
+            2 : Dimension of the segment
+        """
+        # segments : (B, 2, 2)
+        B, *_ = segments.shape
+        if B == 0:
+            return np.empty((0, 3))
+
+        start_points = segments[:, 0, :] # (B, 2)
+        end_points = segments[:, 1, :] # (B, 2)
+
+        batch_rays = end_points - start_points
+        segment_lengths = np.linalg.norm(batch_rays, axis=1).reshape(-1, 1) # (B,1)
+
+        num_distinct_segment_lengths = len(np.unique(np.round(segment_lengths, 10)))
+
+        batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
+        modified_segment_lengths = segment_lengths - (2*radius)
+
+        num_circles_per_segment = np.ceil(np.round((modified_segment_lengths / (2*radius)), 10)).astype(np.int32)
+        max_num_circles = math.ceil(np.max(num_circles_per_segment)) + 1
+
+        circle_start_points = start_points + (batch_normalized_rays * radius)
+
+        gaps = (modified_segment_lengths / max_num_circles)
+
+        batch_scaled_rays = (batch_normalized_rays * gaps.reshape(-1, 1)).reshape(-1, 1, 2)
+        repeated_rays = np.repeat(batch_scaled_rays, (max_num_circles+1), axis=1)
+        repeated_rays[:, 0, :] = 0
+
+        trajectories = np.cumsum(repeated_rays, axis=1) + circle_start_points.reshape(-1, 1, 2)
+
+        if isinstance(radius, float):
+            shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius
+        elif isinstance(radius, np.ndarray):
+            shaped_radius = np.ones((trajectories.shape[0], trajectories.shape[1], 1)) * radius.reshape(-1, 1, 1)
+
+        circle_center_radius_pairs = np.concatenate((trajectories, shaped_radius), axis=2)
+        circle_center_radius_pairs = circle_center_radius_pairs.reshape(-1, 3)
+
+        return circle_center_radius_pairs
+
+    def points_to_circles(self, points, radius):
         # points: (B, 2)
-        radii = np.zeros((points.shape[0], 1))
+        radii = np.ones((points.shape[0], 1)) * radius
         zero_radius_circles = np.concatenate((points, radii), axis=1)
         return zero_radius_circles
 
@@ -232,9 +276,10 @@ class ApproximationSpace(RobotSpace):
     
     def sample_point(self):
         return self.space.sample_point()
-    
+
     def is_valid(self, state):
-        return self.space.is_valid(state)
+        state = self.get_state_value(state)
+        return self.batch_is_valid(state.reshape(1, -1))
     
     def make_state(self, state):
         return self.space.make_state(state)
@@ -252,7 +297,7 @@ if __name__ == "__main__":
     # state = env.make_state(np.array([-1.0,3.0,np.pi/4]))
     # state = env.make_state(np.array([-4.0,3.0,np.pi/4]))
     # state = env.make_state(np.array([-4.0,3.0,np.pi/4]))
-    state = env.make_state(np.array([-4.0,3.0,np.pi/2,np.pi,np.pi]))
+    state = env.make_state(np.array([-4.0,3.0,np.pi/2,np.pi+0.2,np.pi+0.2]))
     env = ApproximationSpace(env, do_overapproximation=True)
     env.draw_environment(plt.gca())
     # env.space.draw_environment(plt.gca())

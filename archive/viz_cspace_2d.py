@@ -11,6 +11,7 @@ from matplotlib.widgets import Slider
 import pygame
 from controller.xbox_controller import XboxController
 
+### WARNING: DO NOT PUSH THIS FILE UNTIL IT IS FIXED
 from rrt import RRT
 
 # Interactive element 
@@ -63,13 +64,18 @@ def animate_path_and_space(path, obstacle_points, show_prev=True, frame_delay=0.
         axs[0].set_aspect('equal')
         axs[1].set_aspect('equal')
 
+        # print("HARDCODED!!!")
+        axs[1].set_xlim(-15, 15)
+        axs[1].set_ylim(-15, 15)
+        # print("HARDCODED!!!")
+
         axs[0].set_title("Workspace")
         axs[1].set_title("Configuration Space")
         plt.pause(frame_delay)
 
 def run_visualized_search(env, obstacle_points):
-    start, target = env.sample_valid_point(), env.sample_valid_point()
-
+    # start, target = env.sample_valid_point(), env.sample_valid_point()
+    start, target = env.make_state(np.array([-4.5, -5.0])), env.make_state(np.array([3.0, 3.0]))
     rrt = RRT(env)
     path = rrt.search(start, target, max_steps=5000)
     print(f"Path Length: {len(path)}")
@@ -171,11 +177,14 @@ if __name__ == '__main__':
     # task_type = 'interactive' # Will be made as an argument
 
     np.random.seed(0)
-    env = FixedArm()
+    # env = FixedArm()
+    env = DiscRobot()
     env.arm_link_lengths = np.array([3,3]) # HACK: DO NOT CHANGE ARM LENGTHS LIKE THIS
-    env.set_obstacles(TestSet())
+    # env.set_obstacles(TestSet())
+    env.set_obstacles(ParkingSpace())
 
     obstacle_points = generate_obstacle_points(env)
+
     if task_type == "search":
         run_visualized_search(env, obstacle_points)
     elif task_type == "interactive":
