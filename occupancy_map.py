@@ -48,7 +48,9 @@ def line_seg_to_points_dist(p1: np.ndarray, p2: np.ndarray, points: np.ndarray) 
 
     return dists
 
-EMPTY = 0.1
+# TODO: CHANGE EMPTY TO 0.1?
+# EMPTY = 0.1
+EMPTY = 0.01
 SOFT_BUFFER = 0.4
 UNKNOWN = 0.5
 HARD_BUFFER = 0.9
@@ -65,7 +67,7 @@ class OccupancyMap():
         # self.x_range = [-10,10]
         # self.y_range = [-10,10]
 
-        self.x_range = [0, 20]
+        self.x_range = [0, 30]
         self.y_range = [0, 10]
 
         # self.x_range = [-15,15]
@@ -114,7 +116,7 @@ class OccupancyMap():
         x_idx, y_idx = idx
 
         x_coord = (x_idx * self.res) + self.x_range[0]
-        y_coord = self.y_range[1] - ((y_idx * self.res) + self.y_range[0])
+        y_coord = ((y_idx * self.res) + self.y_range[0])
 
         return np.array([x_coord, y_coord])
 
@@ -214,9 +216,9 @@ class OccupancyMap():
             neighbors = [(x+1,y),(x-1,y),(x,y-1),(x,y+1)]
 
             for nx, ny in neighbors:
-                if (nx >= 0 and nx < len(self.x_idxes) and ny >= 0 and ny < len(self.y_idxes)) and self.map[nx,ny] < 0.6:
+                if (nx >= 0 and nx < len(self.x_idxes) and ny >= 0 and ny < len(self.y_idxes)) and self.map[nx,ny] < 0.51:
                     heappush(q, (dist + self.map[nx,ny], (nx, ny), (x,y)))
-        return None
+        return []
 
     def add_path_to_map(self, path):
         if path:
