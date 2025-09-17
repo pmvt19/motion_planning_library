@@ -5,7 +5,7 @@ import copy
 from space import RobotSpace, DiscRobot
 from obstacle_sets import BiasedPassage, RandomSamplePassage
 
-from lidar import Lidar, OptimizedLidar
+from lidar import Lidar, OptimizedLidar, SuperOptimizedLidar
 from occupancy_map import OccupancyMap
 
 
@@ -20,7 +20,8 @@ class SLAM():
         self.env.set_obstacles(os)
 
         # self.lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 10.0, os)
-        self.lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
+        # self.lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
+        self.lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, os)
         # self.lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 360, 4.9, os)
 
     def search_and_map(self, start, target):
@@ -39,6 +40,9 @@ class SLAM():
         cur_path = self.om.search(loc_state, self.target)
 
         visited = set()
+        # TODO: Temporary Solution to Plotting Issue
+        fig, axs = plt.subplots(3)
+        print(len(axs))
         for _ in range(150):
             
 
@@ -68,8 +72,12 @@ class SLAM():
             self.om.buffer_obstacles(spread_value=0.9)
             cur_path = self.om.search(loc_state, self.target)
             # plt.clf()
-            self.draw(loc_state, cur_path)
+            self.draw(axs, loc_state, cur_path)
             plt.pause(0.5)
+
+            axs[0].clear()
+            axs[1].clear()
+            axs[2].clear()
             # plt.show()
             # plt.clf()
             # plt.cla()
@@ -80,16 +88,16 @@ class SLAM():
 
 
 
-    def draw(self, state=None, path=None):
+    def draw(self, axs, state=None, path=None):
         if path is None:
-            fig, axs = plt.subplots(2)
+            # fig, axs = plt.subplots(2)
             
             self.env.draw_environment(axs[0])
             if state:
                 self.env.draw_state(axs[0], state)
             self.om.draw_map(axs[1])
         else:
-            fig, axs = plt.subplots(3)
+            # fig, axs = plt.subplots(3)
 
             self.env.draw_environment(axs[0])
             if state:
