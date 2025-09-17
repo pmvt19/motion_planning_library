@@ -21,19 +21,6 @@ class Lidar():
 
         if obstacle_set:
             self.engine.set_obstacles(obstacle_set)
-
-
-    def shoot_ray_deterministic(self, sensor_position, interest_point):
-        sensor_position = self.engine.get_state_value(sensor_position)
-        interest_point = self.engine.get_state_value(interest_point)
-
-        edge_states = interpolate_edge(self.make_state(sensor_position), self.make_state(interest_point), self.edge_validity_delta)
-        
-        for state in edge_states[1:]:
-            if not self.is_valid(state):
-                return self.make_state(prev_state)
-            prev_state = state
-        return self.make_state(prev_state)
     
     def read_sensor(self, sensor_position):
 
