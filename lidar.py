@@ -157,6 +157,7 @@ class SuperOptimizedLidar():
             else:
                 print("Only Polygon Obstacles are Supported")
                 raise NotImplementedError
+        self.lines = np.array(self.lines)
 
 
     def read_sensor(self, sensor_position):
@@ -217,7 +218,129 @@ class SuperOptimizedLidar():
 
         return readings
 
-                
+    def read_sensor_optimized(self, sensor_position):
+        # TODO: Should be doable with fully parallelized numpy operations
+
+        sensor_position = self.engine.get_state_value(sensor_position)
+
+        readings = [] # Format: [(angle, point, dist)]
+        angles = np.linspace(self.angle_range[0], self.angle_range[1], self.num_angles)
+
+        dx_cos = np.cos(angles).reshape(-1, 1) * self.max_dist
+        dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
+
+        farthest_points = sensor_position.reshape(-1, 2) * np.hstack((dx_cos, dy_sin)) 
+        sensor_position_repeated = np.repeat(sensor_position.reshape(1, -1), self.num_angles, axis=0)
+
+        print(self.lines.shape)
+
+        x1s = self.lines[:, 0].reshape(-1, 1) # (L, 1)
+        y1s = self.lines[:, 1].reshape(-1, 1) # (L, 1)
+        x2s = self.lines[:, 2].reshape(-1, 1) # (L, 1)
+        y2s = self.lines[:, 3].reshape(-1, 1) # (L, 1)
+
+        # x3, y3 = sensor_position
+        x3s = sensor_position[0] # (1,)
+        y3s = sensor_position[1] # (1,)
+
+        # x3s = sensor_position_repeated[:, 0].reshape(-1, 1)
+        # y3s = sensor_position_repeated[:, 1].reshape(-1, 1)
+
+        x4s = farthest_points[:, 0].reshape(-1, 1) # (self.num_angles, 1)
+        y4s = farthest_points[:, 1].reshape(-1, 1) # (self.num_angles, 1)
+
+        # a_s = (x4s - x3s) * (y3s - y1s) - (y4s - y3s) * (x3s - x1s) # (self.num_angles, L)
+
+        temp = (x4s - x3s)
+        temp2 = (y3s - y1s)
+
+        temp3 = temp * temp2.T
+        print(x4s.shape, x3s.shape, temp.shape)
+        print(y3s.shape, y1s.shape, temp2.shape)
+
+        print(temp.shape, temp2.shape, temp3.shape)
+        print("-----")
+
+        temp4 = (y4s - y3s)
+        temp5 = (x3s - x1s)
+        
+        print(y4s.shape, y3s.shape, temp4.shape)
+        print(x3s.shape, x1s.shape, temp5.shape)
+
+        temp6 = temp4 * temp5.T
+        print(temp4.shape, temp5.shape, temp6.shape)
+
+        print("-----")
+
+        a_s = (x4s - x3s) * (y3s - y1s).T - (y4s - y3s) * (x3s - x1s).T # (self.num_angles, L)
+        b_s = (x4s - x3s) * (y2s - y1s).T - (y4s - y3s) * (x2s - x1s).T # (self.num_angles, L)
+        # c_s = (x2s - x1s) * (y3s - y1s).T - (y2s - y1s) * (x3s - x1s).T # (self.num_angles, L)
+        # print(a_s.shape, b_s.shape, c_s.shape)
+        # print(x2s.shape, x1s.shape)
+        t1 = (x2s - x1s)
+        t2 = (y3s - y1s)
+        t3 = t1 * t2.T
+        print(t1.shape, t2.shape, t3.shape)
+
+        exit()
+        # a_s = (x4s - x3s) * (y3s - y1s) - (y4s - y3s) * (x3s - x1s) # (self.num_angles, L)
+        # b_s = (x4s - x3s) * (y2s - y1s) - (y4s - y3s) * (x2s - x1s) # (self.num_angles, L)
+        # c_s = (x2s - x1s) * (y3s - y1s) - (y2s - y1s) * (x3s - x1s) # (self.num_angles, L)
+
+        # alphas = a_s / b_s 
+        # betas = c_s / b_s
+
+
+
+        for angle in angles:
+            # print(angle)
+
+            dx = np.cos(angle) * self.max_dist
+            dy = np.sin(angle) * self.max_dist
+
+            sx, sy = sensor_position
+            
+            ex, ey = sx + dx, sy + dy
+
+            max_dist_point = np.array([ex,ey])
+            farthest_max_dist_point = np.array([ex,ey])
+            min_dist = self.max_dist
+
+            for line in self.lines:
+                x1, y1, x2, y2 = line
+
+                x3, y3 = sensor_position
+                x4, y4 = max_dist_point
+
+                a = (x4 - x3) * (y3 - y1) - (y4 - y3) * (x3 - x1)
+                b = (x4 - x3) * (y2 - y1) - (y4 - y3) * (x2 - x1)
+                c = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
+
+                alpha = a / b
+                beta = c / b
+
+                if np.isclose(b, 0): # Two Line Segments are Parallel
+                    pass
+                elif np.isclose(a, 0) and np.isclose(b, 0): # Lines are Colinear (Need to deal with edge case though)
+                    print("Found Super Rare Edge Case: Not Implemented")
+                    raise NotImplementedError
+                elif 0 < alpha and alpha < 1 and 0 < beta and beta < 1:
+                    # do something
+                    x0 = x1 + alpha * (x2 - x1)
+                    y0 = y1 + alpha * (y2 - y1)
+                    my_dist = self.engine.dist(self.engine.make_state(np.array([x0, y0])), self.engine.make_state(sensor_position))
+                    if my_dist < min_dist:
+                        max_dist_point = np.array([x0, y0])
+                        min_dist = my_dist
+                else:
+                    pass
+
+            if min_dist < self.max_dist:
+                readings.append((angle, self.engine.make_state(max_dist_point), min_dist, self.engine.make_state(farthest_max_dist_point)))
+            else:
+                readings.append((angle, None, np.inf, self.engine.make_state(farthest_max_dist_point)))
+
+        return readings           
 
 
 
@@ -230,6 +353,9 @@ if __name__ == '__main__':
     # lidar = Lidar(0, (0, 2*np.pi), 100, 4.9, RandomSamplePassage(num_walls=3))
     # lidar = Lidar()
     # lidar = Lidar(0,0,0,0)
+
+    readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
+    exit()
 
     st = time.time()
     readings = lidar.read_sensor(np.array((5.0,5.0)))
