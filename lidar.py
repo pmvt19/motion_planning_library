@@ -238,44 +238,83 @@ class SuperOptimizedLidar():
 
         # a_s = (x4s - x3s) * (y3s - y1s) - (y4s - y3s) * (x3s - x1s) # (self.num_angles, L)
 
-        temp = (x4s - x3s)
-        temp2 = (y3s - y1s)
+        # temp = (x4s - x3s)
+        # temp2 = (y3s - y1s)
 
-        temp3 = temp * temp2.T
-        print(x4s.shape, x3s.shape, temp.shape)
-        print(y3s.shape, y1s.shape, temp2.shape)
+        # temp3 = temp * temp2.T
+        # print(x4s.shape, x3s.shape, temp.shape)
+        # print(y3s.shape, y1s.shape, temp2.shape)
 
-        print(temp.shape, temp2.shape, temp3.shape)
-        print("-----")
+        # print(temp.shape, temp2.shape, temp3.shape)
+        # print("-----")
 
-        temp4 = (y4s - y3s)
-        temp5 = (x3s - x1s)
+        # temp4 = (y4s - y3s)
+        # temp5 = (x3s - x1s)
         
-        print(y4s.shape, y3s.shape, temp4.shape)
-        print(x3s.shape, x1s.shape, temp5.shape)
+        # print(y4s.shape, y3s.shape, temp4.shape)
+        # print(x3s.shape, x1s.shape, temp5.shape)
 
-        temp6 = temp4 * temp5.T
-        print(temp4.shape, temp5.shape, temp6.shape)
+        # temp6 = temp4 * temp5.T
+        # print(temp4.shape, temp5.shape, temp6.shape)
 
-        print("-----")
+        # print("-----")
 
         a_s = (x4s - x3s) * (y3s - y1s).T - (y4s - y3s) * (x3s - x1s).T # (self.num_angles, L)
         b_s = (x4s - x3s) * (y2s - y1s).T - (y4s - y3s) * (x2s - x1s).T # (self.num_angles, L)
-        # c_s = (x2s - x1s) * (y3s - y1s).T - (y2s - y1s) * (x3s - x1s).T # (self.num_angles, L)
-        # print(a_s.shape, b_s.shape, c_s.shape)
-        # print(x2s.shape, x1s.shape)
-        t1 = (x2s - x1s)
-        t2 = (y3s - y1s)
-        t3 = t1 * t2.T
-        print(t1.shape, t2.shape, t3.shape)
+        c_s = ((x2s - x1s) * (y3s - y1s) - (y2s - y1s) * (x3s - x1s)).T # (1, L)
 
-        exit()
+        # t1 = (x2s - x1s)
+        # t2 = (y3s - y1s)
+        # t3 = t1 * t2
+        # print(t1.shape, t2.shape, t3.shape)
+
+        # t4 = (y2s - y1s)
+        # t5 = (x3s - x1s)
+        # t6 = t4 * t5
+        # print(t4.shape, t5.shape, t6.shape)
+
+        # print(a_s.shape, b_s.shape, c_s.shape)
+
+
+        # exit()
         # a_s = (x4s - x3s) * (y3s - y1s) - (y4s - y3s) * (x3s - x1s) # (self.num_angles, L)
         # b_s = (x4s - x3s) * (y2s - y1s) - (y4s - y3s) * (x2s - x1s) # (self.num_angles, L)
         # c_s = (x2s - x1s) * (y3s - y1s) - (y2s - y1s) * (x3s - x1s) # (self.num_angles, L)
 
-        # alphas = a_s / b_s 
-        # betas = c_s / b_s
+        alphas = a_s / b_s 
+        betas = c_s / b_s
+
+        print(alphas.shape, betas.shape)
+
+        # print(np.isclose(b_s, 0))
+
+        # x0s = x1s + alphas * (x2s - x1s)
+
+        t10 = (x2s - x1s)
+        t11 = alphas * t10.T
+        print(t10.shape, t11.shape, x1s.shape)
+
+        x0s = (x1s.T + alphas * (x2s - x1s).T)
+        y0s = (y1s.T + alphas * (y2s - y1s).T)
+
+        # mask = alphas > 0 & alphas < 1
+        # x0s = x0s[mask]
+        # y0s = y0s[mask]
+
+        print(x0s.shape, y0s.shape)
+
+        # y0s = y1s + alphas * (y2s - y1s)
+        # print(x0s.shape, y0s.shape)
+
+        points = np.stack((x0s, y0s), axis=2)
+        print(points.shape)
+
+
+        dists = None
+
+        print(points)
+
+        exit(0)
 
 
 
