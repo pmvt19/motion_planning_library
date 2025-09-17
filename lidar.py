@@ -1,4 +1,5 @@
 import numpy as np 
+from shapely import Polygon
 from space import PointRobot
 from obstacle_sets import BiasedPassage, RandomSamplePassage, WeavingPassage
 from utils import interpolate_edge, batch_interpolate_edge
@@ -130,9 +131,101 @@ class OptimizedLidar():
         return readings
 
 
+class SuperOptimizedLidar():
+    def __init__(self, noise, angle_range, num_angles, max_dist, obstacle_set=None):
+        self.engine = PointRobot()
+        
+        issue_warning(True, "Lidar Noise does not work", 'warning')
+
+        self.noise = noise
+        self.angle_range = angle_range
+        self.num_angles = num_angles
+        self.max_dist = max_dist
+        self.resolution = 0.05
+
+        if obstacle_set:
+            self.engine.set_obstacles(obstacle_set)
+
+        self.lines = []
+        for obs in obstacle_set.obstacles:
+            if isinstance(obs, Polygon):
+                x, y = obs.exterior.xy
+
+                for i in range(len(x)-1):
+                    self.lines.append([x[i], y[i], x[i+1], y[i+1]])
+
+            else:
+                print("Only Polygon Obstacles are Supported")
+                raise NotImplementedError
+
+
+    def read_sensor(self, sensor_position):
+        # TODO: Should be doable with fully parallelized numpy operations
+
+        sensor_position = self.engine.get_state_value(sensor_position)
+
+        readings = [] # Format: [(angle, point, dist)]
+        angles = np.linspace(self.angle_range[0], self.angle_range[1], self.num_angles)
+
+        for angle in angles:
+            # print(angle)
+
+            dx = np.cos(angle) * self.max_dist
+            dy = np.sin(angle) * self.max_dist
+
+            sx, sy = sensor_position
+            
+            ex, ey = sx + dx, sy + dy
+
+            max_dist_point = np.array([ex,ey])
+            farthest_max_dist_point = np.array([ex,ey])
+            min_dist = self.max_dist
+
+            for line in self.lines:
+                x1, y1, x2, y2 = line
+
+                x3, y3 = sensor_position
+                x4, y4 = max_dist_point
+
+                a = (x4 - x3) * (y3 - y1) - (y4 - y3) * (x3 - x1)
+                b = (x4 - x3) * (y2 - y1) - (y4 - y3) * (x2 - x1)
+                c = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
+
+                alpha = a / b
+                beta = c / b
+
+                if np.isclose(b, 0): # Two Line Segments are Parallel
+                    pass
+                elif np.isclose(a, 0) and np.isclose(b, 0): # Lines are Colinear (Need to deal with edge case though)
+                    print("Found Super Rare Edge Case: Not Implemented")
+                    raise NotImplementedError
+                elif 0 < alpha and alpha < 1 and 0 < beta and beta < 1:
+                    # do something
+                    x0 = x1 + alpha * (x2 - x1)
+                    y0 = y1 + alpha * (y2 - y1)
+                    my_dist = self.engine.dist(self.engine.make_state(np.array([x0, y0])), self.engine.make_state(sensor_position))
+                    if my_dist < min_dist:
+                        max_dist_point = np.array([x0, y0])
+                        min_dist = my_dist
+                else:
+                    pass
+
+            if min_dist < self.max_dist:
+                readings.append((angle, self.engine.make_state(max_dist_point), min_dist, self.engine.make_state(farthest_max_dist_point)))
+            else:
+                readings.append((angle, None, np.inf, self.engine.make_state(farthest_max_dist_point)))
+
+        return readings
+
+                
+
+
+
+    
 
 if __name__ == '__main__':
-    lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    # lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar(0, (0, 2*np.pi), 100, 4.9, RandomSamplePassage(num_walls=3))
     # lidar = Lidar()
@@ -169,6 +262,7 @@ if __name__ == '__main__':
 
     locs = []
     all_lidar_points = []
+    st = time.time()
     print("Before loops")
     for i in range(10):
         print(f"Running Iteration: {i}")
@@ -177,7 +271,9 @@ if __name__ == '__main__':
         lidar_points = np.array([r[1].value for r in readings if r[1] is not None])
         locs.append(loc.value)
 
-        all_lidar_points.append(lidar_points)
+        all_lidar_points.append(lidar_points.reshape(-1, 2))
+    et = time.time()
+    print(f"Time to Run All Points: {et-st}")
 
     all_lidar_points = np.vstack(all_lidar_points)
     locs = np.array(locs)
