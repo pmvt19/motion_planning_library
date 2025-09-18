@@ -149,6 +149,9 @@ class OccupancyMap():
 
                 inds = self.inds[mask]
 
+                new_mask = (self.map[inds[:, 0], inds[:, 1]] == UNKNOWN)
+                inds = inds[new_mask]
+
                 self.map[inds[:, 0], inds[:, 1]] = EMPTY
                 self.map[idx[0], idx[1]] = OCCUPIED
 
@@ -157,6 +160,10 @@ class OccupancyMap():
                 dists = line_seg_to_points_dist(sensor_position.value, last_point.value, self.circles[:, :2])
                 mask = dists < self.circles[:, 2]
                 inds = self.inds[mask]
+
+                new_mask = (self.map[inds[:, 0], inds[:, 1]] == UNKNOWN)
+                inds = inds[new_mask]
+
                 self.map[inds[:, 0], inds[:, 1]] = EMPTY
 
                 # for ind in inds:
