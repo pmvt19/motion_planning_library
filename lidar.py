@@ -257,25 +257,16 @@ class SuperOptimizedLidar():
         dists = dists.squeeze()
 
         b_s_mask = np.isclose(b_s, 0)
-
-        
-
         dists[b_s_mask] = np.inf
         
         alphas_low_mask = alphas < 0
-        dists[alphas_low_mask] = np.inf 
-
-        
+        dists[alphas_low_mask] = np.inf         
 
         alphas_high_mask = alphas > 1
         dists[alphas_high_mask] = np.inf 
 
-        
-
         betas_low_mask = betas < 0
         dists[betas_low_mask] = np.inf 
-
-        
 
         betas_high_mask = betas > 1
         dists[betas_high_mask] = np.inf 
