@@ -1,7 +1,7 @@
 import numpy as np 
 from shapely import Polygon
 from space import PointRobot
-from obstacle_sets import BiasedPassage, RandomSamplePassage, WeavingPassage
+from obstacle_sets import BiasedPassage, RandomSamplePassage, WeavingPassage, TestSet
 from utils import interpolate_edge, batch_interpolate_edge
 import matplotlib.pyplot as plt
 import time
@@ -309,11 +309,69 @@ class SuperOptimizedLidar():
         points = np.stack((x0s, y0s), axis=2)
         print(points.shape)
 
+        print(sensor_position_repeated.shape, sensor_position.shape)
+        sensor_position_shaped = sensor_position.reshape(1, -1)
+        dists = np.sum(points**2, axis=2, keepdims=True) + np.sum(sensor_position_shaped**2, axis=1, keepdims=True).T + (-2 * (points @ sensor_position_shaped.T))
+        dists = dists.squeeze()
+        print(dists.shape)
+        # dists = None
 
-        dists = None
+        # print(points)
 
-        print(points)
+        # print(dists)
+        print(a_s.shape, b_s.shape, c_s.shape)
 
+        b_s_mask = np.isclose(b_s, 0)
+
+        print(f"Mask Effectiveness (b_s_mask): {np.sum(b_s_mask)}")
+
+        dists[b_s_mask] = np.inf
+        
+        alphas_low_mask = alphas < 0
+        dists[alphas_low_mask] = np.inf 
+
+        print(f"Mask Effectiveness (alphas_low_mask): {np.sum(alphas_low_mask)}")
+
+        alphas_high_mask = alphas > 1
+        dists[alphas_high_mask] = np.inf 
+
+        print(f"Mask Effectiveness (alphas_high_mask): {np.sum(alphas_high_mask)}")
+
+        betas_low_mask = betas < 0
+        dists[betas_low_mask] = np.inf 
+
+        print(f"Mask Effectiveness (betas_low_mask): {np.sum(betas_low_mask)}")
+
+        betas_high_mask = betas > 1
+        dists[betas_high_mask] = np.inf 
+
+        print(f"Mask Effectiveness (betas_high_mask): {np.sum(betas_high_mask)}")
+
+        
+        min_idxes = np.argmin(dists, axis=1)
+        min_vals = np.min(dists, axis=1)
+
+        print(min_idxes)
+        print(min_vals)
+
+        print(min_vals.shape)
+
+        for i in range(len(min_vals)):
+            line_idx = min_idxes[i]
+            intersection_point = points[i, line_idx]
+            my_dist = min_vals[i]
+            fp = farthest_points[i]
+            readings.append((angles[i], self.engine.make_state(intersection_point), my_dist, self.engine.make_state(fp)))
+
+        # usable_vals = min_vals < np.inf
+
+        # usable_angles = angles[usable_vals]
+        # usable_dists = min_vals[usable_vals]
+
+
+        # readings.append((angle, self.engine.make_state(max_dist_point), min_dist, self.engine.make_state(farthest_max_dist_point)))
+        
+        return readings
         exit(0)
 
 
@@ -373,18 +431,21 @@ class SuperOptimizedLidar():
     
 
 if __name__ == '__main__':
-    lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    np.random.seed(0)
+    # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, TestSet())
     # lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar(0, (0, 2*np.pi), 100, 4.9, RandomSamplePassage(num_walls=3))
     # lidar = Lidar()
     # lidar = Lidar(0,0,0,0)
 
-    readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
-    exit()
+    # readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
+    # exit()
 
     st = time.time()
-    readings = lidar.read_sensor(np.array((5.0,5.0)))
+    readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
+    # readings = lidar.read_sensor(np.array((5.0,5.0)))
     et = time.time()
     print(f"Time to Run: {et-st}")
 
@@ -419,7 +480,7 @@ if __name__ == '__main__':
     for i in range(10):
         print(f"Running Iteration: {i}")
         loc = lidar.engine.sample_valid_point()
-        readings = lidar.read_sensor(loc)
+        readings = lidar.read_sensor_optimized(loc)
         lidar_points = np.array([r[1].value for r in readings if r[1] is not None])
         locs.append(loc.value)
 
