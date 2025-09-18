@@ -121,7 +121,7 @@ class OptimizedLidar():
 
 
 class SuperOptimizedLidar():
-    def __init__(self, noise, angle_range, num_angles, max_dist, obstacle_set=None):
+    def __init__(self, noise, angle_range, num_angles, max_dist, obstacle_set=None, verbose=False):
         self.engine = PointRobot()
         
         issue_warning(True, "Lidar Noise does not work", 'warning')
@@ -130,7 +130,7 @@ class SuperOptimizedLidar():
         self.angle_range = angle_range
         self.num_angles = num_angles
         self.max_dist = max_dist
-        self.resolution = 0.05
+        self.verbose = verbose
 
         if obstacle_set:
             self.engine.set_obstacles(obstacle_set)
@@ -148,8 +148,7 @@ class SuperOptimizedLidar():
                 raise NotImplementedError
         self.lines = np.array(self.lines)
 
-
-    def read_sensor_old(self, sensor_position):
+    def read_sensor_semioptimized(self, sensor_position):
         # TODO: Should be doable with fully parallelized numpy operations
 
         sensor_position = self.engine.get_state_value(sensor_position)
@@ -207,6 +206,17 @@ class SuperOptimizedLidar():
 
         return readings
     
+    # Used in Testing
+    def get_farthest_points(self, sensor_position):
+        angles = np.linspace(self.angle_range[0], self.angle_range[1], self.num_angles)
+
+        dx_cos = np.cos(angles).reshape(-1, 1) * self.max_dist
+        dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
+
+        farthest_points = sensor_position.reshape(-1, 2) + np.hstack((dx_cos, dy_sin)) 
+        return farthest_points
+
+
     def read_sensor(self, sensor_position):
         sensor_position = self.engine.get_state_value(sensor_position)
 
@@ -248,29 +258,35 @@ class SuperOptimizedLidar():
 
         b_s_mask = np.isclose(b_s, 0)
 
-        print(f"Mask Effectiveness (b_s_mask): {np.sum(b_s_mask)}")
+        
 
         dists[b_s_mask] = np.inf
         
         alphas_low_mask = alphas < 0
         dists[alphas_low_mask] = np.inf 
 
-        print(f"Mask Effectiveness (alphas_low_mask): {np.sum(alphas_low_mask)}")
+        
 
         alphas_high_mask = alphas > 1
         dists[alphas_high_mask] = np.inf 
 
-        print(f"Mask Effectiveness (alphas_high_mask): {np.sum(alphas_high_mask)}")
+        
 
         betas_low_mask = betas < 0
         dists[betas_low_mask] = np.inf 
 
-        print(f"Mask Effectiveness (betas_low_mask): {np.sum(betas_low_mask)}")
+        
 
         betas_high_mask = betas > 1
         dists[betas_high_mask] = np.inf 
 
-        print(f"Mask Effectiveness (betas_high_mask): {np.sum(betas_high_mask)}")
+    
+        if self.verbose:
+            print(f"Mask Effectiveness (b_s_mask): {np.sum(b_s_mask)}")
+            print(f"Mask Effectiveness (alphas_low_mask): {np.sum(alphas_low_mask)}")
+            print(f"Mask Effectiveness (alphas_high_mask): {np.sum(alphas_high_mask)}")
+            print(f"Mask Effectiveness (betas_low_mask): {np.sum(betas_low_mask)}")
+            print(f"Mask Effectiveness (betas_high_mask): {np.sum(betas_high_mask)}")
 
         dists = np.sqrt(dists)
         dists[dists > self.max_dist] = np.inf
