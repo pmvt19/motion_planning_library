@@ -58,8 +58,10 @@ class Lidar():
                     break
             # print(type(sensor_position), )
             last_point = points[-1]
-            angle_noise = np.random.normal(loc=0, scale=self.noise[0])
-            dist_noise = np.random.normal(loc=0, scale=self.noise[1])
+            # angle_noise = np.random.normal(loc=0, scale=self.noise[0])
+            # dist_noise = np.random.normal(loc=0, scale=self.noise[1])
+            angle_noise = 0
+            dist_noise = 0
             if obstacle_point:
                 readings.append((angle+angle_noise, obstacle_point, self.engine.dist(self.engine.make_state(sensor_position), obstacle_point)+dist_noise, self.engine.make_state(last_point)))
             else:
@@ -147,7 +149,7 @@ class SuperOptimizedLidar():
         self.lines = np.array(self.lines)
 
 
-    def read_sensor(self, sensor_position):
+    def read_sensor_old(self, sensor_position):
         # TODO: Should be doable with fully parallelized numpy operations
 
         sensor_position = self.engine.get_state_value(sensor_position)
@@ -205,7 +207,16 @@ class SuperOptimizedLidar():
 
         return readings
 
-    def read_sensor_optimized(self, sensor_position):
+    def get_farthest_points(self, sensor_position):
+        angles = np.linspace(self.angle_range[0], self.angle_range[1], self.num_angles)
+        print(self.max_dist)
+        dx_cos = np.cos(angles).reshape(-1, 1) * self.max_dist
+        dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
+
+        farthest_points = sensor_position.reshape(-1, 2) + np.hstack((dx_cos, dy_sin)) 
+        return farthest_points
+    
+    def read_sensor(self, sensor_position):
         # TODO: Should be doable with fully parallelized numpy operations
 
         sensor_position = self.engine.get_state_value(sensor_position)
@@ -216,10 +227,10 @@ class SuperOptimizedLidar():
         dx_cos = np.cos(angles).reshape(-1, 1) * self.max_dist
         dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
 
-        farthest_points = sensor_position.reshape(-1, 2) * np.hstack((dx_cos, dy_sin)) 
+        farthest_points = sensor_position.reshape(-1, 2) + np.hstack((dx_cos, dy_sin)) 
         sensor_position_repeated = np.repeat(sensor_position.reshape(1, -1), self.num_angles, axis=0)
 
-        print(self.lines.shape)
+        # print(self.lines.shape)
 
         x1s = self.lines[:, 0].reshape(-1, 1) # (L, 1)
         y1s = self.lines[:, 1].reshape(-1, 1) # (L, 1)
@@ -284,7 +295,7 @@ class SuperOptimizedLidar():
         alphas = a_s / b_s 
         betas = c_s / b_s
 
-        print(alphas.shape, betas.shape)
+        # print(alphas.shape, betas.shape)
 
         # print(np.isclose(b_s, 0))
 
@@ -292,7 +303,7 @@ class SuperOptimizedLidar():
 
         t10 = (x2s - x1s)
         t11 = alphas * t10.T
-        print(t10.shape, t11.shape, x1s.shape)
+        # print(t10.shape, t11.shape, x1s.shape)
 
         x0s = (x1s.T + alphas * (x2s - x1s).T)
         y0s = (y1s.T + alphas * (y2s - y1s).T)
@@ -301,25 +312,26 @@ class SuperOptimizedLidar():
         # x0s = x0s[mask]
         # y0s = y0s[mask]
 
-        print(x0s.shape, y0s.shape)
+        # print(x0s.shape, y0s.shape)
 
         # y0s = y1s + alphas * (y2s - y1s)
         # print(x0s.shape, y0s.shape)
 
         points = np.stack((x0s, y0s), axis=2)
-        print(points.shape)
+        # print(points.shape)
 
-        print(sensor_position_repeated.shape, sensor_position.shape)
+        # print(sensor_position_repeated.shape, sensor_position.shape)
         sensor_position_shaped = sensor_position.reshape(1, -1)
         dists = np.sum(points**2, axis=2, keepdims=True) + np.sum(sensor_position_shaped**2, axis=1, keepdims=True).T + (-2 * (points @ sensor_position_shaped.T))
         dists = dists.squeeze()
-        print(dists.shape)
+
+        # print(dists.shape)
         # dists = None
 
         # print(points)
 
         # print(dists)
-        print(a_s.shape, b_s.shape, c_s.shape)
+        # print(a_s.shape, b_s.shape, c_s.shape)
 
         b_s_mask = np.isclose(b_s, 0)
 
@@ -347,21 +359,26 @@ class SuperOptimizedLidar():
 
         print(f"Mask Effectiveness (betas_high_mask): {np.sum(betas_high_mask)}")
 
+        dists = np.sqrt(dists)
+        dists[dists > self.max_dist] = np.inf
+
         
         min_idxes = np.argmin(dists, axis=1)
         min_vals = np.min(dists, axis=1)
 
-        print(min_idxes)
-        print(min_vals)
-
-        print(min_vals.shape)
+        masking = min_vals < np.inf
 
         for i in range(len(min_vals)):
-            line_idx = min_idxes[i]
-            intersection_point = points[i, line_idx]
-            my_dist = min_vals[i]
             fp = farthest_points[i]
-            readings.append((angles[i], self.engine.make_state(intersection_point), my_dist, self.engine.make_state(fp)))
+            if masking[i]:
+                line_idx = min_idxes[i]
+                intersection_point = points[i, line_idx]
+                my_dist = min_vals[i]
+                readings.append((angles[i], self.engine.make_state(intersection_point), my_dist, self.engine.make_state(fp)))
+            else:
+                readings.append((angles[i], None, np.inf, self.engine.make_state(fp)))
+
+                # print(f"Dist for angle ({angles[i]}):{my_dist}")
 
         # usable_vals = min_vals < np.inf
 
@@ -431,9 +448,11 @@ class SuperOptimizedLidar():
     
 
 if __name__ == '__main__':
-    np.random.seed(0)
+    # np.random.seed(0)
+    lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    # lidar = SuperOptimizedLidar(None, (np.pi/4, np.pi/2), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
-    lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, TestSet())
+    # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, TestSet())
     # lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar(0, (0, 2*np.pi), 100, 4.9, RandomSamplePassage(num_walls=3))
@@ -444,10 +463,11 @@ if __name__ == '__main__':
     # exit()
 
     st = time.time()
-    readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
+    readings = lidar.read_sensor(np.array([5.0, 5.0]))
     # readings = lidar.read_sensor(np.array((5.0,5.0)))
     et = time.time()
     print(f"Time to Run: {et-st}")
+    
 
     # print(readings)
 
@@ -464,14 +484,10 @@ if __name__ == '__main__':
     lidar.engine.draw_environment(plt.gca())
     plt.scatter(x=[5.0], y=[5.0], color='green', marker='*')
 
-    # print([r[1].value for r in readings])
     lidar_points = np.array([r[1].value for r in readings if r[1] is not None])
     plt.scatter(lidar_points[:, 0], lidar_points[:, 1], color='red', zorder=2)
-    # print(lidar_points)
-
-    
-
     plt.show()
+
 
     locs = []
     all_lidar_points = []
@@ -480,7 +496,7 @@ if __name__ == '__main__':
     for i in range(10):
         print(f"Running Iteration: {i}")
         loc = lidar.engine.sample_valid_point()
-        readings = lidar.read_sensor_optimized(loc)
+        readings = lidar.read_sensor(loc)
         lidar_points = np.array([r[1].value for r in readings if r[1] is not None])
         locs.append(loc.value)
 
