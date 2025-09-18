@@ -1,7 +1,7 @@
 import numpy as np 
 from shapely import Polygon
 from space import PointRobot
-from obstacle_sets import BiasedPassage, RandomSamplePassage, WeavingPassage
+from obstacle_sets import BiasedPassage, RandomSamplePassage, WeavingPassage, TestSet
 from utils import interpolate_edge, batch_interpolate_edge
 import matplotlib.pyplot as plt
 import time
@@ -58,8 +58,10 @@ class Lidar():
                     break
             # print(type(sensor_position), )
             last_point = points[-1]
-            angle_noise = np.random.normal(loc=0, scale=self.noise[0])
-            dist_noise = np.random.normal(loc=0, scale=self.noise[1])
+            # angle_noise = np.random.normal(loc=0, scale=self.noise[0])
+            # dist_noise = np.random.normal(loc=0, scale=self.noise[1])
+            angle_noise = 0
+            dist_noise = 0
             if obstacle_point:
                 readings.append((angle+angle_noise, obstacle_point, self.engine.dist(self.engine.make_state(sensor_position), obstacle_point)+dist_noise, self.engine.make_state(last_point)))
             else:
@@ -119,7 +121,7 @@ class OptimizedLidar():
 
 
 class SuperOptimizedLidar():
-    def __init__(self, noise, angle_range, num_angles, max_dist, obstacle_set=None):
+    def __init__(self, noise, angle_range, num_angles, max_dist, obstacle_set=None, verbose=False):
         self.engine = PointRobot()
         
         issue_warning(True, "Lidar Noise does not work", 'warning')
@@ -128,7 +130,7 @@ class SuperOptimizedLidar():
         self.angle_range = angle_range
         self.num_angles = num_angles
         self.max_dist = max_dist
-        self.resolution = 0.05
+        self.verbose = verbose
 
         if obstacle_set:
             self.engine.set_obstacles(obstacle_set)
@@ -146,8 +148,7 @@ class SuperOptimizedLidar():
                 raise NotImplementedError
         self.lines = np.array(self.lines)
 
-
-    def read_sensor(self, sensor_position):
+    def read_sensor_semioptimized(self, sensor_position):
         # TODO: Should be doable with fully parallelized numpy operations
 
         sensor_position = self.engine.get_state_value(sensor_position)
@@ -204,10 +205,19 @@ class SuperOptimizedLidar():
                 readings.append((angle, None, np.inf, self.engine.make_state(farthest_max_dist_point)))
 
         return readings
+    
+    # Used in Testing
+    def get_farthest_points(self, sensor_position):
+        angles = np.linspace(self.angle_range[0], self.angle_range[1], self.num_angles)
 
-    def read_sensor_optimized(self, sensor_position):
-        # TODO: Should be doable with fully parallelized numpy operations
+        dx_cos = np.cos(angles).reshape(-1, 1) * self.max_dist
+        dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
 
+        farthest_points = sensor_position.reshape(-1, 2) + np.hstack((dx_cos, dy_sin)) 
+        return farthest_points
+
+
+    def read_sensor(self, sensor_position):
         sensor_position = self.engine.get_state_value(sensor_position)
 
         readings = [] # Format: [(angle, point, dist)]
@@ -216,177 +226,105 @@ class SuperOptimizedLidar():
         dx_cos = np.cos(angles).reshape(-1, 1) * self.max_dist
         dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
 
-        farthest_points = sensor_position.reshape(-1, 2) * np.hstack((dx_cos, dy_sin)) 
-        sensor_position_repeated = np.repeat(sensor_position.reshape(1, -1), self.num_angles, axis=0)
-
-        print(self.lines.shape)
+        farthest_points = sensor_position.reshape(-1, 2) + np.hstack((dx_cos, dy_sin)) 
 
         x1s = self.lines[:, 0].reshape(-1, 1) # (L, 1)
         y1s = self.lines[:, 1].reshape(-1, 1) # (L, 1)
         x2s = self.lines[:, 2].reshape(-1, 1) # (L, 1)
         y2s = self.lines[:, 3].reshape(-1, 1) # (L, 1)
 
-        # x3, y3 = sensor_position
         x3s = sensor_position[0] # (1,)
         y3s = sensor_position[1] # (1,)
 
-        # x3s = sensor_position_repeated[:, 0].reshape(-1, 1)
-        # y3s = sensor_position_repeated[:, 1].reshape(-1, 1)
-
         x4s = farthest_points[:, 0].reshape(-1, 1) # (self.num_angles, 1)
         y4s = farthest_points[:, 1].reshape(-1, 1) # (self.num_angles, 1)
-
-        # a_s = (x4s - x3s) * (y3s - y1s) - (y4s - y3s) * (x3s - x1s) # (self.num_angles, L)
-
-        # temp = (x4s - x3s)
-        # temp2 = (y3s - y1s)
-
-        # temp3 = temp * temp2.T
-        # print(x4s.shape, x3s.shape, temp.shape)
-        # print(y3s.shape, y1s.shape, temp2.shape)
-
-        # print(temp.shape, temp2.shape, temp3.shape)
-        # print("-----")
-
-        # temp4 = (y4s - y3s)
-        # temp5 = (x3s - x1s)
-        
-        # print(y4s.shape, y3s.shape, temp4.shape)
-        # print(x3s.shape, x1s.shape, temp5.shape)
-
-        # temp6 = temp4 * temp5.T
-        # print(temp4.shape, temp5.shape, temp6.shape)
-
-        # print("-----")
 
         a_s = (x4s - x3s) * (y3s - y1s).T - (y4s - y3s) * (x3s - x1s).T # (self.num_angles, L)
         b_s = (x4s - x3s) * (y2s - y1s).T - (y4s - y3s) * (x2s - x1s).T # (self.num_angles, L)
         c_s = ((x2s - x1s) * (y3s - y1s) - (y2s - y1s) * (x3s - x1s)).T # (1, L)
 
-        # t1 = (x2s - x1s)
-        # t2 = (y3s - y1s)
-        # t3 = t1 * t2
-        # print(t1.shape, t2.shape, t3.shape)
-
-        # t4 = (y2s - y1s)
-        # t5 = (x3s - x1s)
-        # t6 = t4 * t5
-        # print(t4.shape, t5.shape, t6.shape)
-
-        # print(a_s.shape, b_s.shape, c_s.shape)
-
-
-        # exit()
-        # a_s = (x4s - x3s) * (y3s - y1s) - (y4s - y3s) * (x3s - x1s) # (self.num_angles, L)
-        # b_s = (x4s - x3s) * (y2s - y1s) - (y4s - y3s) * (x2s - x1s) # (self.num_angles, L)
-        # c_s = (x2s - x1s) * (y3s - y1s) - (y2s - y1s) * (x3s - x1s) # (self.num_angles, L)
-
         alphas = a_s / b_s 
         betas = c_s / b_s
-
-        print(alphas.shape, betas.shape)
-
-        # print(np.isclose(b_s, 0))
-
-        # x0s = x1s + alphas * (x2s - x1s)
-
-        t10 = (x2s - x1s)
-        t11 = alphas * t10.T
-        print(t10.shape, t11.shape, x1s.shape)
 
         x0s = (x1s.T + alphas * (x2s - x1s).T)
         y0s = (y1s.T + alphas * (y2s - y1s).T)
 
-        # mask = alphas > 0 & alphas < 1
-        # x0s = x0s[mask]
-        # y0s = y0s[mask]
-
-        print(x0s.shape, y0s.shape)
-
-        # y0s = y1s + alphas * (y2s - y1s)
-        # print(x0s.shape, y0s.shape)
 
         points = np.stack((x0s, y0s), axis=2)
-        print(points.shape)
 
+        sensor_position_shaped = sensor_position.reshape(1, -1)
+        dists = np.sum(points**2, axis=2, keepdims=True) + np.sum(sensor_position_shaped**2, axis=1, keepdims=True).T + (-2 * (points @ sensor_position_shaped.T))
+        dists = dists.squeeze()
 
-        dists = None
+        b_s_mask = np.isclose(b_s, 0)
+        dists[b_s_mask] = np.inf
+        
+        alphas_low_mask = alphas < 0
+        dists[alphas_low_mask] = np.inf         
 
-        print(points)
+        alphas_high_mask = alphas > 1
+        dists[alphas_high_mask] = np.inf 
 
-        exit(0)
+        betas_low_mask = betas < 0
+        dists[betas_low_mask] = np.inf 
 
+        betas_high_mask = betas > 1
+        dists[betas_high_mask] = np.inf 
 
+    
+        if self.verbose:
+            print(f"Mask Effectiveness (b_s_mask): {np.sum(b_s_mask)}")
+            print(f"Mask Effectiveness (alphas_low_mask): {np.sum(alphas_low_mask)}")
+            print(f"Mask Effectiveness (alphas_high_mask): {np.sum(alphas_high_mask)}")
+            print(f"Mask Effectiveness (betas_low_mask): {np.sum(betas_low_mask)}")
+            print(f"Mask Effectiveness (betas_high_mask): {np.sum(betas_high_mask)}")
 
-        for angle in angles:
-            # print(angle)
+        dists = np.sqrt(dists)
+        dists[dists > self.max_dist] = np.inf
 
-            dx = np.cos(angle) * self.max_dist
-            dy = np.sin(angle) * self.max_dist
+        
+        min_idxes = np.argmin(dists, axis=1)
+        min_vals = np.min(dists, axis=1)
 
-            sx, sy = sensor_position
-            
-            ex, ey = sx + dx, sy + dy
+        masking = min_vals < np.inf
 
-            max_dist_point = np.array([ex,ey])
-            farthest_max_dist_point = np.array([ex,ey])
-            min_dist = self.max_dist
-
-            for line in self.lines:
-                x1, y1, x2, y2 = line
-
-                x3, y3 = sensor_position
-                x4, y4 = max_dist_point
-
-                a = (x4 - x3) * (y3 - y1) - (y4 - y3) * (x3 - x1)
-                b = (x4 - x3) * (y2 - y1) - (y4 - y3) * (x2 - x1)
-                c = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
-
-                alpha = a / b
-                beta = c / b
-
-                if np.isclose(b, 0): # Two Line Segments are Parallel
-                    pass
-                elif np.isclose(a, 0) and np.isclose(b, 0): # Lines are Colinear (Need to deal with edge case though)
-                    print("Found Super Rare Edge Case: Not Implemented")
-                    raise NotImplementedError
-                elif 0 < alpha and alpha < 1 and 0 < beta and beta < 1:
-                    # do something
-                    x0 = x1 + alpha * (x2 - x1)
-                    y0 = y1 + alpha * (y2 - y1)
-                    my_dist = self.engine.dist(self.engine.make_state(np.array([x0, y0])), self.engine.make_state(sensor_position))
-                    if my_dist < min_dist:
-                        max_dist_point = np.array([x0, y0])
-                        min_dist = my_dist
-                else:
-                    pass
-
-            if min_dist < self.max_dist:
-                readings.append((angle, self.engine.make_state(max_dist_point), min_dist, self.engine.make_state(farthest_max_dist_point)))
+        for i in range(len(min_vals)):
+            fp = farthest_points[i]
+            if masking[i]:
+                line_idx = min_idxes[i]
+                intersection_point = points[i, line_idx]
+                my_dist = min_vals[i]
+                readings.append((angles[i], self.engine.make_state(intersection_point), my_dist, self.engine.make_state(fp)))
             else:
-                readings.append((angle, None, np.inf, self.engine.make_state(farthest_max_dist_point)))
+                readings.append((angles[i], None, np.inf, self.engine.make_state(fp)))
 
-        return readings           
+        return readings        
 
 
 
     
 
 if __name__ == '__main__':
+    # np.random.seed(0)
     lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    # lidar = SuperOptimizedLidar(None, (np.pi/4, np.pi/2), 100, 4.9, BiasedPassage(num_walls=1))
+    # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
+    # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, TestSet())
     # lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar(0, (0, 2*np.pi), 100, 4.9, RandomSamplePassage(num_walls=3))
     # lidar = Lidar()
     # lidar = Lidar(0,0,0,0)
 
-    readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
-    exit()
+    # readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
+    # exit()
 
     st = time.time()
-    readings = lidar.read_sensor(np.array((5.0,5.0)))
+    readings = lidar.read_sensor(np.array([5.0, 5.0]))
+    # readings = lidar.read_sensor(np.array((5.0,5.0)))
     et = time.time()
     print(f"Time to Run: {et-st}")
+    
 
     # print(readings)
 
@@ -403,14 +341,10 @@ if __name__ == '__main__':
     lidar.engine.draw_environment(plt.gca())
     plt.scatter(x=[5.0], y=[5.0], color='green', marker='*')
 
-    # print([r[1].value for r in readings])
     lidar_points = np.array([r[1].value for r in readings if r[1] is not None])
     plt.scatter(lidar_points[:, 0], lidar_points[:, 1], color='red', zorder=2)
-    # print(lidar_points)
-
-    
-
     plt.show()
+
 
     locs = []
     all_lidar_points = []
