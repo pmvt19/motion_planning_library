@@ -35,7 +35,7 @@ class DubinsCarSolver():
         self.N = N
         self.dt = self.T / self.N
 
-        self.L = 10
+        self.L = 4
 
         self.opti = ca.Opti()
 
@@ -128,7 +128,39 @@ class DubinsCarSolver():
             self.phis[-1] = phi
             self.thetas[-1] = theta
 
+    def solve(self):
+        # Pick Solver
+        self.opti.solver('ipopt')
+
+        # Solve optimization problem
+        solution = self.opti.solve()
+        return solution
+
+    def format_solution(self, solution):
+        x_opt = solution.value(self.xs)
+        y_opt = solution.value(self.ys)
+        v_opt = solution.value(self.vs)
+        phi_opt = solution.value(self.phis)
+        theta_opt = solution.value(self.thetas)
+
+        accel_opt = solution.value(self.accels)
+        psi_opt = solution.value(self.psis)
+
+        states = np.stack((x_opt, y_opt, v_opt, phi_opt, theta_opt), axis=1)
+        controls = np.stack((accel_opt, psi_opt), axis=1)
+
+        return states, controls
         
+    def graph_solution(self, ax, solution):
+        states, controls = self.format_solution(solution)
+        ax.plot(states[:, 0], label='X')
+        ax.plot(states[:, 1], label='Y')
+        ax.plot(states[:, 2], label='V')
+        ax.plot(states[:, 3], label='Phi')
+        ax.plot(states[:, 4], label='Theta')
+
+        ax.plot(controls[:, 0], label='Accel')
+        ax.plot(controls[:, 1], label='Psi')
 
     # def 
 
