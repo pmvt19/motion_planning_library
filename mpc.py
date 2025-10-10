@@ -108,10 +108,25 @@ class DubinsCarSolver():
             self.opti.subject_to(self.psis[k] > self.control_range[1, 0])
             self.opti.subject_to(self.psis[k] < self.control_range[1, 1])
 
-        
+    def set_initial_conditions(self, starting_state):
+        x, y, v, phi, theta = starting_state
 
-            
-        
+        self.xs[0] = x
+        self.ys[0] = y
+        self.vs[0] = v
+        self.phis[0] = phi
+        self.thetas = theta
+
+    def set_goal_conditions(self, goal_state, positional_only=True):
+        x, y, v, phi, theta = goal_state
+
+        self.xs[-1] = x
+        self.ys[-1] = y
+
+        if (not positional_only):
+            self.vs[-1] = v
+            self.phis[-1] = phi
+            self.thetas[-1] = theta
 
         
 
