@@ -18,7 +18,7 @@ path = np.array([[0.0, 0.0],
                  [0.0, 25.0]])
 full_path = np.vstack((path, path[0:1, :]))
 
-interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.25) for i in range(len(full_path)-1)])
+interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.15) for i in range(len(full_path)-1)])
 interpolated_path = interpolated_path.reshape(-1, 2)
 print(interpolated_path.shape)
 
@@ -33,7 +33,8 @@ class DubinsCarSolver():
     def __init__(self, T=5, N=50):
         self.T = T 
         self.N = N
-        self.dt = self.T / self.N
+        # self.dt = self.T / self.N
+        self.dt = 0.1
 
         self.L = 4
 
@@ -109,8 +110,8 @@ class DubinsCarSolver():
             self.opti.subject_to(self.psis[k] > self.control_range[1, 0])
             self.opti.subject_to(self.psis[k] < self.control_range[1, 1])
 
-    def set_initial_conditions(self, starting_state):
-        x, y, v, phi, theta = starting_state
+    def set_initial_conditions(self, start_state):
+        x, y, v, phi, theta = start_state
 
         self.opti.subject_to(self.xs[0] == x)
         self.opti.subject_to(self.ys[0] == y)
@@ -150,8 +151,16 @@ class DubinsCarSolver():
         self.set_path_cost(path)
 
     def solve(self):
+
+        # Define solver options to suppress printing
+        opts = {
+            'ipopt.print_level': 0,  # Main verbosity level
+            'print_time': 0,         # Do not print information about execution time
+            'ipopt.sb': 'yes'        # Suppress the IPOPT license banner
+        }
+
         # Pick Solver
-        self.opti.solver('ipopt')
+        self.opti.solver('ipopt', opts)
 
         # Solve optimization problem
         solution = self.opti.solve()
@@ -192,19 +201,30 @@ class MPC():
         self.env = env
         self.solver_type = solver_type
 
-        self.horizon_dist = 10
+        self.horizon_dist = 50
         # self.path = None
 
         ## --- TEMP -- ##
         # Move out of here
+        # path = np.array([[0.0, 0.0],
+        #          [25.0, 0.0],
+        #          [25.0, 25.0],
+        #          [0.0, 25.0]])
         path = np.array([[0.0, 0.0],
-                 [25.0, 0.0],
-                 [25.0, 25.0],
-                 [0.0, 25.0]])
+                 [7.0, 0.0],
+                #  [7.0, 7.0],
+                [10.0, 10.0],
+                 [0.0, 7.0]])
         full_path = np.vstack((path, path[0:1, :]))
 
-        interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.25) for i in range(len(full_path)-1)])
-        interpolated_path = interpolated_path.reshape(-1, 2)
+        # interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.15) for i in range(len(full_path)-1)])
+        print([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.1).shape for i in range(len(full_path)-1)])
+        interpolated_path = [interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.1) for i in range(len(full_path)-1)]
+        # interpolated_path = interpolated_path.reshape(-1, 2)
+        interpolated_path = np.vstack((interpolated_path))
+        print(interpolated_path.shape)
+        # exit()
+        print(interpolated_path, len(interpolated_path))
         ## --- TEMP -- ##
 
         self.path = interpolated_path
@@ -215,20 +235,24 @@ class MPC():
 
         # ASSUME: State is a part of path segment
 
-        self.solver = self.solver_type()
-        self.solver.set_initial_conditions(start_state=state, goal_state=path_segment[-1, :2], path=path_segment)
+        self.solver = self.solver_type(N=self.horizon_dist)
+        goal_loc = path_segment[-1]
+        fake_goal_state = np.array([goal_loc[0], goal_loc[1], 0.0, 0.0, 0.0])
+        self.solver.init_solver(start_state=state, goal_state=fake_goal_state, path=path_segment)
         solution = self.solver.solve()
         states, controls = self.solver.format_solution(solution)
 
         control = controls[0]
+        print(np.round(state, 2), np.round(control, 2))
         new_state = self.env.simulate_step(state, control)
+        # new_state = states[1]
 
         return state, new_state, states, control
     
     def locate_on_path(self, state):
-        kd_tree = KDTree(interpolated_path)
-        dist, ind = kd_tree.query(state[:2])
-        # TODO: Format ind
+        kd_tree = KDTree(self.path)
+        dist, ind = kd_tree.query([state[:2]])
+        ind = ind.flatten()[0]
         return ind
         
     def get_path_horizon(self, cur_idx):
@@ -240,22 +264,32 @@ class MPC():
         path_segment = self.path[start_idx:end_idx]
         return path_segment
 
-    def visualize(self, ax, path_horizon):
-        pass
+    def visualize(self, ax, state, path_horizon):
+        self.env.draw_environment(ax)
+        self.env.draw_state(ax, state)
+        ax.plot(path_horizon[:, 0], path_horizon[:, 1], color='green', marker='o', zorder=2)
+
+        full_path = np.vstack((self.path, self.path[0:1, :]))
+        ax.plot(full_path[:, 0], full_path[:, 1], color='blue', marker='o', zorder=0)
     
     def run(self, start_state, visualize=False):
-        idx = self.locate_on_path(start_state)
-        horizon_idx = self.get_path_horizon(idx)
-        path_segment = self.get_path_segment(idx, horizon_idx)
-
         state = start_state
-        for i in range(10):
+        for i in range(1000):
+            idx = self.locate_on_path(state)
+            horizon_idx = self.get_path_horizon(idx)
+            path_segment = self.get_path_segment(idx, horizon_idx)
+
+        
             state, new_state, states, control = self.mpc_step(state, path_segment)
             state = new_state
-
+            state = self.env.get_state_value(state)
             if visualize:
-                self.visualize(plt.gca(), states)
-                # do_something()
+                # state or new_state here?
+                # I think state...???
+                plt.cla()
+                self.visualize(plt.gca(), state, states)
+                # plt.show()
+                plt.pause(0.1)
         
         
 
@@ -278,9 +312,9 @@ if __name__ == '__main__':
     solver = DubinsCarSolver()
     start_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
     goal_state = np.array([path_segment[-1, 0], path_segment[-1, 1], 0.0, 0.0, 0.0])
-    print(start_state)
-    print(goal_state)
-    print(path_segment)
+    # print(start_state)
+    # print(goal_state)
+    # print(path_segment)
     # exit()
     solver.init_solver(start_state=start_state, goal_state=goal_state, path=path_segment)
     solution = solver.solve()
@@ -314,5 +348,8 @@ if __name__ == '__main__':
         print(controls[i][0])
         print(state_seq[i].value)
         print("---")
-    env.animate_path(state_seq)
+    # env.animate_path(state_seq)
     # print(np.array([s.value for s in state_seq]))
+    
+    mpc = MPC(env=env)
+    mpc.run(start_state, visualize=True)
