@@ -75,7 +75,7 @@ class DubinsCarSolver():
 
         self.state_range = np.array([[-100, 100],
                                      [-100, 100],
-                                     [-3, 3],
+                                     [0, 3],
                                      [-np.pi/3, np.pi/3],
                                      [-np.inf, np.inf]])
 
@@ -98,7 +98,7 @@ class DubinsCarSolver():
             
 
     def set_control_constraints(self):
-        self.control_range = np.array([[-5.0, 5.0],
+        self.control_range = np.array([[-1.0, 5.0],
                                        [-1.0, 1.0]])
         
         for k in range(self.N):
@@ -138,7 +138,8 @@ class DubinsCarSolver():
         cost_function = 0
         # INFO: Path may or may not include the starting state
         # TODO: Deal with this case
-        for i in range(1, len(path)):
+        # for i in range(1, len(path)):
+        for i in range(len(path)-1, len(path)):
             cost_function += ((path[i, 0] - self.xs[i])**2 + (path[i, 1] - self.ys[i])**2)
         self.opti.minimize(cost_function)
     
@@ -212,8 +213,8 @@ class MPC():
         #          [0.0, 25.0]])
         path = np.array([[0.0, 0.0],
                  [7.0, 0.0],
-                #  [7.0, 7.0],
-                [10.0, 10.0],
+                 [7.0, 7.0],
+                # [10.0, 10.0],
                  [0.0, 7.0]])
         full_path = np.vstack((path, path[0:1, :]))
 
@@ -253,7 +254,8 @@ class MPC():
         kd_tree = KDTree(self.path)
         dist, ind = kd_tree.query([state[:2]])
         ind = ind.flatten()[0]
-        return ind
+        print(f"Choosing Ind: {ind}")
+        return ind+1
         
     def get_path_horizon(self, cur_idx):
         horizon_idx = cur_idx + self.horizon_dist # Normalize
@@ -311,6 +313,7 @@ if __name__ == '__main__':
 
     solver = DubinsCarSolver()
     start_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    # start_state = np.array([6.63, 0.27, 0.06, 1.01, 0.56])
     goal_state = np.array([path_segment[-1, 0], path_segment[-1, 1], 0.0, 0.0, 0.0])
     # print(start_state)
     # print(goal_state)
