@@ -39,8 +39,10 @@ class DubinsCarSolver():
 
         self.opti = ca.Opti()
 
+        self.set_optimization_variables()
+    
+    def set_optimization_variables(self):
         # State: x, y, v, phi, theta
-
         self.xs = self.opti.variable(self.N+1)
         self.ys = self.opti.variable(self.N+1)
         self.vs = self.opti.variable(self.N+1)
@@ -183,8 +185,81 @@ class DubinsCarSolver():
 
 def visualize_path(ax, path):
     full_path = np.vstack((path, path[0:1, :]))
-    print(full_path)
     ax.plot(full_path[:, 0], full_path[:, 1], marker='o')
+
+class MPC():
+    def __init__(self, env=DubinsCar(), solver_type=DubinsCarSolver):
+        self.env = env
+        self.solver_type = solver_type
+
+        self.horizon_dist = 10
+        # self.path = None
+
+        ## --- TEMP -- ##
+        # Move out of here
+        path = np.array([[0.0, 0.0],
+                 [25.0, 0.0],
+                 [25.0, 25.0],
+                 [0.0, 25.0]])
+        full_path = np.vstack((path, path[0:1, :]))
+
+        interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.25) for i in range(len(full_path)-1)])
+        interpolated_path = interpolated_path.reshape(-1, 2)
+        ## --- TEMP -- ##
+
+        self.path = interpolated_path
+
+    def mpc_step(self, state, path_segment):
+        # TODO: Uncomment
+        # assert(state is part of path_segment)
+
+        # ASSUME: State is a part of path segment
+
+        self.solver = self.solver_type()
+        self.solver.set_initial_conditions(start_state=state, goal_state=path_segment[-1, :2], path=path_segment)
+        solution = self.solver.solve()
+        states, controls = self.solver.format_solution(solution)
+
+        control = controls[0]
+        new_state = self.env.simulate_step(state, control)
+
+        return state, new_state, states, control
+    
+    def locate_on_path(self, state):
+        kd_tree = KDTree(interpolated_path)
+        dist, ind = kd_tree.query(state[:2])
+        # TODO: Format ind
+        return ind
+        
+    def get_path_horizon(self, cur_idx):
+        horizon_idx = cur_idx + self.horizon_dist # Normalize
+        horizon_idx = min(horizon_idx, len(self.path))
+        return horizon_idx
+    
+    def get_path_segment(self, start_idx, end_idx):
+        path_segment = self.path[start_idx:end_idx]
+        return path_segment
+
+    def visualize(self, ax, path_horizon):
+        pass
+    
+    def run(self, start_state, visualize=False):
+        idx = self.locate_on_path(start_state)
+        horizon_idx = self.get_path_horizon(idx)
+        path_segment = self.get_path_segment(idx, horizon_idx)
+
+        state = start_state
+        for i in range(10):
+            state, new_state, states, control = self.mpc_step(state, path_segment)
+            state = new_state
+
+            if visualize:
+                self.visualize(plt.gca(), states)
+                # do_something()
+        
+        
+
+
 
 
 if __name__ == '__main__':
@@ -216,9 +291,12 @@ if __name__ == '__main__':
     plt.show()
 
     env = DubinsCar()
+    env.x_range = [-5, 30]
+    env.y_range = [-5, 30]
     s = env.make_state(start_state)
     env.draw_environment(plt.gca())
     env.draw_state(plt.gca(), s)
+    visualize_path(plt.gca(), interpolated_path)
     # plt.plot(path_segment[:, 0], path_segment[:, 1], label='path', marker='o')
     plt.plot(states[:, 0], states[:, 1], color='green', label='mpc path', marker='o')
     
