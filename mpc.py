@@ -18,7 +18,7 @@ path = np.array([[0.0, 0.0],
                  [0.0, 25.0]])
 full_path = np.vstack((path, path[0:1, :]))
 
-interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.5) for i in range(len(full_path)-1)])
+interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.25) for i in range(len(full_path)-1)])
 interpolated_path = interpolated_path.reshape(-1, 2)
 print(interpolated_path.shape)
 
@@ -30,7 +30,7 @@ kd_tree = KDTree(interpolated_path)
 
 
 class DubinsCarSolver():
-    def __init__(self, T=10, N=100):
+    def __init__(self, T=5, N=50):
         self.T = T 
         self.N = N
         self.dt = self.T / self.N
@@ -52,8 +52,6 @@ class DubinsCarSolver():
 
     def set_motion_constraints(self):
         for k in range(self.N):
-            # print(self.thetas[k])
-            # self.thetas[k] -= (ca.pi/2)
             # X Transition
             self.opti.subject_to(self.xs[k+1] == self.xs[k] + self.dt * self.vs[k] * ca.cos(self.thetas[k]))
 
@@ -131,15 +129,23 @@ class DubinsCarSolver():
             self.opti.subject_to(self.phis[self.N] == phi)
         if component_mask[4]:
             self.opti.subject_to(self.thetas[self.N] == theta)
+
+    def set_path_cost(self, path):
+        # assert(len(path) == self.N)
+        cost_function = 0
+        # INFO: Path may or may not include the starting state
+        # TODO: Deal with this case
+        for i in range(1, len(path)):
+            cost_function += ((path[i, 0] - self.xs[i])**2 + (path[i, 1] - self.ys[i])**2)
+        self.opti.minimize(cost_function)
     
-    def init_solver(self, starting_state, goal_state):
-        
-        
-        self.set_initial_conditions(starting_state)
+    def init_solver(self, start_state, goal_state, path):
+        self.set_initial_conditions(start_state)
         self.set_goal_conditions(goal_state)
         self.set_motion_constraints()
         self.set_state_constraints()
         self.set_control_constraints()
+        self.set_path_cost(path)
 
     def solve(self):
         # Pick Solver
@@ -190,10 +196,18 @@ if __name__ == '__main__':
     # env.draw_state(plt.gca(), state)
     # plt.show()
 
+    path_segment = interpolated_path[:51, :]
+    print(path_segment.shape)
+    # exit()
+
     solver = DubinsCarSolver()
-    starting_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
-    goal_state = np.array([10.0, 0.0, 0.0, 0.0, 0.0])
-    solver.init_solver(starting_state=starting_state, goal_state=goal_state)
+    start_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    goal_state = np.array([path_segment[-1, 0], path_segment[-1, 1], 0.0, 0.0, 0.0])
+    print(start_state)
+    print(goal_state)
+    print(path_segment)
+    # exit()
+    solver.init_solver(start_state=start_state, goal_state=goal_state, path=path_segment)
     solution = solver.solve()
     states, controls = solver.format_solution(solution)
 
@@ -202,12 +216,19 @@ if __name__ == '__main__':
     plt.show()
 
     env = DubinsCar()
-    s = env.make_state(starting_state)
+    s = env.make_state(start_state)
     env.draw_environment(plt.gca())
     env.draw_state(plt.gca(), s)
-    plt.show()
+    # plt.plot(path_segment[:, 0], path_segment[:, 1], label='path', marker='o')
+    plt.plot(states[:, 0], states[:, 1], color='green', label='mpc path', marker='o')
+    
     controls = [(c, 0.1) for c in controls]
-    state_seq = env.simulate(starting_state=env.make_state(starting_state), control_seq=controls)
+    state_seq = env.simulate(starting_state=env.make_state(start_state), control_seq=controls)
+    state_seq_np = np.array([s.value for s in state_seq])
+    plt.plot(state_seq_np[:, 0], state_seq_np[:, 1], color='red', label='simulated path', marker='o')
+
+    plt.legend()
+    plt.show()
     for i in range(len(state_seq)-1):
         print("---")
         states[i, 4] = states[i, 4] % (2*np.pi)
