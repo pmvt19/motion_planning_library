@@ -21,7 +21,7 @@ class SLAM():
 
         # self.lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 10.0, os)
         # self.lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
-        self.lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, os)
+        self.lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 10, os)
         # self.lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 360, 4.9, os)
 
     def search_and_map(self, start, target):
@@ -48,8 +48,8 @@ class SLAM():
 
             # if cur_path:
             # choose_idx = 10 if len(cur_path) >= 11 else -1
-            # choose_idx = 10 if len(cur_path) >= 11 else -1
-            choose_idx = 4 if len(cur_path) >= 5 else -1
+            choose_idx = 10 if len(cur_path) >= 11 else -1
+            # choose_idx = 4 if len(cur_path) >= 5 else -1
             # choose_idx = 1
 
             # while cur_path[choose_idx] in visited:
@@ -69,11 +69,11 @@ class SLAM():
 
             readings = self.lidar.read_sensor(loc)
             self.om.update_map(self.lidar.engine.make_state(loc), readings)
-            self.om.buffer_obstacles(spread_value=0.9)
+            # self.om.buffer_obstacles(spread_value=0.9)
             cur_path = self.om.search(loc_state, self.target)
             # plt.clf()
             self.draw(axs, loc_state, cur_path)
-            plt.pause(0.5)
+            plt.pause(0.1)
 
             axs[0].clear()
             axs[1].clear()
