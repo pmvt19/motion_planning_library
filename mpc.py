@@ -75,7 +75,7 @@ class DubinsCarSolver():
 
         self.state_range = np.array([[-100, 100],
                                      [-100, 100],
-                                     [0, 3],
+                                     [-3, 3],
                                      [-np.pi/3, np.pi/3],
                                      [-np.inf, np.inf]])
 
@@ -141,11 +141,14 @@ class DubinsCarSolver():
         # for i in range(1, len(path)):
         for i in range(len(path)-1, len(path)):
             cost_function += ((path[i, 0] - self.xs[i])**2 + (path[i, 1] - self.ys[i])**2)
+
+        for i in range(1, len(path)//2):
+            cost_function += ((path[-1, 0] - self.xs[i])**2 + (path[-1, 1] - self.ys[i])**2)
         self.opti.minimize(cost_function)
     
     def init_solver(self, start_state, goal_state, path):
         self.set_initial_conditions(start_state)
-        self.set_goal_conditions(goal_state)
+        # self.set_goal_conditions(goal_state)
         self.set_motion_constraints()
         self.set_state_constraints()
         self.set_control_constraints()
@@ -202,7 +205,8 @@ class MPC():
         self.env = env
         self.solver_type = solver_type
 
-        self.horizon_dist = 50
+        # self.horizon_dist = 50
+        self.horizon_dist = 25
         # self.path = None
 
         ## --- TEMP -- ##
@@ -211,16 +215,26 @@ class MPC():
         #          [25.0, 0.0],
         #          [25.0, 25.0],
         #          [0.0, 25.0]])
+
+        # path = np.array([[0.0, 0.0],
+        #          [7.0, 0.0],
+        #          [7.0, 7.0],
+        #         # [10.0, 10.0],
+        #          [0.0, 7.0]])
+        
+
         path = np.array([[0.0, 0.0],
-                 [7.0, 0.0],
-                 [7.0, 7.0],
+                 [5.0, 5.0],
+                 [10.0, 4.0],
                 # [10.0, 10.0],
-                 [0.0, 7.0]])
-        full_path = np.vstack((path, path[0:1, :]))
+                 [14.0, 10.0]])
+        path = path * 2
+        # full_path = np.vstack((path, path[0:1, :]))
+        full_path = path
 
         # interpolated_path = np.array([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.15) for i in range(len(full_path)-1)])
         print([interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.1).shape for i in range(len(full_path)-1)])
-        interpolated_path = [interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.1) for i in range(len(full_path)-1)]
+        interpolated_path = [interpolate_edge(env.make_state(full_path[i]), env.make_state(full_path[i+1]), 0.25) for i in range(len(full_path)-1)]
         # interpolated_path = interpolated_path.reshape(-1, 2)
         interpolated_path = np.vstack((interpolated_path))
         print(interpolated_path.shape)
