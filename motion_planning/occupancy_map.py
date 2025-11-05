@@ -2,12 +2,12 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-from lidar import Lidar
-from obstacle_sets import BiasedPassage, RandomSamplePassage, ParkingSpace
-from space import PointRobot
-
 from scipy.signal import convolve2d
 from heapq import *
+
+from motion_planning.lidar import Lidar
+from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage, ParkingSpace
+from motion_planning.space import PointRobot
 
 def line_seg_to_points_dist(p1: np.ndarray, p2: np.ndarray, points: np.ndarray) -> np.ndarray:
     """

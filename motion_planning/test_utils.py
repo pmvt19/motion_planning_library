@@ -1,6 +1,7 @@
 import numpy as np
-from utils import interpolate_edge, batch_interpolate_edge, batch_interpolate_edge_uniform
-from space import PointRobot, PolygonalRobot, PlanarMobileArm
+
+from motion_planning.utils import interpolate_edge, batch_interpolate_edge, batch_interpolate_edge_uniform
+from motion_planning.space import PointRobot, PolygonalRobot, PlanarMobileArm
 
 if __name__ == '__main__':
     seed = np.random.randint(low=0, high=100)

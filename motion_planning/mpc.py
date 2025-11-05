@@ -1,14 +1,12 @@
 # Model Predictive Control
-
-# 
-
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import interpolate_edge
-from sklearn.neighbors import KDTree
 import casadi as ca
 
-from space import DubinsCar
+from sklearn.neighbors import KDTree
+
+from motion_planning.utils import interpolate_edge
+from motion_planning.space import DubinsCar
 
 env = DubinsCar()
 

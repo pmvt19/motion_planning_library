@@ -1,16 +1,17 @@
+import time
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt 
-from matplotlib.collections import LineCollection
-import time
 import multiprocessing
 import concurrent.futures
 
-from prm import IncrementalPRM, PRM
-from obstacle_sets import BiasedPassage
-from space import PointRobot
-from circle_approximation import ApproximationSpace
-from path import Path
+from matplotlib.collections import LineCollection
+
+from motion_planning.prm import IncrementalPRM, PRM
+from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.space import PointRobot
+from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.path import Path
 
 class Database():
     def __init__(self):

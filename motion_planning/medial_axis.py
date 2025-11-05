@@ -1,20 +1,19 @@
-# from skimage.morphology import medial_axis
-
-from space import PointRobot, PlanarMobileArm, PolygonalRobot
-from obstacle_sets import BiasedPassage, RandomSamplePassage, TestSet, ParkingSpace
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-from circle_approximation import ApproximationSpace
 
 from io import BytesIO
+from PIL import Image
 from skimage.morphology import medial_axis
+
+from space import PointRobot, PlanarMobileArm, PolygonalRobot
+from obstacle_sets import BiasedPassage, RandomSamplePassage, TestSet, ParkingSpace
+from circle_approximation import ApproximationSpace
 from utils import interpolate_path, smooth_path
 from prm import PRM
-
 from biased_rrt import BiasedSamplingRRT
 from rrt import RRT
-from PIL import Image
+
 
 # Medial Axis Can Either Guide PRM (Use as starting vertices) or RRT (Biased Sampling)
 

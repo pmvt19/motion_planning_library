@@ -1,17 +1,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import time
+
 from sklearn.neighbors import KDTree
 from collections import defaultdict
 from shapely import Polygon, Point
-import time
 from scipy.spatial import Voronoi, voronoi_plot_2d
-from space import PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm, DiscRobot
 from matplotlib.collections import LineCollection
-from state import NumpyState
-from utils import smooth_path, interpolate_path, issue_warning
-from path import Path
-from obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, BiasedPassage, WeavingPassage
-from circle_approximation import ApproximationSpace
+
+from motion_planning.space import PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm, DiscRobot
+from motion_planning.state import NumpyState
+from motion_planning.utils import smooth_path, interpolate_path, issue_warning
+from motion_planning.path import Path
+from motion_planning.obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, BiasedPassage, WeavingPassage
+from motion_planning.circle_approximation import ApproximationSpace
 
 import pickle
 

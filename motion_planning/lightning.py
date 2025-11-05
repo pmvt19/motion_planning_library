@@ -1,17 +1,17 @@
 import numpy as np
 import pickle
 import time
-
-from database import Database
-
-from space import RobotSpace, PointRobot
-from circle_approximation import ApproximationSpace
-from obstacle_sets import BiasedPassage
 import matplotlib.pyplot as plt
-from rrt import BiDirectionalRRT, RRT
-from path import Path
+
 from matplotlib.collections import LineCollection
-from utils import smooth_path, interpolate_path
+
+from motion_planning.database import Database
+from motion_planning.space import RobotSpace, PointRobot
+from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.rrt import BiDirectionalRRT, RRT
+from motion_planning.path import Path
+from motion_planning.utils import smooth_path, interpolate_path
 
 
 

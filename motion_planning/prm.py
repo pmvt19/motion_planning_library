@@ -1,17 +1,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from graph import Graph
-from space import RobotSpace, PointRobot, PolygonalRobot, PlanarMobileArm
-from circle_approximation import ApproximationSpace
-from circle_approximation_torch import ApproximationSpaceTorch
-from matplotlib.collections import LineCollection
 import time
-from heapq import heappop, heappush
-from state import NumpyState
-from utils import smooth_path, interpolate_edge, interpolate_path
-from path import Path
 # import threading 
-from obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage, WeavingPassage
+
+from matplotlib.collections import LineCollection
+from heapq import heappop, heappush
+
+from motion_planning.state import NumpyState
+from motion_planning.utils import smooth_path, interpolate_edge, interpolate_path
+from motion_planning.path import Path
+from motion_planning.graph import Graph
+from motion_planning.space import RobotSpace, PointRobot, PolygonalRobot, PlanarMobileArm
+from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.circle_approximation_torch import ApproximationSpaceTorch
+from motion_planning.obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage, WeavingPassage
 
 class PRM():
     def __init__(self, env : RobotSpace, num_samples=10, num_neighbors=None, edge_dist_radius=None, validate_edges=False):

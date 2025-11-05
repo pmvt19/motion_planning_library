@@ -1,13 +1,13 @@
-from space import PointRobot
-from rrt import RRT
 import numpy as np 
 import time
 import matplotlib.pyplot as plt
-from state import NumpyState, AngularNumpyState
-from circle_approximation import ApproximationSpace
-from obstacle_sets import ParkingSpace
 
-from utils import batch_interpolate_edge, batch_interpolate_edge_uniform
+from motion_planning.space import PointRobot
+from motion_planning.rrt import RRT
+from motion_planning.state import NumpyState, AngularNumpyState
+from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.obstacle_sets import ParkingSpace
+from motion_planning.utils import batch_interpolate_edge, batch_interpolate_edge_uniform
 
 
 if __name__ == '__main__':

@@ -3,17 +3,17 @@ import matplotlib.pyplot as plt
 import pickle
 import time
 
-from space import PointRobot, RobotSpace
-from obstacle_sets import BiasedPassage
-from database import Database
-from path import Path
 from collections import defaultdict
-from circle_approximation import ApproximationSpace
 from matplotlib.collections import LineCollection
-from utils import interpolate_path, smooth_path
 from sklearn.neighbors import KDTree
 
-from rrt import RRT
+from motion_planning.space import PointRobot, RobotSpace
+from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.database import Database
+from motion_planning.path import Path
+from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.utils import interpolate_path, smooth_path
+from motion_planning.rrt import RRT
 
 class OptimizedPDG():
     def __init__(self, env, db_path):

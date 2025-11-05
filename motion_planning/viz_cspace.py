@@ -1,8 +1,8 @@
 import numpy as np
-import pyvista as pv
-from space import PolygonalRobot
-from obstacle_sets import CentralObstacle
 import open3d as o3d
+
+from motion_planning.space import PolygonalRobot
+from motion_planning.obstacle_sets import CentralObstacle
 
 def compute_alpha_shape_mesh(pcd, alpha=0.05):
     """Compute mesh using alpha shape; returns a surface mesh ignoring internal points"""

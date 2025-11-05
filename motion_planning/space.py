@@ -1,14 +1,16 @@
 import numpy as np
-from shapely import Polygon, Point, LineString, affinity
-from state import NumpyState, AngularNumpyState
-import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
-from obstacle_sets import ObstacleSet, ParkingSpace
-from utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge, batch_interpolate_edge_uniform, rad2deg
 import time
+import matplotlib.pyplot as plt
+
+from matplotlib.collections import LineCollection
+from shapely import Polygon, Point, LineString, affinity
 from collections import defaultdict
 from sklearn.metrics import pairwise_distances
-from controller.xbox_controller import XboxController
+
+from motion_planning.state import NumpyState, AngularNumpyState
+from motion_planning.obstacle_sets import ObstacleSet, ParkingSpace
+from motion_planning.utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge, batch_interpolate_edge_uniform, rad2deg
+from motion_planning.controller.xbox_controller import XboxController
 
 class RobotSpace():
     def __init__(self):

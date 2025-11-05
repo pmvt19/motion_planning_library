@@ -1,14 +1,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import time
+
 from sklearn.neighbors import KDTree
 from collections import defaultdict
 from shapely import Polygon, Point
-import time
 from matplotlib.collections import LineCollection
-from state import NumpyState
-from utils import smooth_path
-from rrt import RRT 
-from space import PolygonalRobot
+
+from motion_planning.state import NumpyState
+from motion_planning.utils import smooth_path
+from motion_planning.rrt import RRT 
+from motion_planning.space import PolygonalRobot
 
 class RandomSampleGeneration(RRT):
     def __init__(self, env, num_neighbors=5, delta=0.5):

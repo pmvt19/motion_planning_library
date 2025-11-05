@@ -1,11 +1,13 @@
-from sklearn.neighbors import KDTree
+import time
 import numpy as np
 import matplotlib.pyplot as plt
+
+from sklearn.neighbors import KDTree
 from matplotlib.collections import LineCollection
 from heapq import heappush, heappop
 from collections import defaultdict
-import time
-from utils import issue_warning
+
+from motion_planning.utils import issue_warning
 
 class Graph():
     def __init__(self, vertices, num_neighbors=None, edge_dist_radius=None):

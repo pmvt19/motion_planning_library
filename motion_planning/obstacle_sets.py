@@ -1,6 +1,8 @@
-from shapely import Polygon
 import numpy as np
-from utils import create_rectangle_geometry
+
+from shapely import Polygon
+
+from motion_planning.utils import create_rectangle_geometry
 
 
 class ObstacleSet():

@@ -1,10 +1,10 @@
 import numpy as np
-from obstacle_sets import BiasedPassage
-from lidar import Lidar, SuperOptimizedLidar
-from space import PointRobot
 import time
-
 import matplotlib.pyplot as plt
+
+from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.lidar import Lidar, SuperOptimizedLidar
+from motion_planning.space import PointRobot
 
 def plot_readings(ax, readings, loc, title=''):
     ax.set_title(title)

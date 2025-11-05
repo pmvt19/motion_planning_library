@@ -1,13 +1,15 @@
-from space import RobotSpace, PlanarMobileArm, PolygonalRobot
-from obstacle_sets import TestSet, NonRegularPolygonObst
+import time
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.collections import PatchCollection
 import matplotlib.patches as patches
+
+from matplotlib.collections import PatchCollection
 from shapely import Point, Polygon
 from sklearn.metrics import pairwise_distances
-import time
+
+from motion_planning.space import RobotSpace, PlanarMobileArm, PolygonalRobot
+from motion_planning.obstacle_sets import TestSet, NonRegularPolygonObst
 
 class ApproximationSpace(RobotSpace):
     def __init__(self, space : RobotSpace, batch_size=1000, do_overapproximation=False):

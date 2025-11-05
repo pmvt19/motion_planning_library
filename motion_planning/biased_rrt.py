@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from rrt import RRT
-from sklearn.neighbors import KDTree
 import pickle
 
-from space import PointRobot
-from obstacle_sets import RandomSamplePassage, BiasedPassage
+from sklearn.neighbors import KDTree
+
+from motion_planning.rrt import RRT
+from motion_planning.space import PointRobot
+from motion_planning.obstacle_sets import RandomSamplePassage, BiasedPassage
 
 class BiasedSamplingRRT(RRT):
     def __init__(self, env, biased_points, points_bias=0.4, delta=0.5):

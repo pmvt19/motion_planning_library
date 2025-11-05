@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
-from state import NumpyState, AngularNumpyState
-from path import Path
 from copy import deepcopy
 from shapely import Polygon
-import math
+
+from motion_planning.state import NumpyState, AngularNumpyState
+from motion_planning.path import Path
 
 # from environments import Environment
 

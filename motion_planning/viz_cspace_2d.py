@@ -1,17 +1,17 @@
 import numpy as np
-from space import FixedArm, DiscRobot
-from circle_approximation import ApproximationSpace
-from obstacle_sets import TestSet, ParkingSpace
-import matplotlib.pyplot as plt
+import pygame
 import time
-from utils import smooth_path, interpolate_path
 import matplotlib
+import matplotlib.pyplot as plt
+
 from matplotlib.widgets import Slider
 
-import pygame
-from controller.xbox_controller import XboxController
-
-from rrt import RRT
+from motion_planning.utils import smooth_path, interpolate_path
+from motion_planning.controller.xbox_controller import XboxController
+from motion_planning.rrt import RRT
+from motion_planning.space import FixedArm, DiscRobot
+from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.obstacle_sets import TestSet, ParkingSpace
 
 # Interactive element 
 # - Shows workspace and cspace states as one uses the controller to manipulate the arm (Need to modify Holonomic Robots Class to make this work)

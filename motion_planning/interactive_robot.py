@@ -1,9 +1,10 @@
-from space import SkidSteerCar, DubinsCar
 import time
 import matplotlib.pyplot as plt
 import pygame
-from controller.xbox_controller import XboxController
-from obstacle_sets import ParkingSpace
+
+from motion_planning.space import SkidSteerCar, DubinsCar
+from motion_planning.controller.xbox_controller import XboxController
+from motion_planning.obstacle_sets import ParkingSpace
 
 def get_input(controller):
     controller.update_state()

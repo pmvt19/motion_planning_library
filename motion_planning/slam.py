@@ -2,11 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy
 
-from space import RobotSpace, DiscRobot
-from obstacle_sets import BiasedPassage, RandomSamplePassage
-
-from lidar import Lidar, OptimizedLidar, SuperOptimizedLidar
-from occupancy_map import OccupancyMap
+from motion_planning.space import RobotSpace, DiscRobot
+from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
+from motion_planning.lidar import Lidar, OptimizedLidar, SuperOptimizedLidar
+from motion_planning.occupancy_map import OccupancyMap
 
 
 class SLAM():
