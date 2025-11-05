@@ -7,3 +7,6 @@ trajectory_optimization/
 
 motion_planning/polygon_approx.py
 motion_planning/robot.py
+
+# Ignore Package Metadata Directory
+motion_planning.egg-info/
