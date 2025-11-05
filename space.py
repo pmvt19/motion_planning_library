@@ -851,7 +851,7 @@ class NonHolonomicRobot(RobotSpace):
     def __init__(self):
         super().__init__()
 
-        self.dt = 0.05
+        self.dt = 0.1
     
     def make_control(self, state : np.ndarray):
         raise NotImplementedError
@@ -1094,7 +1094,8 @@ class DubinsCar(NonHolonomicRobot):
     
     def generate_costmetic_robot_representation(self, state):
         x, y, v, phi, theta = self.get_state_value(state)
-        
+        theta -= np.pi/2
+        state = np.array([x, y, v, phi, theta])
         robot = self.generate_robot_representation(state)
         robot_centroid = robot.centroid
 
@@ -1112,7 +1113,7 @@ class DubinsCar(NonHolonomicRobot):
                                              y_loc=y+self.car_length/2-self.y_offset,
                                              x_width=self.wheel_width,
                                              y_length=self.wheel_length)
-        
+
         fr_wheel = affinity.rotate(fr_wheel, theta, use_radians=True, origin=robot_centroid)
         fl_wheel = affinity.rotate(fl_wheel, theta, use_radians=True, origin=robot_centroid)
 
@@ -1139,7 +1140,7 @@ class DubinsCar(NonHolonomicRobot):
     def state_derivative(self, state, control):
         x, y, v, phi, theta = self.get_state_value(state)
         a, psi = self.get_state_value(control)
-        theta += np.pi/2 # Hack to treat the upward direction as the 0 radians orientation (Should Fix)
+        # theta += np.pi/2 # Hack to treat the upward direction as the 0 radians orientation (Should Fix)
         x_dot = np.array([
                     v * np.cos(theta) * self.dt,
                     v * np.sin(theta) * self.dt,
