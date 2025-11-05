@@ -4,5 +4,5 @@ saves/
 saved_paths/
 trajectory_optimization/
 
-polygon_approx.py
-robot.py
+motion_planning/polygon_approx.py
+motion_planning/robot.py
