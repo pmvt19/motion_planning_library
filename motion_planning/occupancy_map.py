@@ -58,7 +58,7 @@ OCCUPIED = 1
 PATH = 1.5
 
 class OccupancyMap():
-    def __init__(self, resolution=0.1):
+    def __init__(self, resolution=0.1, x_range=None, y_range=None):
 
         
 
@@ -67,8 +67,8 @@ class OccupancyMap():
         # self.x_range = [-10,10]
         # self.y_range = [-10,10]
 
-        self.x_range = [0, 30]
-        self.y_range = [0, 10]
+        self.x_range = x_range
+        self.y_range = y_range
 
         # self.x_range = [-15,15]
         # self.y_range = [-15,15]
@@ -255,16 +255,20 @@ class OccupancyMap():
 
 if __name__ == '__main__':
     np.random.seed(0)
-    om = OccupancyMap()
-    os = BiasedPassage(num_walls=1)
+    
+    os = BiasedPassage(num_walls=5)
     # os = RandomSamplePassage(num_walls=1)
     # os = ParkingSpace()
     env = PointRobot()
     env.set_obstacles(os)
     env.draw_environment(plt.gca())
     plt.show()
+
+    om = OccupancyMap(x_range=env.x_range, y_range=env.y_range)
     # ls = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
     ls = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
+
+    
 
     # readings = ls.read_sensor(np.array((5.0,5.0)))
 
