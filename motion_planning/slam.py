@@ -11,12 +11,13 @@ from motion_planning.occupancy_map import OccupancyMap
 class SLAM():
     def __init__(self, env : RobotSpace):
         self.env : RobotSpace = env
-        self.om = OccupancyMap()
+        
 
         os = BiasedPassage(num_walls=2)
         # os = RandomSamplePassage(num_walls=2)
 
         self.env.set_obstacles(os)
+        self.om = OccupancyMap(x_range=self.env.x_range, y_range=self.env.y_range)
 
         # self.lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 10.0, os)
         # self.lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, os)
