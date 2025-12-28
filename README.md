@@ -19,9 +19,11 @@ This library most explores a class of motion planning algorithms known as sampli
 
 ![RRT Voronoi Diagram](./assets/RRT_Voronoi_Diagram.png)
 
-### BiDirectional RRT
+### Bi-Directional RRT
 
 ### RRT*
+
+### RSG
 
 ### PRM
 
@@ -34,6 +36,22 @@ This library most explores a class of motion planning algorithms known as sampli
 ### NonUniform PRM
 
 ### Lazy PRM
+
+# Visualizations
+
+## 2D C-Space
+
+< PLACEHOLDER >
+
+![2D C-Space Disc Robot](./assets/Disc_Robot_Motion.gif)
+
+< PLACEHOLDER >
+
+![2D C-Space Robot Arm](./assets/Robot_Arm.gif)
+
+## 3D C-Space
+
+![3D C-Space Polygonal Robot](./assets/Polygonal_Robot.png)
 
 # Acknowledgements
 This repository is heavily inspired by work done during my time at the Parasol Lab working with, at the time, PhD candidate Amnon Attali. A few items in this codebase are a reimplementation intended to better my skills with NumPy operations. 
