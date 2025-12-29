@@ -1,27 +1,5 @@
 # Praval's Motion Planning Library
 
-## Robots
-
-### Point Robot
-
-### Disc Robot
-
-Parameters:
-`Radius`
-
-### Polygonal Robot
-Parameters:
-`Height`
-`Width`
-
-### Planar Mobile Arm
-Parameters:
-`Base Height?`
-`Base Width?`
-`Number of Links`
-`Length of Links`
-
-
 ## Environments
 
 ### Deterministic Environments
@@ -45,6 +23,28 @@ Parameters:
 `Num Walls`
 
 ![Random Sample Passage Environment](./assets/environments/random_sample_passage.png)
+
+## Robots
+
+### Point Robot
+
+### Disc Robot
+
+Parameters:
+`Radius`
+
+### Polygonal Robot
+Parameters:
+`Height`
+`Width`
+
+### Planar Mobile Arm
+Parameters:
+`Base Height?`
+`Base Width?`
+`Number of Links`
+`Length of Links`
+
 
 ## Search Algorithms
 
