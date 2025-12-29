@@ -28,7 +28,8 @@ Parameters:
 
 #### Parking Space Environment
 
-![Parking Space Environment](./assets/environments/parking_space.png)
+<!-- ![Parking Space Environment](./assets/environments/parking_space.png) -->
+<img src="./assets/environments/parking_space.png" alt="Parking Space Environment" width="100%">
 
 ### Probabilistic Environments
 
