@@ -23,6 +23,7 @@ Parameters:
 ### Random Sample Passage
 Parameters:
 `Num Walls`
+`Gap Width`
 
 ![Random Sample Passage Environment](./assets/environments/random_sample_passage.png)
 
@@ -39,6 +40,13 @@ Parameters:
 Parameters:
 `Height`
 `Width`
+
+< PLACEHOLDER >
+
+<!-- ![Random Sample Passage Environment](./assets/robots/polygonal_robot.gif) -->
+<p align="center">
+<img src="./assets/robots/polygonal_robot.gif" alt="Parking Space Environment" width="75%">
+</p>
 
 ### Planar Mobile Arm
 Parameters:
