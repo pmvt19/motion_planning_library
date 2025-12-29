@@ -2,12 +2,47 @@
 
 ## Robots
 
+### Point Robot
+
+### Disc Robot
+
+Parameters:
+`Radius`
+
+### Polygonal Robot
+Parameters:
+`Height`
+`Width`
+
+### Planar Mobile Arm
+Parameters:
+`Base Height?`
+`Base Width?`
+`Number of Links`
+`Length of Links`
+
+
 ## Environments
+
+### Deterministic Environments
+
+#### Parking Space Environment
+
+### Probabilistic Environments
+
+### Biased Passage
+Parameters:
+`Num Walls`
+`Bias`
+
+### Random Sample Passage
+Parameters:
+`Num Walls`
 
 
 ## Search Algorithms
 
-This library most explores a class of motion planning algorithms known as sampling-based motion planning algorithms. This means each planning algorithm relies on probabilistic properties to alleviate some of the 
+This library mostly explores a class of motion planning algorithms known as sampling-based motion planning algorithms. This means each planning algorithm relies on probabilistic properties to alleviate some of the 
 
 ### RRT
 
@@ -17,7 +52,7 @@ This library most explores a class of motion planning algorithms known as sampli
 
 #### Why this works
 
-![RRT Voronoi Diagram](./assets/RRT_Voronoi_Diagram.png)
+![RRT Voronoi Diagram](./assets/rrt_voronoi_diagram.png)
 
 ### Bi-Directional RRT
 
