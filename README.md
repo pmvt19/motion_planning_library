@@ -36,6 +36,10 @@ Parameters:
 Parameters:
 `Radius`
 
+<p align="center">
+<img src="./assets/robots/disc_robot.gif" alt="Disc Robot" width="75%">
+</p>
+
 ### Polygonal Robot
 Parameters:
 `Height`
@@ -45,7 +49,7 @@ Parameters:
 
 <!-- ![Random Sample Passage Environment](./assets/robots/polygonal_robot.gif) -->
 <p align="center">
-<img src="./assets/robots/polygonal_robot.gif" alt="Parking Space Environment" width="75%">
+<img src="./assets/robots/polygonal_robot.gif" alt="Polygonal Robot" width="75%">
 </p>
 
 ### Planar Mobile Arm
