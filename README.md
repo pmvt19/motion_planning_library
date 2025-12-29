@@ -7,7 +7,9 @@
 #### Parking Space Environment
 
 <!-- ![Parking Space Environment](./assets/environments/parking_space.png) -->
-<img src="./assets/environments/parking_space.png" alt="Parking Space Environment" width="100%">
+<p align="center">
+<img src="./assets/environments/parking_space.png" alt="Parking Space Environment" width="75%">
+</p>
 
 ### Probabilistic Environments
 
@@ -48,7 +50,7 @@ Parameters:
 
 ## Search Algorithms
 
-This library mostly explores a class of motion planning algorithms known as sampling-based motion planning algorithms. This means each planning algorithm relies on probabilistic properties to alleviate some of the 
+This library mostly explores a class of motion planning algorithms known as sampling-based motion planning algorithms. This means each planning algorithm relies on probabilistic properties to alleviate some of the heavy compuation reqired for classical motion planning algorithms.
 
 ### RRT
 
