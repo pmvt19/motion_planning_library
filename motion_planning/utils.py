@@ -10,6 +10,15 @@ from motion_planning.path import Path
 
 # from environments import Environment
 
+def set_numpy_seed(seed=None):
+    if seed:
+        print(f"Setting Numpy Seed to {seed}")
+    else:
+        seed = np.random.randint(0, 10000)
+        print(f"Using Random Numpy Seed: {seed}")
+    np.random.seed(seed)
+    
+
 def issue_warning(condition, statement, level):
     WARNING = '\033[93m'
     FAIL = '\033[91m'
