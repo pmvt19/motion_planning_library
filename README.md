@@ -28,6 +28,8 @@ Parameters:
 
 #### Parking Space Environment
 
+![Parking Space Environment](./assets/environments/parking_space.png)
+
 ### Probabilistic Environments
 
 ### Biased Passage
@@ -35,10 +37,13 @@ Parameters:
 `Num Walls`
 `Bias`
 
+![Biased Passage Environment](./assets/environments/biased_passage.png)
+
 ### Random Sample Passage
 Parameters:
 `Num Walls`
 
+![Random Sample Passage Environment](./assets/environments/random_sample_passage.png)
 
 ## Search Algorithms
 
