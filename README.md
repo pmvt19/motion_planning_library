@@ -29,7 +29,7 @@ This library most explores a class of motion planning algorithms known as sampli
 
 < PLACEHOLDER >
 
-![PRM Graph](./assets/PRM_graph.png)
+![PRM Generation](./assets/prm.gif)
 
 ### Incremental PRM
 
