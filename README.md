@@ -72,7 +72,7 @@ This library mostly explores a class of motion planning algorithms known as samp
 
 < PLACEHOLDER >
 
-![RRT GIF](./assets/RRT_GIF.gif)
+![RRT GIF](./assets/rrt.gif)
 
 #### Why this works
 
@@ -84,10 +84,20 @@ This library mostly explores a class of motion planning algorithms known as samp
 
 ### RSG
 
-### PRM
+### PRM (Probabiilistic Roadmap)
 
-< PLACEHOLDER >
+Unlike RRT which is a single query planner, PRM generates a roadmap that can be required for multiple tasks within the same configuration space. The bulk of the computation for PRM is done during the creation of the roadmap. 
 
+
+The standard PRM algorithm is as follows:
+
+1. Sample N Random Points in the Configuration Space
+2. Validate All Sampled Points and Remove Invalid Points
+3. Attempt Edge Connections with either M Neighbors or All Other Points within Radius R and Keep Only Valid Edges
+4. Attach the `start` and `target` nodes to the roadmap and validate their edges
+5. Use a shortest path algorithm such as Dijkstra's or A* to solve for the path
+
+The following is a GIF of the generation of a PRM
 ![PRM Generation](./assets/prm.gif)
 
 ### Incremental PRM
