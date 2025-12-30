@@ -59,6 +59,10 @@ Parameters:
 `Number of Links`
 `Length of Links`
 
+<p align="center">
+<img src="./assets/robots/planar_mobile_arm.gif" alt="Planar Mobile Arm Robot" width="75%">
+</p>
+
 
 ## Search Algorithms
 
