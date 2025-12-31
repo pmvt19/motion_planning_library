@@ -78,7 +78,10 @@ This library mostly explores a class of motion planning algorithms known as samp
 
 #### Why this works
 
-![RRT Voronoi Diagram](./assets/rrt_voronoi_diagram.png)
+<!-- ![RRT Voronoi Diagram](./assets/rrt_voronoi_diagram.png) -->
+<p align="center">
+<img src="./assets/rrt_voronoi_diagram.png" alt="RRT Voronoi Diagram" width="75%">
+</p>
 
 ### Bi-Directional RRT
 
@@ -114,7 +117,7 @@ The following is a GIF of the generation of a PRM
 
 < PLACEHOLDER >
 
-![2D C-Space Disc Robot](./assets/Disc_Robot_Motion.gif)
+![2D C-Space Disc Robot](./assets/disc_robot_cspace_viz.gif)
 
 < PLACEHOLDER >
 
