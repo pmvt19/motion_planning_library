@@ -72,7 +72,9 @@ This library mostly explores a class of motion planning algorithms known as samp
 
 < PLACEHOLDER >
 
-![RRT GIF](./assets/rrt.gif)
+<p align="center">
+<img src="./assets/rrt.gif" alt="RRT GIF" width="75%">
+</p>
 
 #### Why this works
 
