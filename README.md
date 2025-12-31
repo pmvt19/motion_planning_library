@@ -18,14 +18,20 @@ Parameters:
 `Num Walls`
 `Bias`
 
-![Biased Passage Environment](./assets/environments/biased_passage.png)
+<!-- ![Biased Passage Environment](./assets/environments/biased_passage.png) -->
+<p align="center">
+<img src="./assets/environments/biased_passage.png" alt="Biased Passage Environment" width="75%">
+</p>
 
 ### Random Sample Passage
 Parameters:
 `Num Walls`
 `Gap Width`
 
-![Random Sample Passage Environment](./assets/environments/random_sample_passage.png)
+<!-- ![Random Sample Passage Environment](./assets/environments/random_sample_passage.png) -->
+<p align="center">
+<img src="./assets/environments/random_sample_passage.png" alt="Random Sample Passage Environment" width="75%">
+</p>
 
 ## Robots
 
@@ -117,9 +123,11 @@ The following is a GIF of the generation of a PRM
 
 < PLACEHOLDER >
 
+Disc Robot Workspace and $\mathcal{C}$-Space Visualization
+
 ![2D C-Space Disc Robot](./assets/disc_robot_cspace_viz.gif)
 
-< PLACEHOLDER >
+Fixed Arm Workspace and $\mathcal{C}$-Space Visualization
 
 ![2D C-Space Robot Arm](./assets/Robot_Arm.gif)
 
