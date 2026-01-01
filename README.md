@@ -109,11 +109,21 @@ The standard PRM algorithm is as follows:
 5. Use a shortest path algorithm such as Dijkstra's or A* to solve for the path
 
 The following is a GIF of the generation of a PRM
-![PRM Generation](./assets/prm.gif)
+<p align="center">
+<img src="./assets/prm.gif" alt="PRM Generation" width="75%">
+</p>
 
 ### Incremental PRM
 
+<p align="center">
+<img src="./assets/incremental_prm.gif" alt="Incremental PRM Generation" width="75%">
+</p>
+
 ### NonUniform PRM
+
+<p align="center">
+<img src="./assets/nonuniform_prm.png" alt="Non-Uniform PRM" width="75%">
+</p>
 
 ### Lazy PRM
 
