@@ -12,7 +12,7 @@ from motion_planning.path import Path
 from motion_planning.graph import Graph
 from motion_planning.space import RobotSpace, PointRobot, PolygonalRobot, PlanarMobileArm
 from motion_planning.circle_approximation import ApproximationSpace
-from motion_planning.circle_approximation_torch import ApproximationSpaceTorch
+# from motion_planning.circle_approximation_torch import ApproximationSpaceTorch
 from motion_planning.obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage, WeavingPassage
 
 class PRM():
@@ -42,8 +42,8 @@ class PRM():
         # vertices = self.generate_sample_points(starting_samples=starting_samples)
         vertices = self.batch_generate_sample_points(starting_samples=starting_samples)
         self.graph = Graph(vertices=vertices, num_neighbors=self.num_neighbors, edge_dist_radius=self.edge_dist_radius)
-        # if self.validate_edges:
-            # self.batch_validate_graph_edges()
+        if self.validate_edges:
+            self.batch_validate_graph_edges()
 
     def validate_graph_edges(self):
         self.invalid_edges = []
@@ -86,6 +86,7 @@ class PRM():
 
         for parent, child in invalid_ids:
             self.graph.edges[parent].remove(child)
+            self.invalid_edges.append((parent, child))
 
     def batch_validate_graph_edges_cached(self):
         """
@@ -134,7 +135,8 @@ class PRM():
     def draw(self, ax, path=None, plot_invalid_edges=False, show_task=False):
         self.graph.draw(ax)
         if plot_invalid_edges:
-            ax.add_collection(LineCollection(self.invalid_edges, color='orange'))
+            invalid_edges = [(self.graph.vertices[edge[0]], self.graph.vertices[edge[1]]) for edge in self.invalid_edges]
+            ax.add_collection(LineCollection(invalid_edges, color='#a61107'))
         if show_task:
             ax.scatter(self.start.value[0], self.start.value[1], s=100, color='green')
             ax.scatter(self.target.value[0], self.target.value[1], s=100, color='red')
@@ -150,8 +152,8 @@ class PRM():
         self.graph.add_vertex(start.value)
         self.graph.add_vertex(target.value)
 
-        if self.validate_edges:
-            self.batch_validate_graph_edges()
+        # if self.validate_edges:
+        #     self.batch_validate_graph_edges()
 
         # Solve with A* or Dijkstra's Algorithm
         path = self.graph.dijkstra_search(start=start.value, end=target.value)
@@ -200,6 +202,7 @@ class LazyPRM(PRM):
             
             visited[node] = parent
 
+            to_remove = set()
             for i, nidx in enumerate(self.graph.edges[node]):
                 if nidx != -1:
                     edge_is_valid = self.env.is_valid_edge(self.env.make_state(self.graph.vertices[nidx]), self.env.make_state(self.graph.vertices[node]))
@@ -207,7 +210,14 @@ class LazyPRM(PRM):
                         ext_dist = np.linalg.norm(self.graph.vertices[nidx] - self.graph.vertices[node])
                         heappush(q, (dist + ext_dist, nidx, node))
                     else:
-                        self.graph.edges[node, i] = -1
+                        # self.graph.edges[node, i] = -1
+                        # self.graph.edges[node].remove(nidx)
+                        print("Removing edges")
+                        to_remove.add(nidx)
+
+            # Remove Invalid Edges
+            for nidx in to_remove:
+                self.graph.edges[node].remove(nidx)
         return None
         
     def search(self, start, target):
@@ -325,9 +335,9 @@ if __name__ == "__main__":
     print(f"Seed: {seed}")
     np.random.seed(seed)
 
-    # env = PointRobot()
+    env = PointRobot()
     # env = PolygonalRobot()
-    env = PlanarMobileArm()
+    # env = PlanarMobileArm()
 
     env.set_obstacles(ParkingSpace())
     # env.set_obstacles(WeavingPassage())
@@ -337,15 +347,15 @@ if __name__ == "__main__":
     # env.set_obstacles(TestSet())
 
     start, target = env.sample_task()
-    # env = ApproximationSpace(env, batch_size=1000, do_overapproximation=False)
+    env = ApproximationSpace(env, batch_size=1000, do_overapproximation=False)
     # env = ApproximationSpaceTorch(env, batch_size=10000, do_overapproximation=False)
     start_time = time.time()
-    # prm = PRM(env=env, num_samples=5000, num_neighbors=10, validate_edges=True)
+    prm = PRM(env=env, num_samples=5000, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=20000, num_neighbors=10, validate_edges=True)
     # prm = PRM(env=env, num_samples=1000, edge_dist_radius=2.4, validate_edges=True)
     # prm = PRM(env=env, num_samples=5000, edge_dist_radius=0.5, validate_edges=True)
     # prm = NonUniformPRM(env=env, num_samples=10000, num_neighbors=10, validate_edges=True)
-    prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
+    # prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
 
     # prm = IncrementalPRM(env=env, num_samples=10000, num_neighbors=5)
     # prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
