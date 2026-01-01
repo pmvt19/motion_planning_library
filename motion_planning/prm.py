@@ -210,9 +210,6 @@ class LazyPRM(PRM):
                         ext_dist = np.linalg.norm(self.graph.vertices[nidx] - self.graph.vertices[node])
                         heappush(q, (dist + ext_dist, nidx, node))
                     else:
-                        # self.graph.edges[node, i] = -1
-                        # self.graph.edges[node].remove(nidx)
-                        print("Removing edges")
                         to_remove.add(nidx)
 
             # Remove Invalid Edges
