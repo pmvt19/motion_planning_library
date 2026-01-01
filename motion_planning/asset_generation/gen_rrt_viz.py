@@ -21,13 +21,13 @@ def search_and_save(rrt: RRT, start, target, max_steps=10000, goal_bias=0.1, sta
         plt.savefig(f'saves/rrt/rrt_steps/step_{num_steps}.png')
         plt.clf()
         num_steps += 1
-
+    print(f"Found in {num_steps}")
     path = rrt.backtrack(end=target)
     
     return path
 
 if __name__ == '__main__':
-    set_numpy_seed()
+    set_numpy_seed(0)
 
     # Create Robot Environment with Biased Passage Obstacles
     env = PointRobot()
@@ -39,14 +39,14 @@ if __name__ == '__main__':
     # Assign Fixed Start and Target Positions
     start, target = env.make_state(np.array([2.5, 5.0])), env.make_state(np.array([17.5, 5.0]))
 
-    # # Use Custom Search Function To Search and Save Steps
-    # # Caution: Can Generate Large Files
-    # path = search_and_save(rrt, start, target, max_steps=4000, goal_bias=0.0)
+    # Use Custom Search Function To Search and Save Steps
+    # Caution: Can Generate Large Files
+    path = search_and_save(rrt, start, target, max_steps=4000, goal_bias=0.08)
 
-    # # Draw Final Tree with Path
-    # plt.clf()
-    # rrt.draw_tree(plt.gca(), path=path)
-    # plt.savefig('saves/rrt/rrt_steps/final.png')
+    # Draw Final Tree with Path
+    plt.clf()
+    rrt.draw_tree(plt.gca(), path=path)
+    plt.savefig('saves/rrt/rrt_steps/final.png')
 
     rrt = RRT(env, delta=1.0)
     rrt.search(start, target, max_steps=25, goal_bias=0.0)
