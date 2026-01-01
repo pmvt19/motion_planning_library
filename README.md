@@ -90,6 +90,9 @@ This library mostly explores a class of motion planning algorithms known as samp
 </p>
 
 ### Bi-Directional RRT
+<p align="center">
+<img src="./assets/bidir_rrt.gif" alt="BiDirectional RRT GIF" width="75%">
+</p>
 
 ### RRT*
 
