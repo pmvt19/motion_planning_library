@@ -84,17 +84,25 @@ This library mostly explores a class of motion planning algorithms known as samp
 
 #### Why this works
 
+RRT is inherently biased to expore open regions of the $\mathcal{C}$-Space first, then fill in the gaps later due to the **voronoi bias**. 
+
 <!-- ![RRT Voronoi Diagram](./assets/rrt_voronoi_diagram.png) -->
 <p align="center">
 <img src="./assets/rrt_voronoi_diagram.png" alt="RRT Voronoi Diagram" width="75%">
 </p>
 
 ### Bi-Directional RRT
+
 <p align="center">
 <img src="./assets/bidir_rrt.gif" alt="BiDirectional RRT GIF" width="75%">
 </p>
 
 ### RRT*
+
+Unlike RRT, RRT* attempts to find an asymptotically optimal path (i.e. the shortest path between configuration $p$ and $q$). This is done by adding an additional step to the RRT expansion step: rewiring. The goal of the rewiring step is to make the newly added node in the tree have the shortest path to the starting (root) configuration using the existing tree structure. 
+
+
+This means that the tree will not stop building after finding an initial path from $p$ to the $q$; it will continuosly search, refining the path until it hits its maximum runtime.
 
 ### RSG
 
@@ -144,9 +152,8 @@ Fixed Arm Workspace and $\mathcal{C}$-Space Visualization
 
 ![2D C-Space Robot Arm](./assets/Robot_Arm.gif)
 
-## 3D C-Space
-
-![3D C-Space Polygonal Robot](./assets/Polygonal_Robot.png)
+<!-- ## 3D C-Space
+![3D C-Space Polygonal Robot](./assets/Polygonal_Robot.png) -->
 
 # Acknowledgements
 This repository is heavily inspired by work done during my time at the Parasol Lab working with, at the time, PhD candidate Amnon Attali. A few items in this codebase are a reimplementation intended to better my skills with NumPy operations. 
