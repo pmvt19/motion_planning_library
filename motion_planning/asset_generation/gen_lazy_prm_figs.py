@@ -12,9 +12,10 @@ from motion_planning.state import NumpyState
 from motion_planning.path import Path
 
 def draw_invalid_edges(ax, edges):
-    ax.add_collection(LineCollection(edges, color='#a61107'))
+    # ax.add_collection(LineCollection(edges, color='#a61107'))
+    ax.add_collection(LineCollection(edges, color="#c00789"))
 
-def lazy_search(prm, start: NumpyState, target: NumpyState, max_iter: int = 1000):
+def lazy_search(prm, start: NumpyState, target: NumpyState, max_iter: int = 1000, save_figs: bool = False):
         i = 0
         
         while i < max_iter:
@@ -33,8 +34,12 @@ def lazy_search(prm, start: NumpyState, target: NumpyState, max_iter: int = 1000
             invalid_edges = [(start_edge_states[idx], end_edge_states[idx]) for idx in invalid_edge_idxes]
             prm.draw(plt.gca(), path=potential_path_wrapped, show_task=True)
             draw_invalid_edges(plt.gca(), invalid_edges)
-            # plt.show()
-            plt.savefig(f'saves/lazy_prm/step_{i}.png')
+
+            if save_figs:
+                plt.savefig(f'saves/lazy_prm/step_{i}.png')
+                plt.clf()
+            else:
+                plt.show()
 
             if len(invalid_edge_idxes) == 0: 
                 return potential_path
@@ -50,7 +55,7 @@ def lazy_search(prm, start: NumpyState, target: NumpyState, max_iter: int = 1000
         
             i += 1
 
-def search(prm, start, target):
+def search(prm, start, target, save_figs=False):
     prm.start = start 
     prm.target = target
 
@@ -59,7 +64,7 @@ def search(prm, start, target):
     prm.graph.add_vertex(target.value)
 
     # Solve with A* or Dijkstra's Algorithm
-    path = lazy_search(prm, start=start, target=target)
+    path = lazy_search(prm, start=start, target=target, save_figs=save_figs)
     if path:
         path = Path([prm.env.make_state(p) for p in path])
     # Return final Path
@@ -71,7 +76,6 @@ if __name__ == '__main__':
 
     # Create Robot Environment with Random Sample Passage Obstacles
     env = PointRobot()
-    # os = RandomSamplePassage(num_walls=2)
     os = BiasedPassage()
     env.set_obstacles(os)
 
@@ -81,7 +85,7 @@ if __name__ == '__main__':
     start, target = env.make_state(np.array([2.5, 5.0])), env.make_state(np.array([17.5, 5.0]))
 
     prm.create_graph()
-    path = search(prm, start, target)
+    path = search(prm, start, target, save_figs=True)
 
     env.draw_environment(plt.gca())
     prm.draw(plt.gca(), path=path)
