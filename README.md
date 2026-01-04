@@ -86,6 +86,8 @@ This library mostly explores a class of motion planning algorithms known as samp
 
 RRT is inherently biased to expore open regions of the $\mathcal{C}$-Space first, then fill in the gaps later due to the **voronoi bias**. 
 
+< PLACEHOLDER >
+
 <!-- ![RRT Voronoi Diagram](./assets/rrt_voronoi_diagram.png) -->
 <p align="center">
 <img src="./assets/rrt_voronoi_diagram.png" alt="RRT Voronoi Diagram" width="75%">
@@ -160,6 +162,8 @@ The following is a GIF of Lazy PRM Searching for a path with the invalid edges m
 <img src="./assets/lazy_prm.gif" alt="Lazy PRM" width="75%">
 </p>
 
+# PDG (Path Database Guidance)
+
 # Visualizations
 
 ## 2D C-Space
@@ -182,4 +186,4 @@ Fixed Arm Workspace and $\mathcal{C}$-Space Visualization
 ## Circle Approximations For the Environment and Robot
 
 # Acknowledgements
-This repository is heavily inspired by work done during my time at the Parasol Lab working with, at the time, PhD candidate Amnon Attali. A few items in this codebase are a reimplementation intended to better my skills with NumPy operations. 
+This repository is heavily inspired by work done during my time at the Parasol Lab working with, at the time, PhD candidate Amnon Attali. A few items in this codebase are a reimplementation intended to better my skills with NumPy and general motion planning fundamentals. 
