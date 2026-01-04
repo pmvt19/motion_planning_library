@@ -135,11 +135,18 @@ The following is a GIF of Incremental PRM iteratively extending the roadmap to c
 
 ### NonUniform PRM
 
+Typically, building PRMs sample uniformly in the robot's $\mathcal{C}$-Space; however, many nodes in open areas of the $\mathcal{C}$-Space may not be as beneficial as nodes on the border of $\mathcal{C}_{free}$ and $\mathcal{C}_{obst}$.
+
+NonUniform PRM works by initially sampling a set of nodes in the configuration space uniformly (just like traditional PRM), adding some normally distributed noise to the points, and comparing if one of the original points or noise affected points are in $\mathcal{C}_{free}$ while the other is in $\mathcal{C}_{obst}$. This means that we retain the node only if exactly one of the configuration (either the originally sampled one or the noise affected one) is in $\mathcal{C}_{free}$. This ensures that retained nodes are typically near $\mathcal{C}_{obst}$ regions.
+
+The following is an example of a roadmap generated via the NonUniform PRM algorithm:
 <p align="center">
 <img src="./assets/nonuniform_prm.png" alt="Non-Uniform PRM" width="75%">
 </p>
 
 ### Lazy PRM
+
+Lazy PRM works almost exactly like PRM, but delays the most computationally expensive part of the algorithm: the edge collision checks. In traditional PRM, we validate all the edges of our roadmap before attempting to find a path from the start to the target.
 
 # Visualizations
 
