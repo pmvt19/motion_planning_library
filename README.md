@@ -146,7 +146,16 @@ The following is an example of a roadmap generated via the NonUniform PRM algori
 
 ### Lazy PRM
 
-Lazy PRM works almost exactly like PRM, but delays the most computationally expensive part of the algorithm: the edge collision checks. In traditional PRM, we validate all the edges of our roadmap before attempting to find a path from the start to the target.
+Lazy PRM works almost exactly like PRM, but delays the most computationally expensive part of the algorithm: the edge collision checks. In traditional PRM, we validate all the edges of our roadmap before attempting to find a path from the start to the target. 
+
+In contrast, Lazy PRM does not validate edges before attempting to search for a path. Instead Lazy PRM validates the edges of only potential paths connecting the start to the target. 
+
+Lazy PRM searchs for an initial potential path in the roadmap. If found, it then validates all the edges in the potential path. If there are no invalid edges in the potential path, the algorithm will simply return that path as the final path. However, if there are invalid edges in the path, Lazy PRM will remove those edges from the roadmap and search again from a path from the start to the target. This will repeat until either a path is found with no invalid edges or it reaches a maximum number of iterations.
+
+The following is a GIF of Lazy PRM Searching for a path with the invalid edges marked in pink:
+<p align="center">
+<img src="./assets/lazy_prm.gif" alt="Lazy PRM" width="75%">
+</p>
 
 # Visualizations
 
