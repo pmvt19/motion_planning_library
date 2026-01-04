@@ -93,6 +93,9 @@ RRT is inherently biased to expore open regions of the $\mathcal{C}$-Space first
 
 ### Bi-Directional RRT
 
+Bi-Directional RRT attempts to grow two trees: one from the start (just like RRT) and one from the target. If the trees have any nodes within a certain thresholded distance between them and the edge connecting the two nodes are valid, then the trees connect and a valid path between the start and the target is found.
+
+The following is a GIF showing the start tree (orange) and the target tree (blue) growing towards each other and connecting in the middle:
 <p align="center">
 <img src="./assets/bidir_rrt.gif" alt="BiDirectional RRT GIF" width="75%">
 </p>
