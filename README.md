@@ -86,11 +86,17 @@ Parameters:
 
 ## Search Algorithms
 
-This library mostly explores a class of motion planning algorithms known as sampling-based motion planning algorithms. This means each planning algorithm relies on probabilistic properties to alleviate some of the heavy compuation reqired for classical motion planning algorithms.
+This library mostly explores a class of motion planning algorithms known as sampling-based motion planning algorithms. This means each planning algorithm relies on probabilistic properties to alleviate some of the heavy compuation required for classical motion planning algorithms.
 
 ### RRT
 
-< PLACEHOLDER >
+Steps:
+<!-- Add Math Notation? -->
+1. Initialize Search Tree with Root Node as Start
+2. Randomly Sample a Valid Point in the $\mathcal{C}$-Space
+3. Find the Closest Node on the Search Tree to the Sampled Point
+4. Extend the Closest Node a Fixed Distance $\delta$ Toward the Sampled Point and Add this Node as a Child of the Closest Node
+5. Repeat steps 2-4 until the target is within a certain distance of the new node
 
 <p align="center">
 <img src="./assets/rrt.gif" alt="RRT GIF" width="75%">
