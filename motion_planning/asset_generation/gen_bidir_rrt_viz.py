@@ -6,6 +6,7 @@ from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.utils import set_numpy_seed
 
+# To Record a Video and Convert to GIF Online
 if __name__ == '__main__':
     set_numpy_seed(8381)
 
