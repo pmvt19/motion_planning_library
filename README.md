@@ -126,6 +126,9 @@ The following is a GIF of the generation of a PRM
 
 ### Incremental PRM
 
+Similar to traditional PRM, Incremental PRM also builds a roadmap in the $\mathcal{C}$-Space, but will continue to add nodes until the start and target configuration are in the same connected component. Once $p$ and $q$ are in the same connected component, this means there exists a valid path from start to the target, and thus this search algorithm can stop extending the graph and return the shortest path connecting the start and target via the existing roadmap.
+
+The following is a GIF of Incremental PRM iteratively extending the roadmap to connect the start and target:
 <p align="center">
 <img src="./assets/incremental_prm.gif" alt="Incremental PRM Generation" width="75%">
 </p>
@@ -154,6 +157,10 @@ Fixed Arm Workspace and $\mathcal{C}$-Space Visualization
 
 <!-- ## 3D C-Space
 ![3D C-Space Polygonal Robot](./assets/Polygonal_Robot.png) -->
+
+# Accelerated Collision Checks
+
+## Circle Approximations For the Environment and Robot
 
 # Acknowledgements
 This repository is heavily inspired by work done during my time at the Parasol Lab working with, at the time, PhD candidate Amnon Attali. A few items in this codebase are a reimplementation intended to better my skills with NumPy operations. 
