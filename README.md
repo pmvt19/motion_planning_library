@@ -1,5 +1,14 @@
 # Praval's Motion Planning Library
 
+# Usage
+
+## Installation
+`git clone url`
+
+`cd motion_planning_library`
+
+`pip install -e .`
+
 ## Environments
 
 ### Deterministic Environments
@@ -162,7 +171,7 @@ The following is a GIF of Lazy PRM Searching for a path with the invalid edges m
 <img src="./assets/lazy_prm.gif" alt="Lazy PRM" width="75%">
 </p>
 
-# PDG (Path Database Guidance)
+<!-- # PDG (Path Database Guidance) -->
 
 # Visualizations
 
@@ -184,6 +193,29 @@ Fixed Arm Workspace and $\mathcal{C}$-Space Visualization
 # Accelerated Collision Checks
 
 ## Circle Approximations For the Environment and Robot
+
+Environments consisting of rectangles can be approximated using this implementation.
+
+Robots consisting of points/circles, line segments, and rectangles can all be approximated using circles in this implementation.
+
+
+### Original Robot Representation
+<p align="center">
+<img src="./assets/environments/circle_approx/circle_approx_base.png" alt="Base Environment" width="75%">
+</p>
+
+### Circle Approximation Representation
+<p align="center">
+<img src="./assets/environments/circle_approx/circle_approx.png" alt="Circle Approximated Environment" width="75%">
+</p>
+
+### Under and Over Approximations
+<p align="center">
+<img src="./assets/environments/circle_approx/circle_approx_under.png" alt="Circle-based Under-Approximated Environment" width="75%">
+</p>
+<p align="center">
+<img src="./assets/environments/circle_approx/circle_approx_over.png" alt="Circle-based Over-Approximated Environment" width="75%">
+</p>
 
 # Acknowledgements
 This repository is heavily inspired by work done during my time at the Parasol Lab working with, at the time, PhD candidate Amnon Attali. A few items in this codebase are a reimplementation intended to better my skills with NumPy and general motion planning fundamentals. 
