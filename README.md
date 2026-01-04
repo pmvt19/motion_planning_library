@@ -3,6 +3,9 @@
 # Usage
 
 ## Installation
+
+Python Version: `3.12.9`
+
 `git clone url`
 
 `cd motion_planning_library`
@@ -45,6 +48,8 @@ Parameters:
 ## Robots
 
 ### Point Robot
+
+This robot is a zero-radius point in 2D space. It is represented by its $x$ and $y$ position.
 
 ### Disc Robot
 
@@ -210,9 +215,12 @@ Robots consisting of points/circles, line segments, and rectangles can all be ap
 </p>
 
 ### Under and Over Approximations
+Under approximations mean the circles do not cover the entirety of the rectangular shapes in the environment, include those that are part of the robot and part of the environment obstacles. This leaves the risk of saying an invalid state that falls inside the corner of the rectangular obstacle is valid.
 <p align="center">
 <img src="./assets/environments/circle_approx/circle_approx_under.png" alt="Circle-based Under-Approximated Environment" width="75%">
 </p>
+
+Over approximations mean the circles do cover the entirety of the rectangluar shapes in the environment. However, it will also spill over into some free space, meaning the $\mathcal{C}_{free}$ will appear smaller than it actually is. This leaves the risk of saying a valid state near the edge of a rectangular obstacle is actually invalid. This is mostly a concern for $\mathcal{C}$-Spaces with narrow passages.
 <p align="center">
 <img src="./assets/environments/circle_approx/circle_approx_over.png" alt="Circle-based Over-Approximated Environment" width="75%">
 </p>
