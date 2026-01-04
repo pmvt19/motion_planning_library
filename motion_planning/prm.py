@@ -219,47 +219,33 @@ class LazyPRM(PRM):
 
     
     # TODO: Update the implementation of lazy prm to the correct version
-    def lazy_search(self, start: NumpyState, target: NumpyState):
-        q = []
+    def lazy_search(self, start: NumpyState, target: NumpyState, max_iter: int = 1000):
+        i = 0
+        
+        while i < max_iter:
 
-        start_idx = self.graph.vertex_to_idx[tuple(start.value)]
-        end_idx = self.graph.vertex_to_idx[tuple(target.value)]
+            potential_path = self.graph.dijkstra_search(start=start.value, end=target.value)
+            potential_path_numpy = np.array(potential_path)
 
-        potential_path = self.graph.dijkstra_search(start=start.value, end=target.value)
-        # path_edges = 
+            start_edge_states = potential_path_numpy[:-1, :]
+            end_edge_states = potential_path_numpy[1: , :]
 
-        # visited = {}
-        # heappush(q, (0, start_idx, None))
-        # while q:
-        #     dist, node, parent = heappop(q)
-            
-        #     if node == end_idx:
-        #         visited[node] = parent
-        #         return self.graph.backtrack(visited, node)
+            path_edge_validities = self.env.batch_is_valid_edge(start_states=start_edge_states, end_states=end_edge_states)
+            invalid_edge_idxes = np.where(path_edge_validities == False)[0]
 
-        #     if node in visited:
-        #         continue
-            
-        #     visited[node] = parent
+            if len(invalid_edge_idxes) == 0: 
+                return potential_path
 
-        #     to_remove = set()
-        #     for i, nidx in enumerate(self.graph.edges[node]):
-        #         if nidx != -1:
-        #             edge_is_valid = self.env.is_valid_edge(self.env.make_state(self.graph.vertices[nidx]), self.env.make_state(self.graph.vertices[node]))
-        #             if edge_is_valid:
-        #                 ext_dist = np.linalg.norm(self.graph.vertices[nidx] - self.graph.vertices[node])
-        #                 heappush(q, (dist + ext_dist, nidx, node))
-        #             else:
-        #                 to_remove.add(nidx)
+            for idx in invalid_edge_idxes:
+                start_edge_state = start_edge_states[idx]
+                end_edge_state = end_edge_states[idx]
 
-        #     # Remove Invalid Edges
-        #     for nidx in to_remove:
-        #         self.graph.edges[node].remove(nidx)
-        # return None
+                start_edge_idx = self.graph.vertex_to_idx[tuple(start_edge_state)]
+                end_edge_idx = self.graph.vertex_to_idx[tuple(end_edge_state)]
 
-
-
-
+                self.graph.edges[start_edge_idx].remove(end_edge_idx)
+        
+            i += 1
         
     def search(self, start, target):
         self.start = start 
