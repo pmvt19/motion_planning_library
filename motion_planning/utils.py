@@ -146,7 +146,7 @@ def angular_distance(theta1, theta2):
 def numpystate_distance(state1, state2):
     if isinstance(state1, AngularNumpyState) and isinstance(state2, AngularNumpyState) and (state1.angular_dims_start == state2.angular_dims_start):
         return euclidean_distance(state1.value[:state1.angular_dims_start], state2.value[:state2.angular_dims_start]) + \
-                angular_distance(state1.value[state1.angular_dims_start:], state2.value[state2.angular_dims_start:])
+                sum(angular_distance(state1.value[state1.angular_dims_start:], state2.value[state2.angular_dims_start:]))
     elif isinstance(state1, NumpyState) and isinstance(state2, NumpyState):
         return euclidean_distance(state1.value, state2.value)
     else:
