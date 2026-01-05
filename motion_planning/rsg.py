@@ -30,7 +30,7 @@ class RandomSampleGeneration(RRT):
             noise = (noise / np.linalg.norm(noise, axis=1, keepdims=True)) * self.delta
             new_node_candidates = node.value + noise
             
-            dists = [self.env.dist(new_node_candidates[i], sampled_point.value) if (self.env.is_valid(new_node_candidates[i]) and self.env.is_valid_edge(node.value, new_node_candidates[i])) else float('inf') for i in range(self.num_neighbors)]
+            dists = [self.env.dist(new_node_candidates[i], sampled_point.value) if (self.env.is_valid(new_node_candidates[i]) and self.env.is_valid_edge(node, self.env.make_state(new_node_candidates[i]))) else float('inf') for i in range(self.num_neighbors)]
             
             if min(dists) == float('inf'):
                 new_node = node
