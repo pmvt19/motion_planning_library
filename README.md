@@ -1,5 +1,12 @@
 # Praval's Motion Planning Library
 
+# Table Of Contents
+- [Installation](#installation)
+- [Environments](#environments)
+- [Robots](#robots)
+- [Accelerated Collision Checks](#accelerated-collision-checks)
+- [Acknowledgements](#acknowledgements)
+
 # Usage
 
 ## Installation
