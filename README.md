@@ -6,11 +6,26 @@
 
 Python Version: `3.12.9`
 
-`git clone url`
+1. Clone the repository
+```
+git clone https://github.com/pmvt19/motion_planning_library.git
+```
 
-`cd motion_planning_library`
+2. Create a Conda Environment
+```
+conda env create -n <name> python=3.12.9
+```
 
-`pip install -e .`
+3. Change Directories into the cloned repository
+```
+cd motion_planning_library
+```
+
+4. Install the package to the environment
+
+```
+pip install -e .
+```
 
 ## Environments
 
