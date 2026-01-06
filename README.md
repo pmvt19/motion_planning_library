@@ -112,7 +112,7 @@ This library mostly explores a class of motion planning algorithms known as samp
 
 *Disclaimer:* The current implementations for visualizations only show the first two dimensions of the configurations. For some robots, this is the entire dimensionality of the $`\mathcal{C}`$-Space, while for others it is only a partial visualization for the spatial components.
 
-### RRT
+### RRT (Rapidly-Exploring Random Tree)
 
 Steps:
 <!-- Add Math Notation? -->
