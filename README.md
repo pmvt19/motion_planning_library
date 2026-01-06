@@ -162,7 +162,7 @@ The following is an example RSG search tree:
 <img src="./assets/rsg_tree.svg" alt="RSG Tree" width="75%">
 </p>
 
-### PRM (Probabiilistic Roadmap)
+### PRM (Probabilistic Roadmap)
 
 Unlike RRT which is a single query planner, PRM generates a roadmap that can be required for multiple tasks within the same configuration space. The bulk of the computation for PRM is done during the creation of the roadmap. 
 
