@@ -20,7 +20,7 @@ git clone https://github.com/pmvt19/motion_planning_library.git
 
 2. Create a Conda Environment
 ```
-conda env create -n <name> python=3.12.9
+conda create -n <name> python=3.12.9
 ```
 
 3. Change Directories into the cloned repository
