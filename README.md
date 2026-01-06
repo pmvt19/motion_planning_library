@@ -188,7 +188,7 @@ The following is a GIF of Incremental PRM iteratively extending the roadmap to c
 
 ### NonUniform PRM
 
-Typically, building PRMs sample uniformly in the robot's $\mathcal{C}$-Space; however, many nodes in open areas of the $\mathcal{C}$-Space may not be as beneficial as nodes on the border of $\mathcal{C}_{free}$ and $\mathcal{C}_{obst}$.
+Typically, building PRMs sample uniformly in the robot's $\mathcal{C}$-Space; however, many nodes in open areas of the $\mathcal{C}$-Space may not be as beneficial as nodes on the border of $`\mathcal{C}_{free}`$ and $\mathcal{C}_{obst}$.
 
 NonUniform PRM works by initially sampling a set of nodes in the configuration space uniformly (just like traditional PRM), adding some normally distributed noise to the points, and comparing if one of the original points or noise affected points are in $\mathcal{C}_{free}$ while the other is in $\mathcal{C}_{obst}$. This means that we retain the node only if exactly one of the configuration (either the originally sampled one or the noise affected one) is in $\mathcal{C}_{free}$. This ensures that retained nodes are typically near $\mathcal{C}_{obst}$ regions.
 
