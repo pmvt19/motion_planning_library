@@ -110,7 +110,7 @@ Parameters:
 
 This library mostly explores a class of motion planning algorithms known as sampling-based motion planning algorithms. This means each planning algorithm relies on probabilistic properties to alleviate some of the heavy compuation required for classical motion planning algorithms.
 
-*Disclaimer:* The current implementations for visualizations only show the first two dimensions of the configurations. For some robots, this is the entire dimensionality of the $\mathcal{C}$-Space, while for others it is only a partial visualization for the spatial components.
+*Disclaimer:* The current implementations for visualizations only show the first two dimensions of the configurations. For some robots, this is the entire dimensionality of the $`\mathcal{C}`$-Space, while for others it is only a partial visualization for the spatial components.
 
 ### RRT
 
