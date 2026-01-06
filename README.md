@@ -4,6 +4,7 @@
 - [Installation](#installation)
 - [Environments](#environments)
 - [Robots](#robots)
+- [Search Algorithms](#search-algorithms)
 - [Accelerated Collision Checks](#accelerated-collision-checks)
 - [Acknowledgements](#acknowledgements)
 
