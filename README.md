@@ -148,7 +148,7 @@ The following is a GIF showing the start tree (orange) and the target tree (blue
 
 ### RRT*
 
-Unlike RRT, RRT* attempts to find an asymptotically optimal path (i.e. the shortest path between configuration $p$ and $q$). This is done by adding an additional step to the RRT expansion step: rewiring. The goal of the rewiring step is to make the newly added node in the tree have the shortest path to the starting (root) configuration using the existing tree structure. 
+Unlike RRT, RRT* attempts to find an asymptotically optimal path (i.e. the shortest path between configuration $p$ and $q$). This is done by adding an additional step to the RRT expansion step: rewiring. The goal of the rewiring step is to make the newly added node in the tree have the shortest path to the starting (root) configuration using the existing tree structure and adjusting relationships if necessary.
 
 
 This means that the tree will not stop building after finding an initial path from $p$ to the $q$; it will continuosly search, refining the path until it hits its maximum runtime.
