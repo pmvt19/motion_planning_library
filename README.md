@@ -74,6 +74,10 @@ Parameters:
 
 This robot is a zero-radius point in 2D space. It is represented by its $x$ and $y$ position.
 
+<p align="center">
+<img src="./assets/robots/point_robot.gif" alt="Disc Robot" width="75%">
+</p>
+
 ### Disc Robot
 
 Parameters:
@@ -87,8 +91,6 @@ Parameters:
 Parameters:
 `Height`
 `Width`
-
-< PLACEHOLDER >
 
 <!-- ![Random Sample Passage Environment](./assets/robots/polygonal_robot.gif) -->
 <p align="center">
