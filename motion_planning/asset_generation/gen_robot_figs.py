@@ -14,7 +14,7 @@ def save_animated_path_frames(save_dir, env, path):
         env.draw_state(plt.gca(), state)
         plt.savefig(f"{save_dir}/step_{i}.png")
 
-def generate_point_robot_figs():
+def generate_point_robot_figs(save_figs=False):
     set_numpy_seed()
 
     os = BiasedPassage()
@@ -29,7 +29,8 @@ def generate_point_robot_figs():
     path = prm.search(start, target)
     smoothed_and_interpolated_path = interpolate_path(smooth_path(env, path), env, delta=0.1)
     print(f"Final Path Length: {len(smoothed_and_interpolated_path)}")
-    save_animated_path_frames('saves/robots/point_robot/', env.space, smoothed_and_interpolated_path)
+    if save_figs:
+        save_animated_path_frames('saves/robots/point_robot/', env.space, smoothed_and_interpolated_path)
 
 def generate_disc_robot_figs(save_figs=False):
     set_numpy_seed(2243)
@@ -99,7 +100,8 @@ def generate_planer_mobile_arm_figs(save_figs=False):
 if __name__ == '__main__':
     # generate_polygonal_robot_figs()
     # generate_disc_robot_figs(save_figs=True)
-    generate_planer_mobile_arm_figs(save_figs=True)
+    # generate_planer_mobile_arm_figs(save_figs=True)
+    generate_point_robot_figs(save_figs=True)
     
 
 
