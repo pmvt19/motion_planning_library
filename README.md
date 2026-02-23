@@ -74,7 +74,7 @@ Parameters:
 
 This robot is a zero-radius point in 2D workspace. 
 
-Configuration space: [$x$, $y$]
+Configuration space: [$`x`$, $y$]
 
 <p align="center">
 <img src="./assets/robots/point_robot.gif" alt="Disc Robot" width="75%">
@@ -84,7 +84,7 @@ Configuration space: [$x$, $y$]
 
 This robot is disc with radius $R$ 2D workspace. 
 
-Configuration space: [$x$, $y$]
+Configuration space: [$`x`$, $y$]
 
 Parameters:
 `Radius`
@@ -97,7 +97,7 @@ Parameters:
 
 This robot is rectangle with distinct height and width in 2D workspace. The positional compoenent of the state represents the center of the rectangle while the orientation is represented by $\theta$.
 
-Configuration space: [$x$, $y$, $\theta$]
+Configuration space: [$`x`$, $y$, $\theta$]
 
 Parameters:
 `Height`
@@ -112,7 +112,7 @@ Parameters:
 
 This robot is mobile arm with a distinct height and width for the base and $N$ number of links for the arms in 2D workspace. The positional component of the state represents the center of the rectangular base while the $\theta_i$ components represent the position of the $i\text{-th}$ arm.
 
-Configuration space: [$x$, $y$, $\theta_1$, $\theta_2$, ..., $\theta_N$]
+Configuration space: [$`x`$, $y$, $\theta_1$, $\theta_2$, ..., $\theta_N$]
 
 Parameters:
 `Base Height?`
