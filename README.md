@@ -149,7 +149,9 @@ Steps:
 
 RRT is inherently biased to expore open regions of the $\mathcal{C}$-Space first, then fill in the gaps later due to the **voronoi bias**. 
 
-< PLACEHOLDER >
+The voronoi diagram (pictured below) partitions the space into regions where all points in a given region are closest to a single point. Intuitively this means, that larger regions are more unexplored while smaller regions are explored since the larger region has a lot of space closest to a single point.
+
+If we sample a node uniformly from the $`\mathcal{C}`$-Space, then it is more likely that this sampled point lives in a larger region. You can think of the proportion of area for each region in the voronoi diagram as the probability that we expand in that region. This inherently biases expansion in more unexplored areas.
 
 <!-- ![RRT Voronoi Diagram](./assets/rrt_voronoi_diagram.png) -->
 <p align="center">
