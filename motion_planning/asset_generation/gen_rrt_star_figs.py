@@ -52,7 +52,7 @@ def rrt_and_rrt_star_compare(save_figs=False):
         ax[1].set_title("RRT")
 
         if save_figs:
-            plt.savefig(f'saves/search/rrt_star/steps/step_{i}.png')
+            plt.savefig(f'saves/rrt_star/steps/step_{i}.png')
         else:
             if i == 0:
                 plt.pause(5.0)
@@ -67,7 +67,7 @@ def rrt_and_rrt_star_compare(save_figs=False):
     rrt.draw_tree(ax[1], path=rrt_path)
 
     if save_figs:
-        plt.savefig(f'saves/search/rrt_star/steps/final.png')
+        plt.savefig(f'saves/rrt_star/steps/final.png')
     else:
         plt.show()
 
@@ -93,7 +93,7 @@ def rrt_star_animation():
 if __name__ == '__main__':
     set_numpy_seed(5025)
 
-    rrt_and_rrt_star_compare()
+    rrt_and_rrt_star_compare(save_figs=True)
     # rrt_star_animation()
 
     
