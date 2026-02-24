@@ -11,7 +11,8 @@ from motion_planning.utils import set_numpy_seed
 # RRT will stop at the first path found while RRT* will continue searching beyond the initial path to improve the path
 
 # IDEA ATTEMPT
-def rrt_and_rrt_star_compare():
+# UNCLEAR WHICH METHOD TO USE TO CREATE THE ASSET
+def rrt_and_rrt_star_compare(save_figs=False):
     set_numpy_seed(5025)
 
     # Create Robot Environment with Biased Passage Obstacles
@@ -44,12 +45,13 @@ def rrt_and_rrt_star_compare():
         
         rrt_star.step_search(rewire=True, goal_bias=0.0)
 
-        rrt.draw_tree(ax[0], path=rrt_path)
-        rrt_star.draw_tree(ax[1])
-        ax[0].set_title("RRT")
-        ax[1].set_title("RRT*")
+        rrt_star.draw_tree(ax[0])
+        rrt.draw_tree(ax[1], path=rrt_path)
+        
+        ax[0].set_title("RRT*")
+        ax[1].set_title("RRT")
         if i == 0:
-            plt.pause(60.0)
+            plt.pause(5.0)
         else:
             plt.pause(0.1)
         ax[0].cla()
@@ -60,6 +62,7 @@ def rrt_and_rrt_star_compare():
     rrt.draw_tree(ax[0], path=rrt_path)
     rrt_star.draw_tree(ax[1], path=rrt_star_path)
     plt.show()
+#    plt.pause(0.1)
 
 def rrt_star_animation():
     # Create Robot Environment with Biased Passage Obstacles
