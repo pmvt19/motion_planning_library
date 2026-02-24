@@ -174,6 +174,11 @@ Unlike RRT, RRT* attempts to find an asymptotically optimal path (i.e. the short
 
 This means that the tree will not stop building after finding an initial path from $p$ to the $q$; it will continuosly search, refining the path until it hits its maximum runtime.
 
+The following is a GIF showing how an RRT* tree grow compared to a regular RRT tree from the same task:
+<p align="center">
+<img src="./assets/rrt_star_compare.gif" alt="RRT* vs RRT" width="75%">
+</p>
+
 ### RSG (Random Sample Generation)
 
 The RSG algorithm is nearly identical to RRT, except for how it choses what the new node will be. In RRT, we expand in the direction of our sampled node ($`q_{sampled}`$) a maximum $\delta$ distance from the closest node on the tree: $`q_{nearest}`$. In RSG, we generate $N$ random candidate nodes around $`q_{nearest}`$ (sampled with a maximum distance $\delta$), keep nodes with that have a valid edge between themselves and $`q_{nearest}`$, and add the candidate node that is closest to the sampled node.
