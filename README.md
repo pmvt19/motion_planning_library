@@ -176,7 +176,7 @@ This means that the tree will not stop building after finding an initial path fr
 
 The following is a GIF showing how an RRT* tree grow compared to a regular RRT tree from the same task:
 <p align="center">
-<img src="./assets/rrt_star_compare.gif" alt="RRT* vs RRT" width="75%">
+<img src="./assets/rrt_star_compare.gif" alt="RRT* vs RRT" width="100%">
 </p>
 
 ### RSG (Random Sample Generation)
