@@ -35,7 +35,7 @@ def rrt_and_rrt_star_compare(save_figs=False):
     rrt_path = None
     rrt_star_path = None
 
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(11, 5))
 
     for i in range(350):
         if rrt_node != target:
