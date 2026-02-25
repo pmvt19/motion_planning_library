@@ -61,13 +61,12 @@ def generate_database(db_save_path=None):
     print("WARNING: Hard Coded")
     db = Database()
 
-    for i in range(2):
+    for i in range(20):
         env = PointRobot()
-        env.set_obstacles(BiasedPassage(num_walls=8, bias=0.5))
+        env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
         env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
         prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
-        # prm = PRM(env, num_samples=5000, num_neighbors=10)
         prm.create_graph()
 
         for j in range(20):
@@ -85,24 +84,12 @@ def generate_database(db_save_path=None):
     return db
 
 def generate_database_parallel(db_save_path=None):
-
-    # processes = []
-    # for _ in range(10):
-    #     p = multiprocessing.Process(target=generate_database)
-    #     p.start()
-    #     processes.append(p)
-    
-    # for p in processes:
-    #     p.join()
     dbs = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
         results = [executor.submit(generate_database) for _ in range(10)]
 
         for f in concurrent.futures.as_completed(results):
             dbs.append(f.result())
-    
-    # for db in dbs:
-    #     print(len(db))
     
     return merge_db_lists(dbs)
 
