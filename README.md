@@ -245,7 +245,9 @@ The following is a GIF of Lazy PRM Searching for a path with the invalid edges m
 
 ## 2D C-Space
 
-< PLACEHOLDER >
+For robots whos configuration space is only 2 dimensions, we can fully visualize their configuration space. There are two robots in this library that have implementations compatible with the CSpace visualizer: Disc Robot and Fixed Arm Robot.
+
+The following are example of workspace and their respective configuration space.
 
 Disc Robot Workspace and $\mathcal{C}$-Space Visualization
 
