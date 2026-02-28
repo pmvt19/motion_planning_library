@@ -268,6 +268,12 @@ class DiscRobot(HolonomicRobot):
         robot = self.generate_robot_representation(state)
         xr, yr = robot.exterior.xy
         ax.fill(xr, yr, color='red')
+    
+    def input_to_x_dot(self, inputs): 
+        dt = 0.1
+        x_dot = inputs[XboxController.XboxControls.LTHUMBX] * dt
+        y_dot = -inputs[XboxController.XboxControls.LTHUMBY] * dt
+        return np.array([x_dot, y_dot])
 
     ## ---- Batched Methods ---- ##
 
@@ -300,7 +306,7 @@ class PolygonalRobot(HolonomicRobot):
         self.angular_dims_start = 2
 
         self.robot_width = 0.5
-        self.robot_length = 6
+        self.robot_length = 3
 
         self.obstacles = []
 
@@ -538,15 +544,15 @@ class PlanarMobileArm(HolonomicRobot):
 
         return robot, arms, ee 
 
-    def draw_state(self, ax, state):
+    def draw_state(self, ax, state, color='red'):
         robot, arms, ee = self.generate_robot_representation(state)
-        ax.plot(*robot.exterior.xy, color='red')
+        ax.plot(*robot.exterior.xy, color=color)
 
         for arm in arms:
-            ax.plot(*arm.xy, color='red')
+            ax.plot(*arm.xy, color=color)
         
         for ee_link in ee:
-            ax.plot(*ee_link.xy, color='red')
+            ax.plot(*ee_link.xy, color=color)
 
     def collides_with_self(self, robot, arms, ee):
         for i in range(len(arms)):
@@ -729,10 +735,10 @@ class PlanarMobileArm(HolonomicRobot):
         Therefore, these segments will be commented out unless desired by the end user
         """
 
-        # rotation_offset = np.pi/2 if self.num_links % 2 == 0 else -np.pi/2
-        # summed_thetas = np.sum(states[:, 2:], axis=1) + rotation_offset
-        # ee_segments = self.batch_create_end_effector_segments(end_points[:, -1, :], summed_thetas)
-        # segments = np.concatenate((segments, ee_segments), axis=0)
+        rotation_offset = np.pi/2 if self.num_links % 2 == 0 else -np.pi/2
+        summed_thetas = np.sum(states[:, 2:], axis=1) + rotation_offset
+        ee_segments = self.batch_create_end_effector_segments(end_points[:, -1, :], summed_thetas)
+        segments = np.concatenate((segments, ee_segments), axis=0)
 
         ## Handling End Effector Lines -- END
 
