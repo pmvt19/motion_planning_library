@@ -11,7 +11,7 @@ from motion_planning.controller.xbox_controller import XboxController
 from motion_planning.rrt import RRT
 from motion_planning.space import RobotSpace, FixedArm, DiscRobot
 from motion_planning.circle_approximation import ApproximationSpace
-from motion_planning.obstacle_sets import TestSet, ParkingSpace
+from motion_planning.obstacle_sets import TestSet, ParkingSpace, Shelves2d
 
 # Interactive element 
 # - Shows workspace and cspace states as one uses the controller to manipulate the arm (Need to modify Holonomic Robots Class to make this work)
@@ -94,7 +94,7 @@ class FixedArmCSpaceVisualizer(CSpaceVisualizer):
         super().__init__()
 
         self.env = FixedArm()
-        self.env.set_obstacles(TestSet())
+        self.env.set_obstacles(Shelves2d())
         self.env.arm_link_lengths = np.array([3,3]) # TODO HACK: DO NOT CHANGE ARM LENGTHS LIKE THIS
         self._generate_obstacle_points()
     
@@ -190,13 +190,13 @@ class DiscRobotCSpaceVisualizer(CSpaceVisualizer):
         self._generate_obstacle_points()
     
     def run_interactive_space(self, tick_delay=0.01):
-        # pygame.init()
-        # joysticks = []
-        # for i in range(0, pygame.joystick.get_count()):
-        #     joysticks.append(pygame.joystick.Joystick(i))
-        #     joysticks[-1].init()
+        pygame.init()
+        joysticks = []
+        for i in range(0, pygame.joystick.get_count()):
+            joysticks.append(pygame.joystick.Joystick(i))
+            joysticks[-1].init()
         
-        # controller = XboxController(pygame)
+        controller = XboxController(pygame)
 
         state = self.env.sample_valid_point()
 
@@ -234,16 +234,15 @@ class DiscRobotCSpaceVisualizer(CSpaceVisualizer):
         fig.canvas.mpl_connect('button_release_event', on_release)
 
         while running:
-            # controller.update_state()
-            # controller_state = controller.get_contoller_state()
-            # x_dot = self.env.input_to_x_dot(controller_state)
-            # state = self.env.make_state(state.value + x_dot)
+            controller.update_state()
+            controller_state = controller.get_contoller_state()
+            x_dot = self.env.input_to_x_dot(controller_state)
+            state = self.env.make_state(state.value + x_dot)
             state = state
 
             axs[0].cla()
             axs[1].cla()
             
-            # axs[1].scatter(my_obstacle_points[:, 0], my_obstacle_points[:, 1], color='red')
             axs[1].scatter(self.obstacle_points[:, 0], self.obstacle_points[:, 1], color='red')
 
             self.env.draw_environment(axs[0])
@@ -256,16 +255,16 @@ class DiscRobotCSpaceVisualizer(CSpaceVisualizer):
             axs[1].set_ylim(-15, 15)
             plt.pause(tick_delay)
 
-            # if controller_state[XboxController.XboxControls.LBUMPER]:
-            #     running = False
+            if controller_state[XboxController.XboxControls.LBUMPER]:
+                running = False
     
 if __name__ == '__main__':
 
     # task_type = 'search' 
     task_type = 'interactive' # Will be made as an argument
 
-    robot_type = 'FixedArm'
-    # robot_type = 'DiscRobot'
+    # robot_type = 'FixedArm'
+    robot_type = 'DiscRobot'
 
     np.random.seed(0)
 
