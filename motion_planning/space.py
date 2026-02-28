@@ -823,7 +823,7 @@ class FixedArm(HolonomicRobot):
         assert(len(self.arm_link_lengths) == 2), "User Input Only Implemented for Robot with 2 Arms"
 
         theta1_dot = inputs[XboxController.XboxControls.LTHUMBX] * dt
-        theta2_dot = inputs[XboxController.XboxControls.RTHUMBY] * dt
+        theta2_dot = -inputs[XboxController.XboxControls.LTHUMBY] * dt
 
         return np.array([theta1_dot, theta2_dot])
     
