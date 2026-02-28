@@ -50,6 +50,21 @@ class TestSet(ObstacleSet2d):
 
         super().__init__(obstacles=obstacles, boundary=boundary)
 
+class Shelves2d(ObstacleSet2d):
+    def __init__(self):
+        obstacles = []
+
+        x_range = [-10,10]
+        y_range = [-10,10]
+
+        boundary = Polygon([(x_range[0], y_range[0]), (x_range[0], y_range[1]), (x_range[1], y_range[1]), (x_range[1], y_range[0])])
+
+        super().__init__(obstacles=obstacles, boundary=boundary)
+
+        self.obstacles.append(create_rectangle_geometry(x_loc=3.5, y_loc=2.5, x_width=4, y_length=1))
+        self.obstacles.append(create_rectangle_geometry(x_loc=5.0, y_loc=0.5, x_width=1, y_length=3))
+        self.obstacles.append(create_rectangle_geometry(x_loc=3.5, y_loc=-1.5, x_width=4, y_length=1))
+
 class ParkingSpace(ObstacleSet2d):
     def __init__(self):
         obstacles = []
@@ -242,5 +257,9 @@ class NonRegularPolygonObst(ObstacleSet2d):
 
 if __name__ == '__main__':
     obs_set = TestSet()
+    obs_set.draw(plt.gca())
+    plt.show()
+
+    obs_set = Shelves2d()
     obs_set.draw(plt.gca())
     plt.show()
