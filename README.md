@@ -253,7 +253,7 @@ Disc Robot Workspace and $\mathcal{C}$-Space Visualization:
 
 ![2D C-Space Disc Robot](./assets/disc_robot_cspace_viz.gif)
 
-Fixed Arm Workspace and $\mathcal{C}$-Space Visualization:
+Fixed Arm Workspace and $\mathcal{C}$-Space in Interactive Visualization:
 
 ![2D C-Space Robot Arm](./assets/fixed_arm_cspace_interactive_viz.gif)
 
