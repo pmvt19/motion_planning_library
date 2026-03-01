@@ -249,13 +249,13 @@ For robots whos configuration space is only 2 dimensions, we can fully visualize
 
 The following are example of workspace and their respective configuration space.
 
-Disc Robot Workspace and $\mathcal{C}$-Space Visualization
+Disc Robot Workspace and $\mathcal{C}$-Space Visualization:
 
 ![2D C-Space Disc Robot](./assets/disc_robot_cspace_viz.gif)
 
-Fixed Arm Workspace and $\mathcal{C}$-Space Visualization
+Fixed Arm Workspace and $\mathcal{C}$-Space Visualization:
 
-![2D C-Space Robot Arm](./assets/Robot_Arm.gif)
+![2D C-Space Robot Arm](./assets/fixed_arm_cspace_interactive_viz.gif)
 
 <!-- ## 3D C-Space
 ![3D C-Space Polygonal Robot](./assets/Polygonal_Robot.png) -->
