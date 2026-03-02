@@ -144,7 +144,7 @@ class PRM():
             path = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
             ax.add_collection(LineCollection(path, color='red'))
         
-    def search(self, start : NumpyState, target : NumpyState):
+    def search(self, start: NumpyState, target: NumpyState, remove_task: bool = False):
         self.start = start 
         self.target = target
 
@@ -160,6 +160,9 @@ class PRM():
 
         if path:
             path = Path([self.env.make_state(p) for p in path])
+
+        if remove_task:
+            self.graph.vertex_to_idx()
         # Return final Path
         return path
 
@@ -183,42 +186,6 @@ class LazyPRM(PRM):
     def __init__(self, env, num_samples=10, num_neighbors=10):
         super().__init__(env, num_samples=num_samples, num_neighbors=num_neighbors, validate_edges=False)
     
-    # def lazy_search(self, start : NumpyState, target : NumpyState):
-    #     q = []
-    #     start_idx = self.graph.vertex_to_idx[tuple(start.value)]
-    #     end_idx = self.graph.vertex_to_idx[tuple(target.value)]
-    #     visited = {}
-        
-    #     heappush(q, (0, start_idx, None))
-    #     while q:
-    #         dist, node, parent = heappop(q)
-            
-    #         if node == end_idx:
-    #             visited[node] = parent
-    #             return self.graph.backtrack(visited, node)
-
-    #         if node in visited:
-    #             continue
-            
-    #         visited[node] = parent
-
-    #         to_remove = set()
-    #         for i, nidx in enumerate(self.graph.edges[node]):
-    #             if nidx != -1:
-    #                 edge_is_valid = self.env.is_valid_edge(self.env.make_state(self.graph.vertices[nidx]), self.env.make_state(self.graph.vertices[node]))
-    #                 if edge_is_valid:
-    #                     ext_dist = np.linalg.norm(self.graph.vertices[nidx] - self.graph.vertices[node])
-    #                     heappush(q, (dist + ext_dist, nidx, node))
-    #                 else:
-    #                     to_remove.add(nidx)
-
-    #         # Remove Invalid Edges
-    #         for nidx in to_remove:
-    #             self.graph.edges[node].remove(nidx)
-    #     return None
-
-    
-    # TODO: Update the implementation of lazy prm to the correct version
     def lazy_search(self, start: NumpyState, target: NumpyState, max_iter: int = 1000):
         i = 0
         
@@ -317,7 +284,7 @@ class IncrementalPRM(PRM):
         # return self._dfs_iterative(start, target)
         return self._bfs_iterative(start, target)
 
-    def search(self, start : NumpyState, target : NumpyState):
+    def search(self, start: NumpyState, target: NumpyState):
         self.start = start 
         self.target = target
 
