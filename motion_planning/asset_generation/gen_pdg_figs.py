@@ -9,12 +9,30 @@ from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.circle_approximation import ApproximationSpace
 
-def draw_path_database(path='saves/pdg_example_database.pickle', save_fig=False):
+def draw_bpe3_env(save_fig=False):
+    np.random.seed(0)
+    env = PointRobot()
+    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
+
+    env.draw_environment(plt.gca())
+    
+    if save_fig:
+        plt.savefig("saves/pdg/environment.png")
+    else:
+        plt.show()
+
+def draw_path_database(path='saves/database_bpe3_large.pickle', save_fig=False):
+    np.random.seed(0)
+    env = PointRobot()
+    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
+
+
     db = pickle.load(open(path, 'rb'))
 
     for path in db:
         numpy_path = np.array([p.value for p in path.path])
         plt.plot(numpy_path[:, 0], numpy_path[:, 1], marker='o')
+    env.draw_environment(plt.gca())
     
     if save_fig:
         plt.savefig("saves/pdg/database.png")
@@ -22,7 +40,7 @@ def draw_path_database(path='saves/pdg_example_database.pickle', save_fig=False)
         plt.show()
 
 def draw_relevant_paths(path="saves/database_bpe3_large.pickle", save_fig=False):
-
+    np.random.seed(0)
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
 
@@ -37,6 +55,8 @@ def draw_relevant_paths(path="saves/database_bpe3_large.pickle", save_fig=False)
     for path in validated_paths:
         numpy_path = np.array([p.value for p in path.path])
         plt.plot(numpy_path[:, 0], numpy_path[:, 1], marker='o')
+    env.space.draw_environment(plt.gca())
+    plt.scatter(target.value[0], target.value[1], s=100, color='red', zorder=2)
     
     if save_fig:
         plt.savefig("saves/pdg/relevant_paths.png")
@@ -88,7 +108,7 @@ def draw_search_tree_steps(path="saves/database_bpe3_large.pickle", save_fig=Fal
     else:
         plt.show()
     
-
-# draw_path_database()
-# draw_relevant_paths()
-draw_search_tree_steps(save_fig=True)
+draw_bpe3_env(save_fig=True)
+# draw_path_database(save_fig=True)
+# draw_relevant_paths(save_fig=True)
+# draw_search_tree_steps(save_fig=True)
