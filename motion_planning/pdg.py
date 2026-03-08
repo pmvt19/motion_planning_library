@@ -17,7 +17,7 @@ from motion_planning.rrt import RRT
 
 class PDG():
     def __init__(self, env, db_path):
-        self.db : Database = pickle.load(open(db_path, 'rb'))
+        self.db: Database = pickle.load(open(db_path, 'rb'))
         # self.db.paths = self.db.paths[:50]
         self.env : RobotSpace = env
     
@@ -502,6 +502,7 @@ if __name__ == '__main__':
 
     pdg.draw_tree(plt.gca(), path)
     plt.show()
+    exit()
 
     bipdg = BiDirectionalPDG(env, db_save_path)
 
