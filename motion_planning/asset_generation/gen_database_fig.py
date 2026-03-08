@@ -1,8 +1,9 @@
+import time
 import pickle
-
 import numpy as np
 import matplotlib.pyplot as plt
 
+from motion_planning.database import Database
 from motion_planning.pdg import PDG
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage
@@ -20,7 +21,7 @@ def draw_path_database(path='saves/pdg_example_database.pickle', save_fig=False)
     else:
         plt.show()
 
-def draw_relevant_paths(path="saves/pdg_example_database.pickle", save_fig=False):
+def draw_relevant_paths(path="saves/database_bpe3_large.pickle", save_fig=False):
 
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
@@ -42,7 +43,8 @@ def draw_relevant_paths(path="saves/pdg_example_database.pickle", save_fig=False
     else:
         plt.show()
 
-def draw_search_tree_steps(path="saves/pdg_example_database.pickle", save_fig=False):
+def draw_search_tree_steps(path="saves/database_bpe3_large.pickle", save_fig=False):
+    np.random.seed(0)
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
 
@@ -57,13 +59,36 @@ def draw_search_tree_steps(path="saves/pdg_example_database.pickle", save_fig=Fa
 
     pdg.init_search(start, target)
 
-    for i in range(5):
+    path = None
+    for i in range(500):
+        plt.cla()
         pdg.step_search(i)
         pdg.draw_tree(plt.gca())
 
-        plt.pause(0.1)
+        if target in pdg.tree:
+            path = pdg.backtrack(target)
+            break
+        
+        if save_fig:
+            plt.savefig(f"saves/pdg/step_{i}.png")
+        else:
+            plt.pause(0.1)
+        
+    
+    if save_fig:
+        plt.savefig(f"saves/pdg/final.png")
+    else:
+        plt.show()
+    
+
+    plt.cla()
+    pdg.draw_tree(plt.gca(), path=path)
+    if save_fig:
+        plt.savefig(f"saves/pdg/final_path.png")
+    else:
+        plt.show()
     
 
 # draw_path_database()
 # draw_relevant_paths()
-draw_search_tree_steps()
+draw_search_tree_steps(save_fig=True)
