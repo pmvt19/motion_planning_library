@@ -7,40 +7,55 @@ This file is intended to explain how PDG works:
 ### Biased Passage
 
 <p align="center">
-<img src="./assets/pdg/biased_passage.png" alt="Biased Passage Environment" width="75%">
+<img src="./assets/search/pdg/environment.png" alt="Biased Passage Environment" width="75%">
 </p>
 
 # Database
 
 <p align="center">
-<img src="./assets/pdg/database.png" alt="PDG Database" width="75%">
+<img src="./assets/search/pdg/database.png" alt="PDG Database" width="75%">
 </p>
 
 # Algorithm Overview
 
 After generating a task $s,t$
 
-## Step 1: Compute Relevant Paths
+## Offline Process:
+```
+Generate Path Database
+```
 
-<!-- <p align="center">
-<img src="./assets/pdg/biased_passage.png" alt="Biased Passage Environment" width="75%">
-</p> -->
+## Online Process:
+### Pseudocode:
+```
+for N iterations:
+    ComputeRelevantPaths()
 
-* Image with database paths only leading to the target
+    connection_successful <- AttemptConnection()
 
-## Step 2: Attempt Connection to Paths
+    if connection_successful is True:
+        collides_with_obst <- FollowPathUntilCollision()
 
-* Image with remaining paths and search tree attempting connections
+        if collides_with_obst:
+            DeletePathSegmentInCollision()
+        else:
+            return Path
 
-## Step 3a: Follow Connection Path Until Collision
+    else:
+        pdg.tree <- DoRRT(starting_tree=pdg.tree, num_steps=M)
+```
 
-* Image with path that would lead to a collision eventually
+# Search Step Figures:
 
-## Step 3c: Delete Collision Portion
+## Retained Relevant Paths
 
-* Image with tree to path that would be deleted
+<p align="center">
+<img src="./assets/search/pdg/relevant_paths.png" alt="PDG Search" width="75%">
+</p>
 
-## Step 3b: If No Connection Attempts are Successful, do RRT
+## Search Tree
 
-## Step 4: Repeat
-Repeat 
+<p align="center">
+<img src="./assets/search/pdg/pdg.gif" alt="PDG Search" width="75%">
+</p>
+
