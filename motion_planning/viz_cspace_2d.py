@@ -176,6 +176,8 @@ class FixedArmCSpaceVisualizer(CSpaceVisualizer):
             axs[1].scatter(state.value[0], state.value[1], color='blue', marker='^')
             axs[0].set_aspect('equal')
             axs[1].set_aspect('equal')
+            axs[0].set_title("Workspace")
+            axs[1].set_title("Configuration Space")
             plt.pause(tick_delay)
 
             if controller_state[XboxController.XboxControls.LBUMPER]:
@@ -253,6 +255,8 @@ class DiscRobotCSpaceVisualizer(CSpaceVisualizer):
 
             axs[1].set_xlim(-15, 15)
             axs[1].set_ylim(-15, 15)
+            axs[0].set_title("Workspace")
+            axs[1].set_title("Configuration Space")
             plt.pause(tick_delay)
 
             if controller_state[XboxController.XboxControls.LBUMPER]:
@@ -263,8 +267,8 @@ if __name__ == '__main__':
     # task_type = 'search' 
     task_type = 'interactive' # Will be made as an argument
 
-    # robot_type = 'FixedArm'
-    robot_type = 'DiscRobot'
+    robot_type = 'FixedArm'
+    # robot_type = 'DiscRobot'
 
     np.random.seed(0)
 
@@ -279,5 +283,3 @@ if __name__ == '__main__':
         visualizer.run_visualized_search()
     elif task_type == 'interactive':
         visualizer.run_interactive_space()
-
-    

@@ -1168,18 +1168,6 @@ class DubinsCar(NonHolonomicRobot):
 if __name__ == '__main__':
     np.random.seed(0)
     env = DiscRobot()
-    # env = PolygonalRobot()
-    # env = PlanarMobileArm(num_links=3)
-    # env = FixedArm()
-    # env = SkidSteerCar()
-    # state = env.make_state(np.array([0.0, 0.0, np.pi/2, 0, 0, 0]))
-    # state = env.make_state(0)
-    # state = env.sample_point()
-    # env2 = GeneralizedPlanarMobileArm(num_links=3)
-    # print(state.value)
-    # env.draw_environment(plt.gca())
-    # env.draw_state(plt.gca(), state)
-    # plt.show()
     env.set_obstacles(ParkingSpace())
 
     state1 = env.sample_point()
@@ -1203,44 +1191,4 @@ if __name__ == '__main__':
     # print(env.batch_forward_kinematics(np.array([ik_state.value])))
     # print(ik_state.value)
     
-    
-
-    # env.draw_environment(plt.gca())
-    # env.draw_state(plt.gca(), state1)
-    # env.draw_state(plt.gca(), state2)
-    # plt.show()
-
-    # env.draw_environment(plt.gca())
-    # env.draw_state(plt.gca(), state1)
-    # env.draw_state(plt.gca(), state2)
-    # plt.show()
-
-    # states = np.array([state1.value, state2.value])
-    # print(env.batch_forward_kinematics(states))
-
-
-    # states = [env.sample_point() for _ in range(100000)]
-    # start_time = time.time()
-    # for state in states:
-    #     env.forward_kinematics(state)
-    # end_time = time.time()
-    # print("Unbatched Forward Kinematics Time:", end_time-start_time)
-
-    # start_time = time.time()
-    # states = np.array([state.value for state in states])
-    # env.batch_forward_kinematics(states)
-    # end_time = time.time()
-
-    # print("Batched Forward Kinematics Time:", end_time-start_time)
-
-    # start, target = env.sample_task()
-    # print(start.value, target.value)
-    # env.get_edge_states(start.value, target.value)
-
-    # pointrobot = PointRobot()
-    # print(pointrobot.get_edge_states(start.value, target.value))
-    # env.draw_environment(plt.gca())
-    # env.draw_state(plt.gca(), start)
-    # env.draw_state(plt.gca(), target)
-    # plt.show()
 
