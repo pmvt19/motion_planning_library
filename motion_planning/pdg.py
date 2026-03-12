@@ -16,10 +16,11 @@ from motion_planning.utils import interpolate_path, smooth_path
 from motion_planning.rrt import RRT
 
 class PDG():
-    def __init__(self, env, db_path):
+    def __init__(self, env, db_path, prevalidate_paths=False):
         self.db: Database = pickle.load(open(db_path, 'rb'))
         # self.db.paths = self.db.paths[:50]
-        self.env : RobotSpace = env
+        self.env: RobotSpace = env
+        self.prevalidate_paths: bool = prevalidate_paths
     
     def compute_retained_paths(self, target):
 
@@ -68,16 +69,20 @@ class PDG():
 
         path_state_validities = self.env.batch_is_valid(all_retained_path_states)
 
-        validated_paths = []
-        for i, path in enumerate(retained_paths):
-            s = retained_path_idxes[i]
-            e = retained_path_idxes[i+1]
+        self.validated_paths = retained_paths
 
-            invalid_portions = np.where(path_state_validities[s:e] == False)[0]
-            if len(invalid_portions) > 0:
-                validated_paths.append(Path(path.path[invalid_portions[-1]+1:]))
-            else:
-                validated_paths.append(Path(path.path))
+        if self.prevalidate_paths:
+            validated_paths = []
+            for i, path in enumerate(retained_paths):
+                s = retained_path_idxes[i]
+                e = retained_path_idxes[i+1]
+
+                invalid_portions = np.where(path_state_validities[s:e] == False)[0]
+                if len(invalid_portions) > 0:
+                    validated_paths.append(Path(path.path[invalid_portions[-1]+1:]))
+                else:
+                    validated_paths.append(Path(path.path))
+            self.validated_paths = validated_paths
         
         # new_db = Database()
         # new_db.paths = validated_paths
@@ -88,7 +93,7 @@ class PDG():
         # plt.show()
         # plt.clf()
         # self.validated_paths = validated_paths
-        self.validated_paths = retained_paths
+        
         print(f"Number of Paths to Start with: {len(self.validated_paths)}")
         self.compute_c2g_for_paths(self.validated_paths, target)
 
