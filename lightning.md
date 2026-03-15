@@ -1,6 +1,6 @@
 # Lightning
 
-This file is intended to explain how PDG works:
+This file is intended to explain how Lightning works:
 
 # Environment Distribution
 
@@ -48,3 +48,4 @@ This file is intended to explain how PDG works:
 <img src="./assets/search/lightning/final_path.png" alt="Final Path" width="75%">
 </p>
 
+The original version of lightning has includes an algorithm to iteratively grow the database which this implementation omits.
