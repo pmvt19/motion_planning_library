@@ -54,3 +54,9 @@ Smoothed Path:
 </p>
 
 The original version of lightning has includes an algorithm to iteratively grow the database which this implementation omits.
+
+# Citing
+
+```
+D. Berenson, P. Abbeel and K. Goldberg, "A robot path planning framework that learns from experience," 2012 IEEE International Conference on Robotics and Automation, Saint Paul, MN, USA, 2012, pp. 3671-3678, doi: 10.1109/ICRA.2012.6224742. keywords: {Libraries;Robots;Maintenance engineering;Planning;Lightning;Path planning;Surgery},
+```
