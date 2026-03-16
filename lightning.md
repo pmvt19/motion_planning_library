@@ -39,13 +39,18 @@ This file is intended to explain how Lightning works:
 4. Repair the segments in collision using RRT
 
 <p align="center">
-<img src="./assets/search/lightning/repairing_selected_path.png" alt="Repair Process with RRT" width="75%">
+<img src="./assets/search/lightning/repaired_path.png" alt="Repair Process with RRT" width="75%">
 </p>
 
 5. Return the final path (can smooth as well)
 
 <p align="center">
 <img src="./assets/search/lightning/final_path.png" alt="Final Path" width="75%">
+</p>
+
+Smoothed Path:
+<p align="center">
+<img src="./assets/search/lightning/smoothed_final_path.png" alt="Final Path" width="75%">
 </p>
 
 The original version of lightning has includes an algorithm to iteratively grow the database which this implementation omits.
