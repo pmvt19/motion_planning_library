@@ -20,6 +20,8 @@ class OptimizedPDG():
         self.db : Database = pickle.load(open(db_path, 'rb'))
         # self.db.paths = self.db.paths[:50]
         self.env : RobotSpace = env
+
+        self.use_delete_radius = True
     
     def compute_retained_paths(self, target):
 
@@ -146,12 +148,15 @@ class OptimizedPDG():
         path_starting_idxes = np.array([len(path) for path in self.validated_paths])
         path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
         path_states = np.array([state.value for path in self.validated_paths for state in path])
+
+        path_state_path_idxes = np.array([i for i, path in enumerate(self.validated_paths) for _ in path])
         c2g_estimates = self.compute_c2g_estimates_for_states(tree_states, path_states)
         for i in range(5000):
             start_time = time.time()
             
             path_starting_idxes = np.array([len(path) for path in self.validated_paths])
             path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
+            # print(path_starting_idxes)
             # path_states = np.array([state.value for path in self.validated_paths for state in path])
             end_time = time.time()
             timing_dict['flattening_states_time'].append(end_time - start_time)
@@ -173,7 +178,11 @@ class OptimizedPDG():
             # end_time = time.time()
             # timing_dict['dist_c2g_calc_time'].append(end_time - start_time)
             
-            min_c2g_estimate = np.min(c2g_estimates)
+            # min_c2g_estimate = np.min(c2g_estimates) if len(c2g_estimates) > 0 else np.inf
+            min_c2g_estimate = np.inf
+            if c2g_estimates.shape[1] > 0:
+                # print(c2g_estimates.shape)
+                min_c2g_estimate = np.min(c2g_estimates)
             expansion_tech = None
             
             if min_c2g_estimate == np.inf or do_rrt:
@@ -205,8 +214,13 @@ class OptimizedPDG():
                 num_connections_to_keep = 4500
                 # num_connections_to_keep = 9000
 
-                best_n_connections = np.argsort(vals)[:num_connections_to_keep]
-                other_n_connections = np.argsort(vals)[num_connections_to_keep:]
+                argsorted_vals = np.argsort(vals)
+
+                # best_n_connections = np.argsort(vals)[:num_connections_to_keep]
+                # other_n_connections = np.argsort(vals)[num_connections_to_keep:]
+
+                best_n_connections = argsorted_vals[:num_connections_to_keep]
+                other_n_connections = argsorted_vals[num_connections_to_keep:]
 
                 edge_starts = tree_states[potential_connection_edges_idxes[0][best_n_connections]]
                 edge_ends = path_states[potential_connection_edges_idxes[1][best_n_connections]]
@@ -256,47 +270,71 @@ class OptimizedPDG():
 
                     updated_path_states = path_states
                     updated_flattened_c2gs = self.flattened_c2gs
+                    updated_path_state_path_idxes = path_state_path_idxes
                     updated_c2g_estimates = c2g_estimates
 
                 else:
                     invalid_idx = invalid_idxes[0]
                     deletion_offset = 1
-                    # print(path_starting_idx, invalid_idx, 'here')
                     add_to_tree_segment = following_path[:invalid_idx]
-                    # print(add_to_tree_segment)
                     si = path_starting_idxes[path_starting_idx]
-                    # print(path_states[si:path_state_idx+invalid_idx])
-
-                    # print("before path states:")
-                    # print(path_states[:si])
-                    # print("After path states:")
-                    # print(path_states[path_state_idx+invalid_idx+deletion_offset:])
-                    # print(path_states[:si].shape, path_states[path_state_idx+invalid_idx+deletion_offset:].shape)
-                    # print(self.flattened_c2gs[:si].shape, self.flattened_c2gs[path_state_idx+invalid_idx+deletion_offset:].shape)
 
                     updated_path_states = np.vstack((path_states[:si], path_states[path_state_idx+invalid_idx+deletion_offset:]))
+                    updated_path_state_path_idxes = np.hstack((path_state_path_idxes[:si], path_state_path_idxes[path_state_idx+invalid_idx+deletion_offset:]))
                     updated_flattened_c2gs = np.concatenate((self.flattened_c2gs[:si], self.flattened_c2gs[path_state_idx+invalid_idx+deletion_offset:]), axis=0)
 
-                    updated_c2g_estimates = np.concatenate((c2g_estimates[:, :si], c2g_estimates[:, path_state_idx+invalid_idx+deletion_offset:]), axis=1)
+                    updated_c2g_estimates = np.concatenate((c2g_estimates[:, :si], c2g_estimates[:, path_state_idx+invalid_idx+deletion_offset:]), axis=1)     
+    
+                    kept_path_segment = following_path[invalid_idx+deletion_offset:] # TODO: Figure out logic for updating path states and all
+
+                    self.validated_paths[path_starting_idx] = Path([self.env.make_state(state) for state in kept_path_segment])
 
                     
-                    # print()
-                    # print(np.array([state.value for state in self.validated_paths[path_starting_idx]]))
-                    # print()
-                    
-                    kept_path_segment = following_path[invalid_idx+deletion_offset:] # TODO: Figure out logic for updating path states and all
-                    # print(kept_path_segment)
-                    # exit()
+
+                    if self.use_delete_radius:
+                        bad_state_in_follow_path = following_path[invalid_idx]
+                        kd_tree = KDTree(data=updated_path_states)
+                        idxes = kd_tree.query_radius(bad_state_in_follow_path.reshape(1, -1), r=2.0)[0]
+                        flattened_idxes = idxes.flatten()
+                        
+                        path_idxes_to_modify = updated_path_state_path_idxes[idxes].flatten()
+
+                        unique_path_idxes_to_modify = np.unique(path_idxes_to_modify)
+
+                        deletion_states = []
+                        for path_idx in unique_path_idxes_to_modify:
+                            idx_to_delete = np.max(flattened_idxes[path_idxes_to_modify == path_idx])
+                            deletion_states.append(idx_to_delete)
+                        
+                        deletion_states = np.array(deletion_states)
+                        deletion_states_and_path_idxes = np.hstack((deletion_states.reshape(-1, 1), unique_path_idxes_to_modify.reshape(-1, 1)))
+
+                        argsorted_deletion_states_and_path_idxes = np.argsort(deletion_states_and_path_idxes[:, 0])[::-1]
+                        sorted_deletion_states_and_path_idxes = deletion_states_and_path_idxes[argsorted_deletion_states_and_path_idxes]
+
+                        for state_to_delete, cur_path_idx in sorted_deletion_states_and_path_idxes:
+                            path_starting_idxes = np.array([len(p) for p in self.validated_paths])
+                            path_starting_idxes = np.cumsum((np.concatenate(([0], path_starting_idxes))))
+
+                            # Find Starting Idx of Path
+                            my_si = path_starting_idxes[cur_path_idx]
+
+                            my_kept_path_segment = updated_path_states[(state_to_delete+deletion_offset):path_starting_idxes[cur_path_idx+1]]
+
+                            # Delete all the states up until and including the deletion state
+                            updated_path_states = np.vstack((updated_path_states[:my_si], updated_path_states[state_to_delete+deletion_offset:]))
+                            updated_path_state_path_idxes = np.hstack((updated_path_state_path_idxes[:my_si], updated_path_state_path_idxes[state_to_delete+deletion_offset:]))
+
+                            updated_flattened_c2gs = np.concatenate((updated_flattened_c2gs[:my_si], updated_flattened_c2gs[state_to_delete+deletion_offset:]), axis=0)
+                            updated_c2g_estimates = np.concatenate((updated_c2g_estimates[:, :my_si], updated_c2g_estimates[:, state_to_delete+deletion_offset:]), axis=1)
+
+                            # Update Path in self.validated_paths
+                            self.validated_paths[cur_path_idx] = Path([self.env.make_state(state) for state in my_kept_path_segment])
+
+                            
+        
                 end_time = time.time()
                 timing_dict['filter_following_path'].append(end_time - start_time)
-
-                start_time = time.time()
-                self.validated_paths[path_starting_idx] = Path([self.env.make_state(state) for state in kept_path_segment])
-                
-                if len(self.validated_paths[path_starting_idx]) == 0:
-                    self.validated_paths.pop(path_starting_idx)
-                end_time = time.time()
-                timing_dict['update_saved_paths'].append(end_time - start_time)
 
                 start_time = time.time()
                 parent = self.env.make_state(tree_states[tree_state_idx])
@@ -335,6 +373,7 @@ class OptimizedPDG():
                 
                 start_time = time.time()
                 path_states = updated_path_states
+                path_state_path_idxes = updated_path_state_path_idxes
                 self.flattened_c2gs = updated_flattened_c2gs
                 
                 
@@ -457,6 +496,11 @@ if __name__ == '__main__':
 
     # seed = 1119
     # seed = 6473
+
+    # seed = 3967 # Slow Search
+    # seed = 6292
+    # seed = 5185
+    # seed = 6300 # Very slow search
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
@@ -474,7 +518,8 @@ if __name__ == '__main__':
 
     # path_states = np.array(path_states)
 
-    db_save_path = 'saves/database_v5.pickle'
+    # db_save_path = 'saves/database_v5.pickle'
+    db_save_path = "saves/database_bpe3_large.pickle"
     # db_save_path = 'saves/database_v1_bpe3.pickle'
     
     env = PointRobot()
@@ -486,6 +531,7 @@ if __name__ == '__main__':
     # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([15.0, 5.0]))
     # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([45.0, 5.0]))
     start, target = env.space.sample_task()
+    # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([35.0, 5.0]))
 
     start_time = time.time()
     pdg.compute_retained_paths(target)
