@@ -296,7 +296,7 @@ class OptimizedPDG():
 
         # Optimized PDG Specific Initializations
         self.tree_states = np.array([key.value for key in self.tree])
-        self.path_states = np.array([state.value for path in self.validated_paths for state in path])
+        self.path_states = np.array([state.value for path in self.validated_paths for state in path]).reshape(-1, 2) # TODO: Use env dims for the "2" arg
         self.path_state_path_idxes = np.array([i for i, path in enumerate(self.validated_paths) for _ in path])
         self.c2g_estimates = self.compute_c2g_estimates_for_states(self.tree_states, self.path_states)
 
