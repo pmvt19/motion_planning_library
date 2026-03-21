@@ -17,7 +17,7 @@ from motion_planning.rrt import RRT
 
 # Medial Axis Can Either Guide PRM (Use as starting vertices) or RRT (Biased Sampling)
 
-def compute_medial_axis_points(env : ApproximationSpace, percent_kept=0.1):
+def compute_medial_axis_points(env: ApproximationSpace, percent_kept=0.1):
     plt.axis('off')
     env.space.draw_environment(plt.gca())
 
@@ -116,8 +116,8 @@ if __name__ == '__main__':
     seed = 53
     print(f"Setting Seed: {seed}")
     np.random.seed(seed)
-    # env = PointRobot()
-    env = PolygonalRobot()
+    env = PointRobot()
+    # env = PolygonalRobot()
 
     # env = PlanarMobileArm()
     # env.set_obstacles(BiasedPassage(num_walls=2))
@@ -127,12 +127,12 @@ if __name__ == '__main__':
     env.set_obstacles(RandomSamplePassage(gap_width=1.5))
     env = ApproximationSpace(env, do_overapproximation=False)
 
-    # start, target = env.sample_valid_point(), env.sample_valid_point()
+    start, target = env.sample_valid_point(), env.sample_valid_point()
     # start, target = env.sample_valid_point(), env.sample_valid_point()
     print("Start and Target")
-    start = env.make_state(np.array([5.0, 5.0, 0.0]))
-    target = env.make_state(np.array([35.0, 5.0, 0.0]))
-    print(start.value, target.value)
+    # start = env.make_state(np.array([5.0, 5.0, 0.0]))
+    # target = env.make_state(np.array([35.0, 5.0, 0.0]))
+    # print(start.value, target.value)
     # print(start.value, target.value)
     # rrt = MedialAxisRRT(env, prm_starting_configs, points_bias=0.7)
     # rrt = MedialAxisRRT(env, points_bias=0.7)
