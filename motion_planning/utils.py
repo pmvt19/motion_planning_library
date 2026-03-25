@@ -8,8 +8,6 @@ from shapely import Polygon
 from motion_planning.state import NumpyState, AngularNumpyState
 from motion_planning.path import Path
 
-# from environments import Environment
-
 def set_numpy_seed(seed=None):
     if seed:
         print(f"Setting Numpy Seed to {seed}")
