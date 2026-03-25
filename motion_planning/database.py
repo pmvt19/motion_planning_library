@@ -63,7 +63,7 @@ class Database():
 
                 if path:
                     self.add_path(path)
-            print(f"DB Size: {len(db)}")
+            print(f"DB Size: {len(self)}")
     
 def merge_db_lists(dbs):
     db = Database()
