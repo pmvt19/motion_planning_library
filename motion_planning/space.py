@@ -73,11 +73,13 @@ class RobotSpace():
     #         ax.plot(*point.xy, color='red')
     
     def draw_environment(self, ax):
+        containers = []
         ax.set_xlim(self.x_range[0], self.x_range[1])
         ax.set_ylim(self.y_range[0], self.y_range[1])
         for obs in self.obstacles:
             x,y = obs.exterior.xy
-            ax.plot(x,y, color='black')
+            containers.extend(ax.plot(x,y, color='black'))
+        return containers
     
     def animate_path(self, path, frame_delay=0.1):
         for state in path:
@@ -85,7 +87,20 @@ class RobotSpace():
             self.draw_environment(plt.gca())
             self.draw_state(plt.gca(), state)
             plt.pause(frame_delay)
-        
+
+    def animate_path_upgraded(self, path, frame_delay=100):
+        import matplotlib.animation as animation
+        fig, ax = plt.subplots()
+        artists = []
+        for state in path:
+            frame_containers = []
+            frame_containers.extend(self.draw_environment(ax))
+            container = self.draw_state(ax, state)
+            frame_containers.extend(container)
+            artists.append(frame_containers)
+        ani = animation.ArtistAnimation(fig=fig, artists=artists, interval=frame_delay, repeat=False)
+        plt.show()
+
     def get_state_value(self, state):
         if isinstance(state, NumpyState):
             return state.value
@@ -206,7 +221,7 @@ class PointRobot(HolonomicRobot):
 
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
-        ax.scatter(*robot.xy, color='red')
+        return [ax.scatter(*robot.xy, color='red')]
 
     ## ---- Batched Methods ---- ##
 
