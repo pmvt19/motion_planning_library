@@ -49,8 +49,21 @@ class Database():
     def __getitem__(self, idx):
         return self.paths[idx]
     
-    def populate_db(self, env, num_envs, num_paths_per_env):
-        raise NotImplementedError
+    def populate_db(self, mp_sampler: MPSampler, num_envs: int, num_tasks_per_env: int):
+        for i in range(num_envs):
+            env = mp_sampler.sample_env()
+            prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
+            prm.create_graph()
+
+            for j in range(num_tasks_per_env):
+                print(f"Env {i+1}, Task {j+1}")
+                start, target = mp_sampler.sample_task(env)
+
+                path = prm.search(start, target)
+
+                if path:
+                    self.add_path(path)
+            print(f"DB Size: {len(db)}")
     
 def merge_db_lists(dbs):
     db = Database()
@@ -126,27 +139,6 @@ if __name__ == '__main__':
     # db_save_path = 'saves/database_bpe3_large.pickle'
     # db_save_path = 'saves/database_bpe3_small.pickle'
     db_save_path = 'saves/database_bpe_mp_sampler.pickle'
-
-    # db = Database()
-
-    start_time = time.time()
-    # for i in range(20):
-    #     env = PointRobot()
-    #     env.set_obstacles(BiasedPassage(num_walls=8, bias=0.5))
-    #     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
-
-    #     prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
-    #     # prm = PRM(env, num_samples=5000, num_neighbors=10)
-    #     prm.create_graph()
-
-    #     for j in range(20):
-    #         print(f"Env {i+1}, Task {j+1}")
-    #         start, target = env.sample_valid_point(), env.sample_valid_point()
-
-    #         path = prm.search(start, target)
-    #         if path:
-    #             db.paths.append(path)
-    #     print(f"DB Size: {len(db)}")
     # new_db = generate_database_parallel()
 
     # new_db = generate_database()
@@ -155,10 +147,9 @@ if __name__ == '__main__':
     # print(f"Database Size: {len(new_db)}")
     # print(f"Time to create database: {end_time-start_time}")
 
+    db = Database()
+    mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
 
-    db = generate_database_mp_sampler_version(db_save_path)
+    db.populate_db(mp_sampler, num_envs=10, num_tasks_per_env=10)
     db.draw_paths(plt.gca())
     plt.show()
-
-
-    # db.save_to_path(db_save_path)
