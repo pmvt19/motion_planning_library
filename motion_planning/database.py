@@ -8,10 +8,11 @@ import concurrent.futures
 from matplotlib.collections import LineCollection
 
 from motion_planning.prm import IncrementalPRM, PRM
-from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
 from motion_planning.space import PointRobot
 from motion_planning.circle_approximation import ApproximationSpace
 from motion_planning.path import Path
+from motion_planning.mp_sampler import MPSampler
 
 class Database():
     def __init__(self):
@@ -93,14 +94,40 @@ def generate_database_parallel(db_save_path=None):
     
     return merge_db_lists(dbs)
 
-    
+def generate_database_mp_sampler_version(db_save_path=None):
+    mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 1, "bias": 0.5})
+    db = Database()
+
+    for i in range(10):
+        env = mp_sampler.sample_env()
+        prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
+        prm.create_graph()
+
+        for j in range(10):
+            print(f"Env {i+1}, Task {j+1}")
+            start, target = mp_sampler.sample_task(env)
+
+            path = prm.search(start, target)
+
+            if path:
+                db.paths.append(path)
+        print(f"DB Size: {len(db)}")
+
+    if db_save_path:
+        print(f"Saving Database to {db_save_path}")
+        db.save_to_path(db_save_path)
+
+    return db
 
 if __name__ == '__main__':
 
     # db_save_path = 'saves/database_v6.pickle'
-    db_save_path = 'saves/database_v1_bpe3.pickle'
+    # db_save_path = 'saves/database_v1_bpe3.pickle'
+    # db_save_path = 'saves/database_bpe3_large.pickle'
+    # db_save_path = 'saves/database_bpe3_small.pickle'
+    db_save_path = 'saves/database_bpe_mp_sampler.pickle'
 
-    db = Database()
+    # db = Database()
 
     start_time = time.time()
     # for i in range(20):
@@ -120,10 +147,18 @@ if __name__ == '__main__':
     #         if path:
     #             db.paths.append(path)
     #     print(f"DB Size: {len(db)}")
-    new_db = generate_database_parallel()
-    end_time = time.time()
-    print(f"Database Size: {len(new_db)}")
-    print(f"Time to create database: {end_time-start_time}")
+    # new_db = generate_database_parallel()
+
+    # new_db = generate_database()
+    # new_db.save_to_path(db_save_path)
+    # end_time = time.time()
+    # print(f"Database Size: {len(new_db)}")
+    # print(f"Time to create database: {end_time-start_time}")
+
+
+    db = generate_database_mp_sampler_version(db_save_path)
+    db.draw_paths(plt.gca())
+    plt.show()
 
 
     # db.save_to_path(db_save_path)
