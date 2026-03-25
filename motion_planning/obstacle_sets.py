@@ -255,11 +255,86 @@ class NonRegularPolygonObst(ObstacleSet2d):
         boundary = Polygon([(x_range[0], y_range[0]), (x_range[0], y_range[1]), (x_range[1], y_range[1]), (x_range[1], y_range[0])])
         super().__init__(obstacles=obstacles, boundary=boundary)
 
-if __name__ == '__main__':
-    obs_set = TestSet()
-    obs_set.draw(plt.gca())
-    plt.show()
+class Cubicles(ObstacleSet2d):
+    def __init__(self):
 
-    obs_set = Shelves2d()
+        self.obstacles = []
+        self.central_points = []
+        self.critical_points = []
+
+        x_range = [-20,20]
+        y_range = [-20,20]
+
+        boundary = Polygon([(x_range[0], y_range[0]), (x_range[0], y_range[1]), (x_range[1], y_range[1]), (x_range[1], y_range[0])])
+        self.create_cubicle_set()
+        
+
+        super().__init__(obstacles=self.obstacles, boundary=boundary)
+
+    def create_single_cubicle(self, x_loc=0, y_loc=0, space_width=5, bottom_open=False):
+        line_width = 0.5
+        line_height = 6
+
+        horizontal_obstacle = None
+        
+        if bottom_open:
+            horizontal_obstacle = Polygon([ # Horizontal Bar
+                    [x_loc+line_width, y_loc+line_height-line_width],
+                    [x_loc+line_width, y_loc+line_height],
+                    [x_loc+space_width+line_width, y_loc+line_height],
+                    [x_loc+space_width+line_width, y_loc+line_height-line_width],            
+                ])
+        else:
+            horizontal_obstacle = Polygon([ # Horizontal Bar
+                    [x_loc+line_width, y_loc+line_width],
+                    [x_loc+line_width, y_loc],
+                    [x_loc+space_width+line_width, y_loc],
+                    [x_loc+space_width+line_width, y_loc+line_width],
+                ])
+
+        obs = [
+            Polygon([
+                [x_loc, y_loc],
+                [x_loc, y_loc+line_height],
+                [x_loc+line_width, y_loc+line_height],
+                [x_loc+line_width, y_loc],            
+            ]),
+            Polygon([
+                [x_loc+space_width+line_width, y_loc],
+                [x_loc+space_width+line_width, y_loc+line_height],
+                [x_loc+space_width+line_width*2, y_loc+line_height],
+                [x_loc+space_width+line_width*2, y_loc],            
+            ]),
+            horizontal_obstacle
+        ]
+        x_center = (2 * x_loc + space_width + line_width*2) / 2
+        y_center = (2 * y_loc + line_height - line_width) / 2
+
+        sample_radius = 2
+        space_samples = np.array([x_center, y_center]) + (np.random.normal(size=(1000, 2)) * sample_radius)
+
+        self.central_points.append(np.array([x_center, y_center]))
+        self.critical_points.extend(space_samples)
+
+        return obs
+    
+    def create_cubicle_set(self):
+
+        num_cubicles_per_set = np.random.randint(1, 5)
+        
+        set1_bottom_open = np.random.randint(0, 2)
+        set2_bottom_open = np.random.randint(0, 2)
+
+        for i in range(num_cubicles_per_set):
+            self.obstacles.extend(self.create_single_cubicle((i * 5), 7, 4, set1_bottom_open))
+            self.obstacles.extend(self.create_single_cubicle((i * 5), -7, 4, set2_bottom_open))
+
+if __name__ == '__main__':
+    # obs_set = TestSet()
+    # obs_set.draw(plt.gca())
+    # plt.show()
+
+    # obs_set = Shelves2d()
+    obs_set = Cubicles()
     obs_set.draw(plt.gca())
     plt.show()
