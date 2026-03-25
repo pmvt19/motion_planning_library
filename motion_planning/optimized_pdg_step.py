@@ -278,7 +278,7 @@ class OptimizedPDG():
             parent_node = self.env.make_state(self.tree_states[tree_state_idx])
             self.add_state_from_path_to_tree(parent_node, add_to_tree_segment)
         
-        if target in self.tree:
+        if self.target in self.tree:
             print(f"Found Path in {iteration} iterations")
             return
 
