@@ -262,11 +262,14 @@ class Cubicles(ObstacleSet2d):
         self.central_points = []
         self.critical_points = []
 
-        x_range = [-20,20]
-        y_range = [-20,20]
+        x_range = [0,45]
+        y_range = [0,50]
+
+        self.x_range = x_range
+        self.y_range = y_range
 
         boundary = Polygon([(x_range[0], y_range[0]), (x_range[0], y_range[1]), (x_range[1], y_range[1]), (x_range[1], y_range[0])])
-        self.create_cubicle_set()
+        self.create_cubicle_sets()
         
 
         super().__init__(obstacles=self.obstacles, boundary=boundary)
@@ -318,16 +321,27 @@ class Cubicles(ObstacleSet2d):
 
         return obs
     
-    def create_cubicle_set(self):
+    def create_single_cubicle_set(self, x_loc, y_loc, space_width, num_spaces, bottom_open=False):
+        for i in range(num_spaces):
+            self.obstacles.extend(self.create_single_cubicle((i * 5) + x_loc, y_loc, space_width, bottom_open))
 
-        num_cubicles_per_set = np.random.randint(1, 5)
+    def get_x_loc_for_set(self, set_num, num_cubicles_per_set, cubicle_width):
+        width_of_cubicle_set = ((cubicle_width + 1) * num_cubicles_per_set)
+        return (width_of_cubicle_set * set_num) + 5 + (5 * set_num)
+
+    def create_cubicle_sets(self, num_cubicles_per_set=4, cubicle_width=4):
         
-        set1_bottom_open = np.random.randint(0, 2)
-        set2_bottom_open = np.random.randint(0, 2)
+        i = 0
+        set_i_x_loc_vert = self.get_x_loc_for_set(i, num_cubicles_per_set, cubicle_width)
 
-        for i in range(num_cubicles_per_set):
-            self.obstacles.extend(self.create_single_cubicle((i * 5), 7, 4, set1_bottom_open))
-            self.obstacles.extend(self.create_single_cubicle((i * 5), -7, 4, set2_bottom_open))
+        while set_i_x_loc_vert < self.x_range[1]:
+            self.create_single_cubicle_set(set_i_x_loc_vert, 7, cubicle_width, num_cubicles_per_set, np.random.randint(0, 2))
+            self.create_single_cubicle_set(set_i_x_loc_vert, 21, cubicle_width, num_cubicles_per_set, np.random.randint(0, 2))
+            self.create_single_cubicle_set(set_i_x_loc_vert, 35, cubicle_width, num_cubicles_per_set, np.random.randint(0, 2))
+
+            i += 1
+            set_i_x_loc_vert = self.get_x_loc_for_set(i, num_cubicles_per_set, cubicle_width)
+
 
 if __name__ == '__main__':
     # obs_set = TestSet()
