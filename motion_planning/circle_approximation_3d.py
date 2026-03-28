@@ -1,4 +1,5 @@
 import math
+import rerun as rr
 import numpy as np
 import matplotlib.pyplot as plt
 import open3d as o3d
@@ -443,23 +444,30 @@ class ApproximationSpace3D(RobotSpace):
         pass
 
     def draw_environment(self, ax, state, method='o3d'):
-        mesh_circles = []
-        for x,y,z,r in self.obstacle_circles:
+        if method == 'o3d':
+            mesh_circles = []
+            for x,y,z,r in self.obstacle_circles:
 
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+                sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
 
-            # 2. Define the new center coordinates
-            new_center = np.array([x,y,z])
+                # 2. Define the new center coordinates
+                new_center = np.array([x,y,z])
 
-            # 3. Translate the sphere to the new center
-            sphere.translate(new_center, relative=False)
+                # 3. Translate the sphere to the new center
+                sphere.translate(new_center, relative=False)
 
-            # 4. Compute vertex normals for proper shading
-            sphere.compute_vertex_normals()
-            mesh_circles.append(sphere)
+                # 4. Compute vertex normals for proper shading
+                sphere.compute_vertex_normals()
+                mesh_circles.append(sphere)
 
-        # 5. Visualize the sphere
-        o3d.visualization.draw_geometries(mesh_circles)
+            # 5. Visualize the sphere
+            o3d.visualization.draw_geometries(mesh_circles)
+        elif method == 'rerun':
+            # rr.set_time("time", duration=time.time()-start_time)
+            # rr
+            # rr.log("points", rr.Points3D(coords))
+            # rr.log("points v2", rr.Points3D([[[0.0,0.0,0.0]]], colors=[0, 255, 0], radii=10.0))
+            pass
 
     def draw_state_env(self, ax, state, method='o3d'):
 
