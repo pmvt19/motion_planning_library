@@ -573,8 +573,11 @@ class SphereRobot(HolonomicRobot):
         aa_rect_prism1 = np.array([0,0,0,1,5,5])
         aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
         aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
+        aa_rect_prism4 = np.array([2.5,0,-2.5,5,5,1])
+        aa_rect_prism5 = np.array([2.5,0,2.5,5,5,1])
 
-        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
+        # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
+        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
         self.obstacles = prisms
         ### HARD CODED ###
 
@@ -775,8 +778,11 @@ if __name__ == '__main__':
     # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
     # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
     start, target = env.make_state(np.array([1.5,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+
+    start, target = env.make_state(np.array([2.5, 0.0, 0.0])), env.make_state(np.array([-2.5, 0.0, 0.0]))
     start_time = time.time()
     path = prm.search(start, target)
+    # path = prm.search(target, start)
     end_time = time.time()
     print(f"Time to Search: {end_time - start_time}")
     print(path.path)
