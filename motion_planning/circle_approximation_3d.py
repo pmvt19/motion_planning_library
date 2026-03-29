@@ -295,7 +295,7 @@ class ApproximationSpace3D(RobotSpace):
         self.batch_size = batch_size
         self.do_overapproximation = do_overapproximation
 
-        self.edge_validity_delta = 0.5
+        self.edge_validity_delta = 0.1
         self.angular_dims_start = None
 
         self.obstacle_circles = self.space_to_circles()
@@ -535,6 +535,7 @@ class ApproximationSpace3D(RobotSpace):
         elif method == 'rerun':
             for state in path:
                 self.draw_state_env(None, state, method='rerun')
+                time.sleep(0.1)
 
 
     def sample_point(self):
