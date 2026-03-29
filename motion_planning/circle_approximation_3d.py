@@ -295,6 +295,9 @@ class ApproximationSpace3D(RobotSpace):
         self.batch_size = batch_size
         self.do_overapproximation = do_overapproximation
 
+        self.edge_validity_delta = 0.5
+        self.angular_dims_start = None
+
         self.obstacle_circles = self.space_to_circles()
 
         self.num_collision_checks = 0
@@ -463,67 +466,76 @@ class ApproximationSpace3D(RobotSpace):
             # 5. Visualize the sphere
             o3d.visualization.draw_geometries(mesh_circles)
         elif method == 'rerun':
-            # rr.set_time("time", duration=time.time()-start_time)
-            # rr
-            # rr.log("points", rr.Points3D(coords))
-            # rr.log("points v2", rr.Points3D([[[0.0,0.0,0.0]]], colors=[0, 255, 0], radii=10.0))
-            pass
+            rr.init("3D Environment", spawn=True)
+            rr.log("Obstacle Spheres", rr.Points3D([self.obstacle_circles[:, :3]], colors=[0, 0, 255], radii=self.obstacle_circles[:, 3]))
 
     def draw_state_env(self, ax, state, method='o3d'):
-
-        mesh_circles = []
-        for x,y,z,r in self.obstacle_circles:
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
-            # 2. Define the new center coordinates
-            new_center = np.array([x,y,z])
-            # 3. Translate the sphere to the new center
-            sphere.translate(new_center, relative=False)
-            # 4. Compute vertex normals for proper shading
-            sphere.compute_vertex_normals()
-            sphere.paint_uniform_color([0.0, 0.0, 1.0])
-            mesh_circles.append(sphere)
         
-        state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
-        state_spheres = []
-        # print("HERE", state_circles.shape)
-        for x,y,z,r in state_circles:
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
-            # 2. Define the new center coordinates
-            new_center = np.array([x,y,z])
-            # 3. Translate the sphere to the new center
-            sphere.translate(new_center, relative=False)
-            # 4. Compute vertex normals for proper shading
-            sphere.compute_vertex_normals()
-            sphere.paint_uniform_color([1.0, 0.0, 0.0])
-            state_spheres.append(sphere)
-        
-        # o3d.visualization.draw_geometries(mesh_circles + state_spheres)
-        return mesh_circles, state_spheres
+        if method == 'o3d':
+            mesh_circles = []
+            for x,y,z,r in self.obstacle_circles:
+                sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+                # 2. Define the new center coordinates
+                new_center = np.array([x,y,z])
+                # 3. Translate the sphere to the new center
+                sphere.translate(new_center, relative=False)
+                # 4. Compute vertex normals for proper shading
+                sphere.compute_vertex_normals()
+                sphere.paint_uniform_color([0.0, 0.0, 1.0])
+                mesh_circles.append(sphere)
+            
+            state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+            state_spheres = []
+            # print("HERE", state_circles.shape)
+            for x,y,z,r in state_circles:
+                sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+                # 2. Define the new center coordinates
+                new_center = np.array([x,y,z])
+                # 3. Translate the sphere to the new center
+                sphere.translate(new_center, relative=False)
+                # 4. Compute vertex normals for proper shading
+                sphere.compute_vertex_normals()
+                sphere.paint_uniform_color([1.0, 0.0, 0.0])
+                state_spheres.append(sphere)
+            
+            # o3d.visualization.draw_geometries(mesh_circles + state_spheres)
+            return mesh_circles, state_spheres
+        elif method == 'rerun':
+            rr.init("3D State & Environment", spawn=True)
+            rr.log("Obstacle Spheres", rr.Points3D([self.obstacle_circles[:, :3]], colors=[0, 0, 255], radii=self.obstacle_circles[:, 3]))
 
-    def animate_path(self, path):
-        vis = o3d.visualization.Visualizer()
-        vis.create_window()
+            state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+            rr.log("State Spheres", rr.Points3D([state_circles[:, :3]], colors=[255, 0, 0], radii=state_circles[:, 3]))
 
-        state = path[0]
-        mesh_circles, state_spheres = self.draw_state_env(None, state, None)
-        # vis.add_geometry(mesh_circles + state_spheres)
-        for geom in mesh_circles + state_spheres:
-            vis.add_geometry(geom)
-        vis.run()
+    def animate_path(self, path, method='o3d'):
+        if method == 'o3d':
+            vis = o3d.visualization.Visualizer()
+            vis.create_window()
 
-        for state in path:
-            print(state.value)
-            # time.sleep(0.5)
-            vis.clear_geometries()
+            state = path[0]
             mesh_circles, state_spheres = self.draw_state_env(None, state, None)
-            # vis.update_geometry(mesh_circles + state_spheres)
+            # vis.add_geometry(mesh_circles + state_spheres)
             for geom in mesh_circles + state_spheres:
-                # vis.update_geometry(geom)
                 vis.add_geometry(geom)
-            vis.poll_events()
-            vis.update_renderer()
             vis.run()
-            time.sleep(0.01)
+
+            for state in path:
+                print(state.value)
+                # time.sleep(0.5)
+                vis.clear_geometries()
+                mesh_circles, state_spheres = self.draw_state_env(None, state, None)
+                # vis.update_geometry(mesh_circles + state_spheres)
+                for geom in mesh_circles + state_spheres:
+                    # vis.update_geometry(geom)
+                    vis.add_geometry(geom)
+                vis.poll_events()
+                vis.update_renderer()
+                vis.run()
+                time.sleep(0.01)
+        elif method == 'rerun':
+            for state in path:
+                self.draw_state_env(None, state, method='rerun')
+
 
     def sample_point(self):
         return self.space.sample_point()
@@ -750,7 +762,10 @@ if __name__ == '__main__':
     import time
     env = SphereRobot()
     env = ApproximationSpace3D(env)
-    prm = PRM(env, num_samples=1000, num_neighbors=5)
+
+    env.draw_environment(None, None, method='rerun')
+
+    prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
     
     start_time = time.time()
     prm.create_graph()
@@ -771,7 +786,7 @@ if __name__ == '__main__':
     path = interpolate_path(path, env, 0.1)
     path_states = np.array([state.value for state in path])
     print(env.batch_is_valid(path_states))
-    env.animate_path(path)
+    env.animate_path(path, method='rerun')
 
     # prm.draw(plt.gca())
     # plt.show()
