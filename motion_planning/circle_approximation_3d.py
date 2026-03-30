@@ -8,6 +8,7 @@ from motion_planning.space import RobotSpace, HolonomicRobot
 from motion_planning.utils import numpystate_distance, interpolate_path
 from motion_planning.state import NumpyState
 from motion_planning.prm import PRM
+from motion_planning.obstacle_sets import ObstacleSet
 
 def rect_prism_to_circles_x_short(aa_rect_prism):
     # aa_rect (x,y,z,xl,yl,zl)
@@ -287,6 +288,18 @@ def viz_circles(circles):
 
     # 5. Visualize the sphere
     o3d.visualization.draw_geometries(mesh_circles)
+
+class RobotSpace3D(RobotSpace):
+    def __init__(self):
+        pass
+
+    def set_obstacles(self, obstacle_set: ObstacleSet):
+        self.obstacles = obstacle_set.obstacles
+        # self.boundary = obstacle_set.boundary
+
+        # x_points, y_points = self.boundary.exterior.xy
+        # self.x_range = [min(x_points), max(x_points)]
+        # self.y_range = [min(y_points), max(y_points)]
 
 
 class ApproximationSpace3D(RobotSpace):
