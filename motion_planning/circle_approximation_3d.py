@@ -1,4 +1,5 @@
 import math
+import time
 import rerun as rr
 import numpy as np
 import matplotlib.pyplot as plt
@@ -372,11 +373,17 @@ class ApproximationSpace3D(RobotSpace):
 
     def cylinders_to_circles(self, cylinders, radius):
         """
-        cylinders: (B, 2, 3)
-        cyl_radii: (B, 1) or scaler
+        cylinders: (Bm, m, 2, 3)
+        cyl_radii: (Bm, 1) or scaler
+
+        returns: (Bm, m, 4)
         """
+        Bm, m, _, _ = cylinders.shape
+
         if len(cylinders) == 0:
-            return np.empty((0, 4))
+            return np.empty((0, m, 4))
+        
+        cylinders = cylinders.reshape(Bm * m, 2, 3)
 
         start_points = cylinders[:, 0, :] # (B, 3)
         end_points = cylinders[:, 1, :] # (B, 3)
@@ -415,6 +422,7 @@ class ApproximationSpace3D(RobotSpace):
             num_circles_per_segment = num_circles_per_segment.squeeze()
             circle_center_radius_pairs = np.vstack([circle_center_radius_pairs[i, :(num_circles+1)] for i, num_circles in enumerate(num_circles_per_segment)])
 
+        circle_center_radius_pairs = circle_center_radius_pairs.reshape(Bm, m, 4)
         return circle_center_radius_pairs
 
     def points_to_circles(self, points, radii):
@@ -644,7 +652,7 @@ class SphereRobot(HolonomicRobot):
     def batch_get_robot_representations(self, states):
         return {
             'prisms' : np.empty((0, 6)),
-            'cylinders' : np.empty((0, 2, 3)), 
+            'cylinders' : np.empty((0, 0, 2, 3)), 
             'cylinder_radii' : 0.0,
             'points' : states, 
             'points_radii' : self.robot_radius
@@ -720,12 +728,41 @@ class UR5(HolonomicRobot):
                 point_b = ordered_verts[b]
                 ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
     
+    def forward_kinematics(self, state: NumpyState):
+        theta1, theta2 = state.value
+        # H_j1f_2_wf
+        H1 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
+                       [np.sin(theta1), np.cos(theta1), 0.0, 0.0],
+                       [0.0, 0.0, 0.0, 0.0],
+                       [0.0, 0.0, 0.0, 1.0]])
+        
+        # H_j2f_2_j1f
+        H2 = np.array([[np.cos(theta2), 0.0, np.sin(theta2), 1.0],
+                       [0.0,            1.0,            0.0, 0.0],
+                       [-np.sin(theta2), 0.0, np.cos(theta2), 1.0],
+                       [0.0,             0.0,            0.0, 1.0]])
+        
+        homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+
+        ee = H1 @ H2 @ homogenous_origin
+        print(ee)
+        print(H2 @ homogenous_origin)
+    
     def batch_forward_kinematics(self, states: np.ndarray):
         # states: (N, m)
         # returns: (N, m, 2, 3)
         N, m = states.shape
 
-        return np.empty((0, m, 2, 3))
+        # H1 = np.array([[np.cos()]])
+
+        # return np.empty((0, m, 2, 3))
+
+        out1 = np.array([[[[0.0, 0.0, 0.0],
+                           [1.0, 1.0, 1.0]],
+                          [[1.0, 1.0, 1.0],
+                           [0.0, 0.0, 2.0]]]])
+        print(out1.shape)
+        return out1
 
     def batch_get_robot_representations(self, states):
 
@@ -787,49 +824,52 @@ if __name__ == '__main__':
     # aa_rect_prism2 = np.array([0,2.5,2.5,5,1,5])
     # aa_rect_prism3 = np.array([0,-2.5,2.5,5,1,5])
 
+    ## Batch Commenting out START ##
 
-    aa_rect_prism1 = np.array([0,0,0,1,5,5])
-    aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
-    aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
+    # aa_rect_prism1 = np.array([0,0,0,1,5,5])
+    # aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
+    # aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
 
+    # # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
     # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-    prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-    circles = rect_prisms_to_circles(prisms)
-    # print(circles.shape)
+    # circles = rect_prisms_to_circles(prisms)
+    # # print(circles.shape)
 
-    ax = plt.axes(projection='3d')
-    for prism in prisms:
-        ordered_verts = xyzwhl_to_ordered_vertices(prism)
-        for a,b in edges:
-            point_a = ordered_verts[a]
-            point_b = ordered_verts[b]
-            ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
-        ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
-        # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
-        ax.set_box_aspect([1,1,1])
-        amin = -11
-        amax = 11
-        ax.set_xlim(amin, amax)
-        ax.set_ylim(amin, amax)
-        ax.set_zlim(amin, amax)
+    # ax = plt.axes(projection='3d')
+    # for prism in prisms:
+    #     ordered_verts = xyzwhl_to_ordered_vertices(prism)
+    #     for a,b in edges:
+    #         point_a = ordered_verts[a]
+    #         point_b = ordered_verts[b]
+    #         ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
+    #     ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
+    #     # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
+    #     ax.set_box_aspect([1,1,1])
+    #     amin = -11
+    #     amax = 11
+    #     ax.set_xlim(amin, amax)
+    #     ax.set_ylim(amin, amax)
+    #     ax.set_zlim(amin, amax)
     
-    for x,y,z,r in circles:
-        # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
-        cpx, cpy, cpz = drawSphere(x,y,z,r)
-        # ax.plot_wireframe(cpx, cpy, cpz, color="r")
-        ax.plot_surface(cpx, cpy, cpz, color="r")
-    plt.show()
+    # for x,y,z,r in circles:
+    #     # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
+    #     cpx, cpy, cpz = drawSphere(x,y,z,r)
+    #     # ax.plot_wireframe(cpx, cpy, cpz, color="r")
+    #     ax.plot_surface(cpx, cpy, cpz, color="r")
+    # plt.show()
 
-    visualize(prisms, edges, circles)
-    viz_cylinder()
+    # visualize(prisms, edges, circles)
+    # viz_cylinder()
 
-    end_points = np.array([[[0.0,0.0,0.0],
-                           [3.8,0.0,0.0]]])
-    print(f"End Points: {end_points.shape}")
-    cirs = cylinder_to_circles(end_points, 0.3)
-    viz_circles(cirs)
-    print(circles.shape, cirs.shape)
-    print(circles_to_validity(circles, cirs.reshape(1, -1, 4)))
+    # end_points = np.array([[[0.0,0.0,0.0],
+    #                        [3.8,0.0,0.0]]])
+    # print(f"End Points: {end_points.shape}")
+    # cirs = cylinder_to_circles(end_points, 0.3)
+    # viz_circles(cirs)
+    # print(circles.shape, cirs.shape)
+    # print(circles_to_validity(circles, cirs.reshape(1, -1, 4)))
+
+    ## Batch Commenting out END ##
 
 
     # aa_rect_prism = np.array([0,0,0,2,3,3.1])
@@ -865,6 +905,8 @@ if __name__ == '__main__':
     #     ax.plot_surface(cpx, cpy, cpz, color="r")
 
     # plt.show()
+
+    ## Sphere Robot PRM Search START ##
     import time
     env = SphereRobot()
     env = ApproximationSpace3D(env)
@@ -897,6 +939,8 @@ if __name__ == '__main__':
     print(env.batch_is_valid(path_states))
     env.animate_path(path, method='rerun')
 
+    ## Sphere Robot PRM Search END ##
+
     # prm.draw(plt.gca())
     # plt.show()
 
@@ -913,3 +957,14 @@ if __name__ == '__main__':
     #     env.space.draw_environment(ax)
     #     env.space.draw_state(ax, path[i])
     #     plt.pause(0.1)
+
+    env_base = UR5()
+    env = ApproximationSpace3D(env_base)
+
+    # env.draw_environment(None, None, method='rerun')
+
+    state = env.make_state(np.array([0.0, 0.0]))
+
+    env_base.forward_kinematics(state)
+    state_circles = env.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+    print(state_circles)
