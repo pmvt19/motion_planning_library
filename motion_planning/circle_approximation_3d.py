@@ -422,7 +422,7 @@ class ApproximationSpace3D(RobotSpace):
             num_circles_per_segment = num_circles_per_segment.squeeze()
             circle_center_radius_pairs = np.vstack([circle_center_radius_pairs[i, :(num_circles+1)] for i, num_circles in enumerate(num_circles_per_segment)])
 
-        circle_center_radius_pairs = circle_center_radius_pairs.reshape(Bm, m, 4)
+        circle_center_radius_pairs = circle_center_radius_pairs.reshape(Bm, -1, 4)
         return circle_center_radius_pairs
 
     def points_to_circles(self, points, radii):
@@ -465,7 +465,12 @@ class ApproximationSpace3D(RobotSpace):
         return stacked_validities
 
     def draw_state(self, ax, state, method='o3d'):
-        pass
+        if method == 'o3d':
+            raise NotImplementedError
+        elif method == 'rerun':
+            rr.init("3D Environment", spawn=True)
+            state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+            rr.log("State Spheres", rr.Points3D([state_circles[:, :3]], colors=[255, 0, 0], radii=state_circles[:, 3]))
 
     def draw_environment(self, ax, state, method='o3d'):
         if method == 'o3d':
@@ -771,8 +776,8 @@ class UR5(HolonomicRobot):
         return {
             'prisms' : np.empty((0, 6)),
             'cylinders' : cylinder_endpoints, 
-            'cylinder_radii' : 1.0,
-            'points' : states, 
+            'cylinder_radii' : 0.1,
+            'points' : np.empty((0, 3)),
             'points_radii' : self.robot_radius
         }
     
@@ -907,37 +912,37 @@ if __name__ == '__main__':
     # plt.show()
 
     ## Sphere Robot PRM Search START ##
-    import time
-    env = SphereRobot()
-    env = ApproximationSpace3D(env)
+    # import time
+    # env = SphereRobot()
+    # env = ApproximationSpace3D(env)
 
-    env.draw_environment(None, None, method='rerun')
+    # env.draw_environment(None, None, method='rerun')
 
-    prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
+    # prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
     
-    start_time = time.time()
-    prm.create_graph()
-    end_time = time.time()
-    print(f"Time to create graph: {end_time - start_time}")
-    # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
-    # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
-    start, target = env.make_state(np.array([1.5,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+    # start_time = time.time()
+    # prm.create_graph()
+    # end_time = time.time()
+    # print(f"Time to create graph: {end_time - start_time}")
+    # # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
+    # # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+    # start, target = env.make_state(np.array([1.5,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
 
-    start, target = env.make_state(np.array([2.5, 0.0, 0.0])), env.make_state(np.array([-2.5, 0.0, 0.0]))
-    start_time = time.time()
-    path = prm.search(start, target)
-    # path = prm.search(target, start)
-    end_time = time.time()
-    print(f"Time to Search: {end_time - start_time}")
-    print(path.path)
+    # start, target = env.make_state(np.array([2.5, 0.0, 0.0])), env.make_state(np.array([-2.5, 0.0, 0.0]))
+    # start_time = time.time()
+    # path = prm.search(start, target)
+    # # path = prm.search(target, start)
+    # end_time = time.time()
+    # print(f"Time to Search: {end_time - start_time}")
+    # print(path.path)
 
-    print([state.value for state in path])
-    path_states = np.array([state.value for state in path])
-    print(env.batch_is_valid(path_states))
-    path = interpolate_path(path, env, 0.1)
-    path_states = np.array([state.value for state in path])
-    print(env.batch_is_valid(path_states))
-    env.animate_path(path, method='rerun')
+    # print([state.value for state in path])
+    # path_states = np.array([state.value for state in path])
+    # print(env.batch_is_valid(path_states))
+    # path = interpolate_path(path, env, 0.1)
+    # path_states = np.array([state.value for state in path])
+    # print(env.batch_is_valid(path_states))
+    # env.animate_path(path, method='rerun')
 
     ## Sphere Robot PRM Search END ##
 
@@ -964,6 +969,9 @@ if __name__ == '__main__':
     # env.draw_environment(None, None, method='rerun')
 
     state = env.make_state(np.array([0.0, 0.0]))
+
+    env.draw_state(None, state, method='rerun')
+    exit()
 
     env_base.forward_kinematics(state)
     state_circles = env.states_to_circles(np.array(state.value).reshape(1, -1))[0]
