@@ -122,6 +122,10 @@ class ClusteredDatabase(Database):
             self.cluster_single_path(i)
         print(f"Num Clusters Generated: {len(self.clusters)}")
 
+    def erase_clustering(self):
+        self.clusters = None
+        self.clustered_threshold = None
+
     def add_path(self, path):
         path_idx = super().add_path(path)
         if self.clusters is not None:
