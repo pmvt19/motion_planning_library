@@ -80,6 +80,7 @@ class ClusteredDatabase(Database):
     def __init__(self):
         super().__init__()
 
+        self.clusters = None
         self.clustered_threshold = None
 
     def _path_to_numpy_path(self, path):
@@ -123,8 +124,19 @@ class ClusteredDatabase(Database):
 
     def add_path(self, path):
         path_idx = super().add_path(path)
-        if self.clustered_threshold is not None:
+        if self.clusters is not None:
             self.cluster_single_path(path_idx)
+    
+    def merge_dbs(self, other_db):
+        if self.clusters is None:
+            super().merge_dbs(other_db)
+        else:
+            # Options:
+            # 1. Remove the clusters
+            # 2. Add Each Path Individually to Preserve Clusters
+            # raise NotImplementedError
+            for path in other_db.paths:
+                self.add_path(path)
 
     def subsample_database(self, num_paths_per_cluster: int = 30) -> Database:
         db = Database()
