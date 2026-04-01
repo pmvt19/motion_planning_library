@@ -118,6 +118,9 @@ class ClusteredDatabase(Database):
         if self.clustered_threshold is not None:
             self.cluster_single_path(path_idx)
     
+    # TODO: Fix cluster drawing function
+    # TODO: Add a function to draw a specific cluster?
+    # Allow these functions to take in an axis as well
     def draw_clusters(self):
         for cluster_id in self.clusters:
             cmap = plt.get_cmap('tab10', len(self.paths))
