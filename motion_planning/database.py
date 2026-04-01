@@ -134,7 +134,18 @@ class ClusteredDatabase(Database):
             self.cluster_single_path(path_idx)
     
     def draw_clusters(self):
-        raise NotImplementedError
+        for cluster_id in self.clusters:
+            cmap = plt.get_cmap('tab10', len(self.paths))
+            plt.cla()
+            plt.clf()
+            for _, path_idx in enumerate(self.clusters[cluster_id]):
+                path = self[path_idx]
+                path_states = np.array([state.value for state in path.path])
+                plt.scatter(path_states[:, 0], path_states[:, 1], color=cmap(cluster_id), zorder=2)
+                path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
+                plt.gca().add_collection(LineCollection(path_edges, color=cmap(cluster_id)))
+            plt.show()
+                
 
 def merge_db_lists(dbs):
     db = Database()
@@ -223,8 +234,14 @@ if __name__ == '__main__':
     db = ClusteredDatabase()
     mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
 
-    db.populate_db(mp_sampler, num_envs=5, num_tasks_per_env=10)
+    # db.populate_db(mp_sampler, num_envs=5, num_tasks_per_env=10)
     # db.draw_paths(plt.gca())
     # plt.show()
 
-    db.cluster(threshold=100)
+    # db.save_to_path(db_save_path)
+
+    db = pickle.load(open(db_save_path, "rb"))
+
+    db.cluster(threshold=250)
+
+    db.draw_clusters()
