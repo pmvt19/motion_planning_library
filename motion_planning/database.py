@@ -39,6 +39,9 @@ class Database():
         path_idx = len(self.paths)
         self.paths.append(path)
         return path_idx
+    
+    def batch_add_paths(self, paths: list[Path]):
+        self.paths.extend(paths)
 
     def merge_dbs(self, other_db):
         self.paths = self.paths + other_db.paths
@@ -117,6 +120,26 @@ class ClusteredDatabase(Database):
         path_idx = super().add_path(path)
         if self.clustered_threshold is not None:
             self.cluster_single_path(path_idx)
+
+    def subsample_database(self, num_paths_per_cluster: int = 30) -> Database:
+        db = Database()
+        
+        kept_paths: list[Path] = []
+        for cluster_id in self.clusters:
+            cluster = self.clusters[cluster_id]
+            cluster_size = len(cluster)
+            kept_cluster_paths_idxes = np.random.randint(0, cluster_size, size=(min(cluster_size, num_paths_per_cluster),))
+
+            for kept_path_idx in kept_cluster_paths_idxes:
+                path_idx = cluster[kept_path_idx]
+                kept_paths.append(self[path_idx])
+        
+        db.batch_add_paths(kept_paths)
+        return db
+    
+    def print_cluster_info(self):
+        for cluster_id in self.clusters:
+            print(f"Cluster: {cluster_id}, Size: {len(self.clusters[cluster_id])}")
 
     def draw_clusters(self, ax):
         for cluster_id in self.clusters:
@@ -210,7 +233,8 @@ if __name__ == '__main__':
     # db_save_path = 'saves/database_bpe3_large.pickle'
     # db_save_path = 'saves/database_bpe3_small.pickle'
     # db_save_path = 'saves/database_bpe_mp_sampler.pickle'
-    db_save_path = 'saves/clustered_database_bpe_mp_sampler.pickle'
+    # db_save_path = 'saves/clustered_database_bpe_mp_sampler.pickle'
+    db_save_path = 'saves/clustered_database_large_bpe_mp_sampler.pickle'
     # new_db = generate_database_parallel()
 
     # new_db = generate_database()
@@ -237,8 +261,16 @@ if __name__ == '__main__':
     env = PointRobot()
     env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
     
-    for cluster_id in db.clusters:
-        plt.cla()
-        env.draw_environment(plt.gca())
-        db.draw_cluster(plt.gca(), cluster_id)
-        plt.show()
+    # for cluster_id in db.clusters:
+    #     plt.cla()
+    #     env.draw_environment(plt.gca())
+    #     db.draw_cluster(plt.gca(), cluster_id)
+    #     plt.show()
+    
+    db.print_cluster_info()
+
+    print(f"Size of Clustered DB: {len(db)}")
+    ss_db = db.subsample_database()
+    print(f"Size of Subsampled DB: {len(ss_db)}")
+
+    
