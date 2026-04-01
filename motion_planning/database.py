@@ -121,19 +121,36 @@ class ClusteredDatabase(Database):
     # TODO: Fix cluster drawing function
     # TODO: Add a function to draw a specific cluster?
     # Allow these functions to take in an axis as well
-    def draw_clusters(self):
+    # def draw_clusters(self):
+    #     for cluster_id in self.clusters:
+    #         cmap = plt.get_cmap('tab10', len(self.paths))
+    #         plt.cla()
+    #         plt.clf()
+    #         for _, path_idx in enumerate(self.clusters[cluster_id]):
+    #             path = self[path_idx]
+    #             path_states = np.array([state.value for state in path.path])
+    #             plt.scatter(path_states[:, 0], path_states[:, 1], color=cmap(cluster_id), zorder=2)
+    #             path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
+    #             plt.gca().add_collection(LineCollection(path_edges, color=cmap(cluster_id)))
+    #         plt.show()
+
+    def draw_clusters(self, ax):
         for cluster_id in self.clusters:
-            cmap = plt.get_cmap('tab10', len(self.paths))
-            plt.cla()
-            plt.clf()
+            cmap = plt.get_cmap('tab10', len(self.clusters))
             for _, path_idx in enumerate(self.clusters[cluster_id]):
                 path = self[path_idx]
                 path_states = np.array([state.value for state in path.path])
-                plt.scatter(path_states[:, 0], path_states[:, 1], color=cmap(cluster_id), zorder=2)
+                ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(cluster_id), zorder=2)
                 path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
-                plt.gca().add_collection(LineCollection(path_edges, color=cmap(cluster_id)))
-            plt.show()
-                
+                ax.add_collection(LineCollection(path_edges, color=cmap(cluster_id)))
+
+    def draw_cluster(self, ax, cluster_id, color='blue'):
+        for _, path_idx in enumerate(self.clusters[cluster_id]):
+            path = self[path_idx]
+            path_states = np.array([state.value for state in path.path])
+            ax.scatter(path_states[:, 0], path_states[:, 1], color=color, zorder=2)
+            path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
+            ax.add_collection(LineCollection(path_edges, color=color))
 
 def merge_db_lists(dbs):
     db = Database()
@@ -222,7 +239,7 @@ if __name__ == '__main__':
     db = ClusteredDatabase()
     mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
 
-    # db.populate_db(mp_sampler, num_envs=5, num_tasks_per_env=10)
+    # db.populate_db(mp_sampler, num_envs=10, num_tasks_per_env=20)
     # db.draw_paths(plt.gca())
     # plt.show()
 
@@ -232,4 +249,12 @@ if __name__ == '__main__':
 
     db.cluster(threshold=250)
 
-    db.draw_clusters()
+    # db.draw_clusters(plt.gca())
+    env = PointRobot()
+    env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
+    
+    for cluster_id in db.clusters:
+        plt.cla()
+        env.draw_environment(plt.gca())
+        db.draw_cluster(plt.gca(), cluster_id)
+        plt.show()
