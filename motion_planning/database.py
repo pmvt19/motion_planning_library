@@ -71,6 +71,10 @@ class Database():
                 if path:
                     self.add_path(path)
             print(f"DB Size: {len(self)}")
+    
+    @staticmethod
+    def load_db(db_save_path: str) -> "Database":
+        return pickle.load(open(db_save_path, "rb"))
 
 class ClusteredDatabase(Database):
     def __init__(self):
