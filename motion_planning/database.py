@@ -109,6 +109,7 @@ class ClusteredDatabase(Database):
         self.clusters[0] = [0]
 
         for i, path in enumerate(self.paths):
+            print(f"Clustering Path: {i}/{len(self.paths)}", end='\r')
             # Skip the first path since it must belong to cluster 0
             if i == 0:
                 continue
@@ -247,15 +248,17 @@ if __name__ == '__main__':
     db = ClusteredDatabase()
     mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
 
-    # db.populate_db(mp_sampler, num_envs=10, num_tasks_per_env=20)
-    # db.draw_paths(plt.gca())
-    # plt.show()
+    # db.populate_db(mp_sampler, num_envs=30, num_tasks_per_env=20)
+    # # db.draw_paths(plt.gca())
+    # # plt.show()
 
     # db.save_to_path(db_save_path)
+    # exit()
 
     db = pickle.load(open(db_save_path, "rb"))
 
-    db.cluster(threshold=250)
+    # db.cluster(threshold=250)
+    # db.save_to_path(db_save_path)
 
     # db.draw_clusters(plt.gca())
     env = PointRobot()
@@ -270,7 +273,12 @@ if __name__ == '__main__':
     db.print_cluster_info()
 
     print(f"Size of Clustered DB: {len(db)}")
-    ss_db = db.subsample_database()
+    ss_db = db.subsample_database(5)
     print(f"Size of Subsampled DB: {len(ss_db)}")
+
+    # ss_db.draw_paths(plt.gca())
+    # plt.show()
+
+    ss_db.save_to_path("saves/clustered_database_large_bpe_subsampled.pickle")
 
     
