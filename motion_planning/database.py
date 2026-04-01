@@ -109,22 +109,7 @@ class ClusteredDatabase(Database):
             # Skip the first path since it must belong to cluster 0
             if i == 0:
                 continue
-            
-            # numpy_path = self._path_to_numpy_path(path)
 
-            # dists = []
-            # for cluster_id in self.clusters:
-            #     path_idx_representative_for_cluster_id = self.clusters[cluster_id][0]
-            #     rp_numpy_path = self._path_to_numpy_path(self[path_idx_representative_for_cluster_id])
-            #     dtw_distance, _ = fastdtw(numpy_path, rp_numpy_path, dist=2)
-
-            #     dists.append(dtw_distance)
-            
-            # best_cluster_id = np.argmin(dists)
-            # if dists[best_cluster_id] < self.clustered_threshold:
-            #     self.clusters[best_cluster_id].append(i)
-            # else:
-            #     self.clusters[len(self.clusters)].append(i)
             self.cluster_single_path(i)
         print(f"Num Clusters Generated: {len(self.clusters)}")
 
