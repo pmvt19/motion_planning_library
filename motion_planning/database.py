@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import multiprocessing
 import concurrent.futures
 
+from fastdtw import fastdtw
+from collections import defaultdict
 from matplotlib.collections import LineCollection
 
 from motion_planning.prm import IncrementalPRM, PRM
@@ -34,7 +36,9 @@ class Database():
     
     def add_path(self, path):
         assert(isinstance(path, Path))
+        path_idx = len(self.paths)
         self.paths.append(path)
+        return path_idx
 
     def merge_dbs(self, other_db):
         self.paths = self.paths + other_db.paths
@@ -64,7 +68,74 @@ class Database():
                 if path:
                     self.add_path(path)
             print(f"DB Size: {len(self)}")
+
+class ClusteredDatabase(Database):
+    def __init__(self):
+        super().__init__()
+
+        self.clustered_threshold = None
+
+    def _path_to_numpy_path(self, path):
+        states = []
+        for state in path:
+            states.append(state.value)
+        return states
+
+    def cluster_single_path(self, path_idx):
+        path = self[path_idx]
+        numpy_path = self._path_to_numpy_path(path)
+
+        dists = []
+        for cluster_id in self.clusters:
+            path_idx_representative_for_cluster_id = self.clusters[cluster_id][0]
+            rp_numpy_path = self._path_to_numpy_path(self[path_idx_representative_for_cluster_id])
+            dtw_distance, _ = fastdtw(numpy_path, rp_numpy_path, dist=2)
+
+            dists.append(dtw_distance)
+        
+        best_cluster_id = np.argmin(dists)
+        if dists[best_cluster_id] < self.clustered_threshold:
+            self.clusters[best_cluster_id].append(path_idx)
+        else:
+            self.clusters[len(self.clusters)].append(path_idx)
+
+    def cluster(self, threshold=10):
+        self.clustered_threshold = threshold
+
+        self.clusters = defaultdict(list)
+        self.clusters[0] = [0]
+
+        for i, path in enumerate(self.paths):
+            # Skip the first path since it must belong to cluster 0
+            if i == 0:
+                continue
+            
+            # numpy_path = self._path_to_numpy_path(path)
+
+            # dists = []
+            # for cluster_id in self.clusters:
+            #     path_idx_representative_for_cluster_id = self.clusters[cluster_id][0]
+            #     rp_numpy_path = self._path_to_numpy_path(self[path_idx_representative_for_cluster_id])
+            #     dtw_distance, _ = fastdtw(numpy_path, rp_numpy_path, dist=2)
+
+            #     dists.append(dtw_distance)
+            
+            # best_cluster_id = np.argmin(dists)
+            # if dists[best_cluster_id] < self.clustered_threshold:
+            #     self.clusters[best_cluster_id].append(i)
+            # else:
+            #     self.clusters[len(self.clusters)].append(i)
+            self.cluster_single_path(i)
+        print(f"Num Clusters Generated: {len(self.clusters)}")
+
+    def add_path(self, path):
+        path_idx = super().add_path(path)
+        if self.clustered_threshold is not None:
+            self.cluster_single_path(path_idx)
     
+    def draw_clusters(self):
+        raise NotImplementedError
+
 def merge_db_lists(dbs):
     db = Database()
     for other_db in dbs:
@@ -138,7 +209,8 @@ if __name__ == '__main__':
     # db_save_path = 'saves/database_v1_bpe3.pickle'
     # db_save_path = 'saves/database_bpe3_large.pickle'
     # db_save_path = 'saves/database_bpe3_small.pickle'
-    db_save_path = 'saves/database_bpe_mp_sampler.pickle'
+    # db_save_path = 'saves/database_bpe_mp_sampler.pickle'
+    db_save_path = 'saves/clustered_database_bpe_mp_sampler.pickle'
     # new_db = generate_database_parallel()
 
     # new_db = generate_database()
@@ -147,9 +219,12 @@ if __name__ == '__main__':
     # print(f"Database Size: {len(new_db)}")
     # print(f"Time to create database: {end_time-start_time}")
 
-    db = Database()
+    # db = Database()
+    db = ClusteredDatabase()
     mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
 
-    db.populate_db(mp_sampler, num_envs=10, num_tasks_per_env=10)
-    db.draw_paths(plt.gca())
-    plt.show()
+    db.populate_db(mp_sampler, num_envs=5, num_tasks_per_env=10)
+    # db.draw_paths(plt.gca())
+    # plt.show()
+
+    db.cluster(threshold=100)
