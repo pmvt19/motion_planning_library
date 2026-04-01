@@ -117,22 +117,6 @@ class ClusteredDatabase(Database):
         path_idx = super().add_path(path)
         if self.clustered_threshold is not None:
             self.cluster_single_path(path_idx)
-    
-    # TODO: Fix cluster drawing function
-    # TODO: Add a function to draw a specific cluster?
-    # Allow these functions to take in an axis as well
-    # def draw_clusters(self):
-    #     for cluster_id in self.clusters:
-    #         cmap = plt.get_cmap('tab10', len(self.paths))
-    #         plt.cla()
-    #         plt.clf()
-    #         for _, path_idx in enumerate(self.clusters[cluster_id]):
-    #             path = self[path_idx]
-    #             path_states = np.array([state.value for state in path.path])
-    #             plt.scatter(path_states[:, 0], path_states[:, 1], color=cmap(cluster_id), zorder=2)
-    #             path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
-    #             plt.gca().add_collection(LineCollection(path_edges, color=cmap(cluster_id)))
-    #         plt.show()
 
     def draw_clusters(self, ax):
         for cluster_id in self.clusters:
