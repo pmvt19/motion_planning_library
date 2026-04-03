@@ -1,6 +1,6 @@
 # Lightning
 
-This file is intended to explain how Lightning works:
+This file is intended to explain how the Lightning algorithm works:
 
 # Environment Distribution
 
