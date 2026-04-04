@@ -56,7 +56,7 @@ class Database():
     def __getitem__(self, idx):
         return self.paths[idx]
     
-    def populate_db(self, mp_sampler: MPSampler, num_envs: int, num_tasks_per_env: int):
+    def populate_db(self, mp_sampler: MPSampler, num_envs: int, num_tasks_per_env: int, smooth_paths: bool = False):
         for i in range(num_envs):
             env = mp_sampler.sample_env()
             prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
@@ -71,6 +71,9 @@ class Database():
                 if path:
                     self.add_path(path)
             print(f"DB Size: {len(self)}")
+    
+    def interpolate_paths(self, delta=0.1):
+        pass
     
     @staticmethod
     def load_db(db_save_path: str) -> "Database":
