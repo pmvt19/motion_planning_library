@@ -73,6 +73,7 @@ class Database():
             print(f"DB Size: {len(self)}")
     
     def interpolate_paths(self, delta=0.1):
+        # interpolate_path()
         pass
     
     @staticmethod
