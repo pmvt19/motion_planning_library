@@ -15,6 +15,7 @@ from motion_planning.space import PointRobot
 from motion_planning.circle_approximation import ApproximationSpace
 from motion_planning.path import Path
 from motion_planning.mp_sampler import MPSampler
+from motion_planning.utils import smooth_path
 
 class Database():
     def __init__(self):
@@ -68,8 +69,13 @@ class Database():
 
                 path = prm.search(start, target)
 
-                if path:
-                    self.add_path(path)
+                if path is None:
+                    continue
+
+                if smooth_paths:
+                    path = smooth_path(env, path)
+
+                self.add_path(path)
             print(f"DB Size: {len(self)}")
     
     def interpolate_paths(self, delta=0.1):
