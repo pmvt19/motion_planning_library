@@ -15,7 +15,7 @@ from motion_planning.space import PointRobot
 from motion_planning.circle_approximation import ApproximationSpace
 from motion_planning.path import Path
 from motion_planning.mp_sampler import MPSampler
-from motion_planning.utils import smooth_path
+from motion_planning.utils import smooth_path, interpolate_path
 
 class Database():
     def __init__(self):
@@ -57,7 +57,7 @@ class Database():
     def __getitem__(self, idx):
         return self.paths[idx]
     
-    def populate_db(self, mp_sampler: MPSampler, num_envs: int, num_tasks_per_env: int, smooth_paths: bool = False):
+    def populate_db(self, mp_sampler: MPSampler, num_envs: int, num_tasks_per_env: int, smooth_paths: bool = False, interpolate_paths_delta: float = 0.0):
         for i in range(num_envs):
             env = mp_sampler.sample_env()
             prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
@@ -74,12 +74,15 @@ class Database():
 
                 if smooth_paths:
                     path = smooth_path(env, path)
+                
+                if interpolate_paths_delta > 0.0:
+                    path = interpolate_path(path, env, interpolate_paths_delta)
 
                 self.add_path(path)
             print(f"DB Size: {len(self)}")
     
     def interpolate_paths(self, delta=0.1):
-        # interpolate_path()
+        interpolate_path()
         pass
     
     @staticmethod
@@ -141,14 +144,15 @@ class ClusteredDatabase(Database):
         if self.clusters is not None:
             self.cluster_single_path(path_idx)
     
-    def merge_dbs(self, other_db):
+    def merge_dbs(self, other_db: Database):
         if self.clusters is None:
             super().merge_dbs(other_db)
         else:
             # Options:
             # 1. Remove the clusters
             # 2. Add Each Path Individually to Preserve Clusters
-            # raise NotImplementedError
+
+            # This function implements Option 2
             for path in other_db.paths:
                 self.add_path(path)
 
@@ -265,7 +269,9 @@ if __name__ == '__main__':
     # db_save_path = 'saves/database_bpe3_small.pickle'
     # db_save_path = 'saves/database_bpe_mp_sampler.pickle'
     # db_save_path = 'saves/clustered_database_bpe_mp_sampler.pickle'
-    db_save_path = 'saves/clustered_database_large_bpe_mp_sampler.pickle'
+    # db_save_path = 'saves/clustered_database_large_bpe_mp_sampler.pickle'
+    # db_save_path = 'saves/smoothed_database_large_bpe_mp_sampler.pickle'
+    db_save_path = 'saves/smoothed_interpolated_database_large_bpe_mp_sampler.pickle'
     # new_db = generate_database_parallel()
 
     # new_db = generate_database()
@@ -278,29 +284,34 @@ if __name__ == '__main__':
     db = ClusteredDatabase()
     mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
 
-    # db.populate_db(mp_sampler, num_envs=30, num_tasks_per_env=20)
-    # # db.draw_paths(plt.gca())
-    # # plt.show()
+    # db.populate_db(mp_sampler, num_envs=30, num_tasks_per_env=20, smooth_paths=True, interpolate_paths_delta=0.5)
+    # db.draw_paths(plt.gca())
+    # plt.show()
 
     # db.save_to_path(db_save_path)
     # exit()
 
     db = pickle.load(open(db_save_path, "rb"))
+    # db.draw_paths(plt.gca())
+    # plt.show()
+    # exit()
 
-    # db.cluster(threshold=250)
+    # db.cluster(threshold=300)
     # db.save_to_path(db_save_path)
+    # exit()
 
     # db.draw_clusters(plt.gca())
     env = PointRobot()
     env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
     
-    # for cluster_id in db.clusters:
-    #     plt.cla()
-    #     env.draw_environment(plt.gca())
-    #     db.draw_cluster(plt.gca(), cluster_id)
-    #     plt.show()
+    for cluster_id in db.clusters:
+        plt.cla()
+        env.draw_environment(plt.gca())
+        db.draw_cluster(plt.gca(), cluster_id)
+        plt.show()
     
     db.print_cluster_info()
+    # exit()
 
     print(f"Size of Clustered DB: {len(db)}")
     ss_db = db.subsample_database(5)
@@ -309,6 +320,6 @@ if __name__ == '__main__':
     # ss_db.draw_paths(plt.gca())
     # plt.show()
 
-    ss_db.save_to_path("saves/clustered_database_large_bpe_subsampled.pickle")
+    ss_db.save_to_path("saves/smoothed_interpolated_database_large_bpe_subsampled.pickle")
 
     
