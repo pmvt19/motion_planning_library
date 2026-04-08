@@ -81,10 +81,6 @@ class Database():
                 self.add_path(path)
             print(f"DB Size: {len(self)}")
     
-    def interpolate_paths(self, delta=0.1):
-        interpolate_path()
-        pass
-    
     @staticmethod
     def load_db(db_save_path: str) -> "Database":
         return pickle.load(open(db_save_path, "rb"))
