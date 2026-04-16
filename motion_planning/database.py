@@ -196,66 +196,15 @@ def merge_db_lists(dbs):
         db = db + other_db
     return db
 
-def generate_database(db_save_path=None):
-    print("WARNING: Hard Coded")
-    db = Database()
+# def generate_database_parallel(db_save_path=None):
+#     dbs = []
+#     with concurrent.futures.ProcessPoolExecutor() as executor:
+#         results = [executor.submit(generate_database) for _ in range(10)]
 
-    for i in range(20):
-        env = PointRobot()
-        env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
-        env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
-
-        prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
-        prm.create_graph()
-
-        for j in range(20):
-            print(f"Env {i+1}, Task {j+1}")
-            start, target = env.sample_valid_point(), env.sample_valid_point()
-
-            path = prm.search(start, target)
-            if path:
-                db.paths.append(path)
-        print(f"DB Size: {len(db)}")
-
-    if db_save_path:
-        print(f"Saving Database to {db_save_path}")
-        db.save_to_path(db_save_path)
-    return db
-
-def generate_database_parallel(db_save_path=None):
-    dbs = []
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        results = [executor.submit(generate_database) for _ in range(10)]
-
-        for f in concurrent.futures.as_completed(results):
-            dbs.append(f.result())
+#         for f in concurrent.futures.as_completed(results):
+#             dbs.append(f.result())
     
-    return merge_db_lists(dbs)
-
-def generate_database_mp_sampler_version(db_save_path=None):
-    mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 1, "bias": 0.5})
-    db = Database()
-
-    for i in range(10):
-        env = mp_sampler.sample_env()
-        prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
-        prm.create_graph()
-
-        for j in range(10):
-            print(f"Env {i+1}, Task {j+1}")
-            start, target = mp_sampler.sample_task(env)
-
-            path = prm.search(start, target)
-
-            if path:
-                db.paths.append(path)
-        print(f"DB Size: {len(db)}")
-
-    if db_save_path:
-        print(f"Saving Database to {db_save_path}")
-        db.save_to_path(db_save_path)
-
-    return db
+#     return merge_db_lists(dbs)
 
 if __name__ == '__main__':
 
