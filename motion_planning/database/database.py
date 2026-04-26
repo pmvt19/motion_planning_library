@@ -9,13 +9,13 @@ from fastdtw import fastdtw
 from collections import defaultdict
 from matplotlib.collections import LineCollection
 
-from motion_planning.search import IncrementalPRM, PRM
-from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
-from motion_planning.space import PointRobot
-from motion_planning.space import ApproximationSpace
+# from motion_planning.search import IncrementalPRM, PRM
+# from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
+# from motion_planning.space import PointRobot
+# from motion_planning.space import ApproximationSpace
 from motion_planning.tools import Path
-from motion_planning.experiments.utils.mp_sampler import MPSampler
-from motion_planning.utils import smooth_path, interpolate_path
+# from motion_planning.experiments.utils.mp_sampler import MPSampler
+# from motion_planning.utils import smooth_path, interpolate_path
 
 class Database():
     def __init__(self):
@@ -56,30 +56,6 @@ class Database():
     
     def __getitem__(self, idx):
         return self.paths[idx]
-    
-    def populate_db(self, mp_sampler: MPSampler, num_envs: int, num_tasks_per_env: int, smooth_paths: bool = False, interpolate_paths_delta: float = 0.0):
-        for i in range(num_envs):
-            env = mp_sampler.sample_env()
-            prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
-            prm.create_graph()
-
-            for j in range(num_tasks_per_env):
-                print(f"Env {i+1}, Task {j+1}")
-                start, target = mp_sampler.sample_task(env)
-
-                path = prm.search(start, target)
-
-                if path is None:
-                    continue
-
-                if smooth_paths:
-                    path = smooth_path(env, path)
-                
-                if interpolate_paths_delta > 0.0:
-                    path = interpolate_path(path, env, interpolate_paths_delta)
-
-                self.add_path(path)
-            print(f"DB Size: {len(self)}")
     
     @staticmethod
     def load_db(db_save_path: str) -> "Database":

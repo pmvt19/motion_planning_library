@@ -4,7 +4,7 @@ import pickle
 
 from sklearn.neighbors import KDTree
 
-from motion_planning.rrt import RRT
+from motion_planning.search import RRT
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import RandomSamplePassage, BiasedPassage
 

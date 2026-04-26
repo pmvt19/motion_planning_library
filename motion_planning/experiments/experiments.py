@@ -7,7 +7,7 @@ from collections import defaultdict
 from motion_planning.space import PointRobot
 from motion_planning.space import ApproximationSpace
 from motion_planning.obstacle_sets import BiasedPassage
-from motion_planning.database import Database
+# from motion_planning.database import Database
 
 # Search Algorithm Imports
 from motion_planning.search import RRT, PRM, Lightning, PDG, OptimizedPDG

@@ -7,10 +7,10 @@ from matplotlib.collections import LineCollection
 
 from motion_planning.database import Database
 from motion_planning.space import RobotSpace, PointRobot
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 from motion_planning.obstacle_sets import BiasedPassage
-from motion_planning.rrt import BiDirectionalRRT, RRT
-from motion_planning.path import Path
+from motion_planning.search import BiDirectionalRRT, RRT
+from motion_planning.tools import Path
 from motion_planning.utils import smooth_path, interpolate_path
 
 
