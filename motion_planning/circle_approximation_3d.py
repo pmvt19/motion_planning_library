@@ -1,12 +1,15 @@
 import math
+import time
+import rerun as rr
 import numpy as np
 import matplotlib.pyplot as plt
 import open3d as o3d
 
 from motion_planning.space import RobotSpace, HolonomicRobot
 from motion_planning.utils import numpystate_distance, interpolate_path
-from motion_planning.state import NumpyState
+from motion_planning.state import NumpyState, AngularNumpyState
 from motion_planning.prm import PRM
+from motion_planning.obstacle_sets import ObstacleSet
 
 def rect_prism_to_circles_x_short(aa_rect_prism):
     # aa_rect (x,y,z,xl,yl,zl)
@@ -287,12 +290,27 @@ def viz_circles(circles):
     # 5. Visualize the sphere
     o3d.visualization.draw_geometries(mesh_circles)
 
+class RobotSpace3D(RobotSpace):
+    def __init__(self):
+        pass
+
+    def set_obstacles(self, obstacle_set: ObstacleSet):
+        self.obstacles = obstacle_set.obstacles
+        # self.boundary = obstacle_set.boundary
+
+        # x_points, y_points = self.boundary.exterior.xy
+        # self.x_range = [min(x_points), max(x_points)]
+        # self.y_range = [min(y_points), max(y_points)]
+
 
 class ApproximationSpace3D(RobotSpace):
     def __init__(self, space : RobotSpace, batch_size=1000, do_overapproximation=False):
         self.space = space
         self.batch_size = batch_size
         self.do_overapproximation = do_overapproximation
+
+        self.edge_validity_delta = 0.1
+        self.angular_dims_start = None
 
         self.obstacle_circles = self.space_to_circles()
 
@@ -355,11 +373,17 @@ class ApproximationSpace3D(RobotSpace):
 
     def cylinders_to_circles(self, cylinders, radius):
         """
-        cylinders: (B, 2, 3)
-        cyl_radii: (B, 1) or scaler
+        cylinders: (Bm, m, 2, 3)
+        cyl_radii: (Bm, 1) or scaler
+
+        returns: (Bm, m, 4)
         """
+        Bm, m, _, _ = cylinders.shape
+
         if len(cylinders) == 0:
-            return np.empty((0, 4))
+            return np.empty((0, m, 4))
+        
+        cylinders = cylinders.reshape(Bm * m, 2, 3)
 
         start_points = cylinders[:, 0, :] # (B, 3)
         end_points = cylinders[:, 1, :] # (B, 3)
@@ -398,6 +422,7 @@ class ApproximationSpace3D(RobotSpace):
             num_circles_per_segment = num_circles_per_segment.squeeze()
             circle_center_radius_pairs = np.vstack([circle_center_radius_pairs[i, :(num_circles+1)] for i, num_circles in enumerate(num_circles_per_segment)])
 
+        circle_center_radius_pairs = circle_center_radius_pairs.reshape(Bm, -1, 4)
         return circle_center_radius_pairs
 
     def points_to_circles(self, points, radii):
@@ -440,82 +465,104 @@ class ApproximationSpace3D(RobotSpace):
         return stacked_validities
 
     def draw_state(self, ax, state, method='o3d'):
-        pass
+        if method == 'o3d':
+            raise NotImplementedError
+        elif method == 'rerun':
+            rr.init("3D Environment", spawn=True)
+            state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+            rr.log("State Spheres", rr.Points3D([state_circles[:, :3]], colors=[255, 0, 0], radii=state_circles[:, 3]))
 
     def draw_environment(self, ax, state, method='o3d'):
-        mesh_circles = []
-        for x,y,z,r in self.obstacle_circles:
+        if method == 'o3d':
+            mesh_circles = []
+            for x,y,z,r in self.obstacle_circles:
 
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+                sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
 
-            # 2. Define the new center coordinates
-            new_center = np.array([x,y,z])
+                # 2. Define the new center coordinates
+                new_center = np.array([x,y,z])
 
-            # 3. Translate the sphere to the new center
-            sphere.translate(new_center, relative=False)
+                # 3. Translate the sphere to the new center
+                sphere.translate(new_center, relative=False)
 
-            # 4. Compute vertex normals for proper shading
-            sphere.compute_vertex_normals()
-            mesh_circles.append(sphere)
+                # 4. Compute vertex normals for proper shading
+                sphere.compute_vertex_normals()
+                mesh_circles.append(sphere)
 
-        # 5. Visualize the sphere
-        o3d.visualization.draw_geometries(mesh_circles)
+            # 5. Visualize the sphere
+            o3d.visualization.draw_geometries(mesh_circles)
+        elif method == 'rerun':
+            rr.init("3D Environment", spawn=True)
+            rr.log("Obstacle Spheres", rr.Points3D([self.obstacle_circles[:, :3]], colors=[0, 0, 255], radii=self.obstacle_circles[:, 3]))
 
     def draw_state_env(self, ax, state, method='o3d'):
-
-        mesh_circles = []
-        for x,y,z,r in self.obstacle_circles:
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
-            # 2. Define the new center coordinates
-            new_center = np.array([x,y,z])
-            # 3. Translate the sphere to the new center
-            sphere.translate(new_center, relative=False)
-            # 4. Compute vertex normals for proper shading
-            sphere.compute_vertex_normals()
-            sphere.paint_uniform_color([0.0, 0.0, 1.0])
-            mesh_circles.append(sphere)
         
-        state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
-        state_spheres = []
-        # print("HERE", state_circles.shape)
-        for x,y,z,r in state_circles:
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
-            # 2. Define the new center coordinates
-            new_center = np.array([x,y,z])
-            # 3. Translate the sphere to the new center
-            sphere.translate(new_center, relative=False)
-            # 4. Compute vertex normals for proper shading
-            sphere.compute_vertex_normals()
-            sphere.paint_uniform_color([1.0, 0.0, 0.0])
-            state_spheres.append(sphere)
-        
-        # o3d.visualization.draw_geometries(mesh_circles + state_spheres)
-        return mesh_circles, state_spheres
+        if method == 'o3d':
+            mesh_circles = []
+            for x,y,z,r in self.obstacle_circles:
+                sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+                # 2. Define the new center coordinates
+                new_center = np.array([x,y,z])
+                # 3. Translate the sphere to the new center
+                sphere.translate(new_center, relative=False)
+                # 4. Compute vertex normals for proper shading
+                sphere.compute_vertex_normals()
+                sphere.paint_uniform_color([0.0, 0.0, 1.0])
+                mesh_circles.append(sphere)
+            
+            state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+            state_spheres = []
+            # print("HERE", state_circles.shape)
+            for x,y,z,r in state_circles:
+                sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+                # 2. Define the new center coordinates
+                new_center = np.array([x,y,z])
+                # 3. Translate the sphere to the new center
+                sphere.translate(new_center, relative=False)
+                # 4. Compute vertex normals for proper shading
+                sphere.compute_vertex_normals()
+                sphere.paint_uniform_color([1.0, 0.0, 0.0])
+                state_spheres.append(sphere)
+            
+            # o3d.visualization.draw_geometries(mesh_circles + state_spheres)
+            return mesh_circles, state_spheres
+        elif method == 'rerun':
+            rr.init("3D State & Environment", spawn=True)
+            rr.log("Obstacle Spheres", rr.Points3D([self.obstacle_circles[:, :3]], colors=[0, 0, 255], radii=self.obstacle_circles[:, 3]))
 
-    def animate_path(self, path):
-        vis = o3d.visualization.Visualizer()
-        vis.create_window()
+            state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+            rr.log("State Spheres", rr.Points3D([state_circles[:, :3]], colors=[255, 0, 0], radii=state_circles[:, 3]))
 
-        state = path[0]
-        mesh_circles, state_spheres = self.draw_state_env(None, state, None)
-        # vis.add_geometry(mesh_circles + state_spheres)
-        for geom in mesh_circles + state_spheres:
-            vis.add_geometry(geom)
-        vis.run()
+    def animate_path(self, path, method='o3d'):
+        if method == 'o3d':
+            vis = o3d.visualization.Visualizer()
+            vis.create_window()
 
-        for state in path:
-            print(state.value)
-            # time.sleep(0.5)
-            vis.clear_geometries()
+            state = path[0]
             mesh_circles, state_spheres = self.draw_state_env(None, state, None)
-            # vis.update_geometry(mesh_circles + state_spheres)
+            # vis.add_geometry(mesh_circles + state_spheres)
             for geom in mesh_circles + state_spheres:
-                # vis.update_geometry(geom)
                 vis.add_geometry(geom)
-            vis.poll_events()
-            vis.update_renderer()
             vis.run()
-            time.sleep(0.01)
+
+            for state in path:
+                print(state.value)
+                # time.sleep(0.5)
+                vis.clear_geometries()
+                mesh_circles, state_spheres = self.draw_state_env(None, state, None)
+                # vis.update_geometry(mesh_circles + state_spheres)
+                for geom in mesh_circles + state_spheres:
+                    # vis.update_geometry(geom)
+                    vis.add_geometry(geom)
+                vis.poll_events()
+                vis.update_renderer()
+                vis.run()
+                time.sleep(0.01)
+        elif method == 'rerun':
+            for state in path:
+                self.draw_state_env(None, state, method='rerun')
+                time.sleep(0.1)
+
 
     def sample_point(self):
         return self.space.sample_point()
@@ -552,8 +599,11 @@ class SphereRobot(HolonomicRobot):
         aa_rect_prism1 = np.array([0,0,0,1,5,5])
         aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
         aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
+        aa_rect_prism4 = np.array([2.5,0,-2.5,5,5,1])
+        aa_rect_prism5 = np.array([2.5,0,2.5,5,5,1])
 
-        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
+        # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
+        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
         self.obstacles = prisms
         ### HARD CODED ###
 
@@ -607,9 +657,164 @@ class SphereRobot(HolonomicRobot):
     def batch_get_robot_representations(self, states):
         return {
             'prisms' : np.empty((0, 6)),
-            'cylinders' : np.empty((0, 2, 3)), 
+            'cylinders' : np.empty((0, 0, 2, 3)), 
             'cylinder_radii' : 0.0,
             'points' : states, 
+            'points_radii' : self.robot_radius
+        }
+    
+    def batch_sample_points_around_target(self, targets):
+        validities = self.batch_is_valid(targets)
+        return targets[validities]
+
+class UR5(HolonomicRobot):
+    def __init__(self):
+        super().__init__()
+
+        self.edge_validity_delta = 0.1
+
+        self.x_range = [-10,10]
+        self.y_range = [-10,10]
+        self.z_range = [-10,10]
+
+        self.theta_range = [0, 2*np.pi]
+        self.angular_dims_start = 0
+
+        self.robot_radius = 0.5
+
+        self.obstacles = []
+
+        self.do_boundary_check = True
+
+        ### HARD CODED ###
+        aa_rect_prism1 = np.array([0,0,0,1,5,5])
+        aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
+        aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
+        aa_rect_prism4 = np.array([2.5,0,-2.5,5,5,1])
+        aa_rect_prism5 = np.array([2.5,0,2.5,5,5,1])
+
+        # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
+        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
+        self.obstacles = prisms
+        ### HARD CODED ###
+
+        self.num_collision_checks = 0
+    
+    def make_state(self, state):
+        return AngularNumpyState(value=state, angular_dims_start=self.angular_dims_start)
+
+    def sample_point(self):
+        theta_0 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        theta_1 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        theta_2 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        return self.make_state(np.array([theta_0, theta_1, theta_2]))
+    
+    def generate_robot_representation(self, state):
+        raise NotImplementedError
+
+    def dist(self, state1, state2):
+        return numpystate_distance(state1, state2)
+
+    def is_valid(self, state):
+        raise NotImplementedError
+    
+    def draw_state(self, ax, state):
+        raise NotImplementedError
+
+    def draw_environment(self, ax):
+        ax.set_xlim(self.x_range[0], self.x_range[1])
+        ax.set_ylim(self.y_range[0], self.y_range[1])
+        ax.set_zlim(self.z_range[0], self.z_range[1])
+        
+        for prism in prisms:
+            ordered_verts = xyzwhl_to_ordered_vertices(prism)
+            for a,b in edges:
+                point_a = ordered_verts[a]
+                point_b = ordered_verts[b]
+                ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
+    
+    def forward_kinematics(self, state: NumpyState):
+        theta1, theta2, theta3 = state.value
+        print(theta1, theta2)
+        # H_j1f_2_wf
+        H1 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
+                       [np.sin(theta1), np.cos(theta1), 0.0, 0.0],
+                       [0.0, 0.0, 0.0, 0.0],
+                       [0.0, 0.0, 0.0, 1.0]])
+        
+        # H_j2f_2_j1f
+        H2 = np.array([[np.cos(theta2), 0.0, np.sin(theta2), 1.0],
+                       [0.0,            1.0,            0.0, 0.0],
+                       [-np.sin(theta2), 0.0, np.cos(theta2), 1.0],
+                       [0.0,             0.0,            0.0, 1.0]])
+        
+        H3 = np.array([[np.cos(theta3), 0.0, np.sin(theta3), -2.0],
+                       [0.0,            1.0,            0.0, 0.0],
+                       [-np.sin(theta3), 0.0, np.cos(theta3), 1.0],
+                       [0.0,             0.0,            0.0, 1.0]])
+        
+        homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+
+        # ee1 = H1 @ H2 @ homogenous_origin
+        # ee2 = H2 @ homogenous_origin
+
+        ee1 = H1 @ H2 @ homogenous_origin
+        ee2 = H1 @ homogenous_origin
+
+        ee3 = H1 @ H2 @ H3 @ homogenous_origin
+
+        # print(ee1)
+        # print(H2 @ homogenous_origin)
+
+        joint_poses = np.stack([np.array([0.0, 0.0, 0.0]),
+                                ee2[:3],
+                                ee1[:3],
+                                ee3[:3]
+                                ], axis=0)
+        print(joint_poses.shape)
+        print(joint_poses)
+
+        ees = np.stack((joint_poses[:-1], joint_poses[1:]), axis=1)
+
+        print(ees.shape, 'here')
+        # print(ees)
+
+        
+
+        return ees
+    
+    def batch_forward_kinematics(self, states: np.ndarray):
+        # states: (N, m)
+        # returns: (N, m, 2, 3)
+        N, m = states.shape
+
+        # H1 = np.array([[np.cos()]])
+
+        # return np.empty((0, m, 2, 3))
+
+        # out1 = np.array([[[[0.0, 0.0, 0.0],
+        #                    [1.0, 1.0, 1.0]],
+        #                   [[1.0, 1.0, 1.0],
+        #                    [0.0, 0.0, 2.0]]]])
+        # print(out1.shape)
+
+        # return out1
+
+        fks = []
+        for state in states:
+            fks.append(self.forward_kinematics(self.make_state(state)))
+        
+        return np.stack(fks, axis=0)
+
+    def batch_get_robot_representations(self, states):
+
+        cylinder_endpoints = self.batch_forward_kinematics(states)
+
+        return {
+            'prisms' : np.empty((0, 6)),
+            'cylinders' : cylinder_endpoints, 
+            'cylinder_radii' : 0.1,
+            'points' : np.empty((0, 3)),
             'points_radii' : self.robot_radius
         }
     
@@ -661,49 +866,52 @@ if __name__ == '__main__':
     # aa_rect_prism2 = np.array([0,2.5,2.5,5,1,5])
     # aa_rect_prism3 = np.array([0,-2.5,2.5,5,1,5])
 
+    ## Batch Commenting out START ##
 
-    aa_rect_prism1 = np.array([0,0,0,1,5,5])
-    aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
-    aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
+    # aa_rect_prism1 = np.array([0,0,0,1,5,5])
+    # aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
+    # aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
 
+    # # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
     # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-    prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-    circles = rect_prisms_to_circles(prisms)
-    # print(circles.shape)
+    # circles = rect_prisms_to_circles(prisms)
+    # # print(circles.shape)
 
-    ax = plt.axes(projection='3d')
-    for prism in prisms:
-        ordered_verts = xyzwhl_to_ordered_vertices(prism)
-        for a,b in edges:
-            point_a = ordered_verts[a]
-            point_b = ordered_verts[b]
-            ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
-        ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
-        # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
-        ax.set_box_aspect([1,1,1])
-        amin = -11
-        amax = 11
-        ax.set_xlim(amin, amax)
-        ax.set_ylim(amin, amax)
-        ax.set_zlim(amin, amax)
+    # ax = plt.axes(projection='3d')
+    # for prism in prisms:
+    #     ordered_verts = xyzwhl_to_ordered_vertices(prism)
+    #     for a,b in edges:
+    #         point_a = ordered_verts[a]
+    #         point_b = ordered_verts[b]
+    #         ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
+    #     ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
+    #     # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
+    #     ax.set_box_aspect([1,1,1])
+    #     amin = -11
+    #     amax = 11
+    #     ax.set_xlim(amin, amax)
+    #     ax.set_ylim(amin, amax)
+    #     ax.set_zlim(amin, amax)
     
-    for x,y,z,r in circles:
-        # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
-        cpx, cpy, cpz = drawSphere(x,y,z,r)
-        # ax.plot_wireframe(cpx, cpy, cpz, color="r")
-        ax.plot_surface(cpx, cpy, cpz, color="r")
-    plt.show()
+    # for x,y,z,r in circles:
+    #     # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
+    #     cpx, cpy, cpz = drawSphere(x,y,z,r)
+    #     # ax.plot_wireframe(cpx, cpy, cpz, color="r")
+    #     ax.plot_surface(cpx, cpy, cpz, color="r")
+    # plt.show()
 
-    visualize(prisms, edges, circles)
-    viz_cylinder()
+    # visualize(prisms, edges, circles)
+    # viz_cylinder()
 
-    end_points = np.array([[[0.0,0.0,0.0],
-                           [3.8,0.0,0.0]]])
-    print(f"End Points: {end_points.shape}")
-    cirs = cylinder_to_circles(end_points, 0.3)
-    viz_circles(cirs)
-    print(circles.shape, cirs.shape)
-    print(circles_to_validity(circles, cirs.reshape(1, -1, 4)))
+    # end_points = np.array([[[0.0,0.0,0.0],
+    #                        [3.8,0.0,0.0]]])
+    # print(f"End Points: {end_points.shape}")
+    # cirs = cylinder_to_circles(end_points, 0.3)
+    # viz_circles(cirs)
+    # print(circles.shape, cirs.shape)
+    # print(circles_to_validity(circles, cirs.reshape(1, -1, 4)))
+
+    ## Batch Commenting out END ##
 
 
     # aa_rect_prism = np.array([0,0,0,2,3,3.1])
@@ -739,31 +947,41 @@ if __name__ == '__main__':
     #     ax.plot_surface(cpx, cpy, cpz, color="r")
 
     # plt.show()
-    import time
-    env = SphereRobot()
-    env = ApproximationSpace3D(env)
-    prm = PRM(env, num_samples=1000, num_neighbors=5)
-    
-    start_time = time.time()
-    prm.create_graph()
-    end_time = time.time()
-    print(f"Time to create graph: {end_time - start_time}")
-    # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
-    # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
-    start, target = env.make_state(np.array([1.5,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
-    start_time = time.time()
-    path = prm.search(start, target)
-    end_time = time.time()
-    print(f"Time to Search: {end_time - start_time}")
-    print(path.path)
 
-    print([state.value for state in path])
-    path_states = np.array([state.value for state in path])
-    print(env.batch_is_valid(path_states))
-    path = interpolate_path(path, env, 0.1)
-    path_states = np.array([state.value for state in path])
-    print(env.batch_is_valid(path_states))
-    env.animate_path(path)
+    ## Sphere Robot PRM Search START ##
+    # import time
+    # env = SphereRobot()
+    # env = ApproximationSpace3D(env)
+
+    # env.draw_environment(None, None, method='rerun')
+
+    # prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
+    
+    # start_time = time.time()
+    # prm.create_graph()
+    # end_time = time.time()
+    # print(f"Time to create graph: {end_time - start_time}")
+    # # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
+    # # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+    # start, target = env.make_state(np.array([1.5,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
+
+    # start, target = env.make_state(np.array([2.5, 0.0, 0.0])), env.make_state(np.array([-2.5, 0.0, 0.0]))
+    # start_time = time.time()
+    # path = prm.search(start, target)
+    # # path = prm.search(target, start)
+    # end_time = time.time()
+    # print(f"Time to Search: {end_time - start_time}")
+    # print(path.path)
+
+    # print([state.value for state in path])
+    # path_states = np.array([state.value for state in path])
+    # print(env.batch_is_valid(path_states))
+    # path = interpolate_path(path, env, 0.1)
+    # path_states = np.array([state.value for state in path])
+    # print(env.batch_is_valid(path_states))
+    # env.animate_path(path, method='rerun')
+
+    ## Sphere Robot PRM Search END ##
 
     # prm.draw(plt.gca())
     # plt.show()
@@ -781,3 +999,21 @@ if __name__ == '__main__':
     #     env.space.draw_environment(ax)
     #     env.space.draw_state(ax, path[i])
     #     plt.pause(0.1)
+
+    env_base = UR5()
+    env = ApproximationSpace3D(env_base)
+
+    # env.draw_environment(None, None, method='rerun')
+
+    state = env.make_state(np.array([np.pi/2, np.pi/4, np.pi/2]))
+
+    env.draw_state(None, state, method='rerun')
+    # exit()
+
+    # env_base.forward_kinematics(state)
+    # state_circles = env.states_to_circles(np.array(state.value).reshape(1, -1))[0]
+    # print(state_circles)
+
+    # env.draw_state(None, state, method='rerun')
+
+    

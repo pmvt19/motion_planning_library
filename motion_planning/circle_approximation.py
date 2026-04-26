@@ -247,6 +247,17 @@ class ApproximationSpace(RobotSpace):
 
         return validities
     
+    def circles_to_indiv_validity(self, obstacle_circles, robot_circles):
+        B = robot_circles.shape[0]
+        robot_xy = robot_circles[:, :, :2]
+        obst_xy = obstacle_circles[:, :2]
+        distance_mat = np.sqrt(np.sum(robot_xy**2, axis=2, keepdims=True) + np.sum(obst_xy**2, axis=1, keepdims=True).T + (-2 * (robot_xy @ obst_xy.T)))
+
+        min_dists = robot_circles[:, :, 2].reshape(B, -1, 1) + obstacle_circles[:, 2].reshape(1, 1, -1)
+
+        validity_mask = distance_mat > min_dists
+        return validity_mask
+    
     def batch_is_valid(self, states):
         robot_circles = self.states_to_circles(states)
         B = robot_circles.shape[0]

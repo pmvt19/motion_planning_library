@@ -8,7 +8,7 @@ from shapely import Polygon, Point
 from scipy.spatial import Voronoi, voronoi_plot_2d
 from matplotlib.collections import LineCollection
 
-from motion_planning.space import PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm, DiscRobot
+from motion_planning.space import RobotSpace, PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm, DiscRobot
 from motion_planning.state import NumpyState
 from motion_planning.utils import smooth_path, interpolate_path, issue_warning
 from motion_planning.path import Path
@@ -19,7 +19,7 @@ import pickle
 
 class RRT():
     def __init__(self, env, delta=0.5):
-        self.env = env
+        self.env: RobotSpace = env
         self.tree = defaultdict(list)
         self.child_to_parent = {}
         self.delta = delta

@@ -482,11 +482,12 @@ if __name__ == '__main__':
 
     # path_states = np.array(path_states)
 
-    db_save_path = 'saves/database_v5.pickle'
+    # db_save_path = 'saves/database_v5.pickle'
     # db_save_path = 'saves/database_v1_bpe3.pickle'
+    db_save_path = 'saves/clustered_database_large_bpe_subsampled.pickle'
     
     env = PointRobot()
-    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=8))
+    env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
     pdg = PDG(env, db_save_path)
@@ -507,7 +508,7 @@ if __name__ == '__main__':
 
     pdg.draw_tree(plt.gca(), path)
     plt.show()
-    exit()
+    # exit()
 
     bipdg = BiDirectionalPDG(env, db_save_path)
 
