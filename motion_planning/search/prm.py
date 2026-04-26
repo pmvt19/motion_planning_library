@@ -6,12 +6,12 @@ import time
 from matplotlib.collections import LineCollection
 from heapq import heappop, heappush
 
-from motion_planning.state import NumpyState
+from motion_planning.tools import NumpyState
 from motion_planning.utils import smooth_path, interpolate_edge, interpolate_path
-from motion_planning.path import Path
-from motion_planning.graph import Graph
+from motion_planning.tools import Path
+from motion_planning.tools import Graph
 from motion_planning.space import RobotSpace, PointRobot, PolygonalRobot, PlanarMobileArm
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 # from motion_planning.circle_approximation_torch import ApproximationSpaceTorch
 from motion_planning.obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage, WeavingPassage
 

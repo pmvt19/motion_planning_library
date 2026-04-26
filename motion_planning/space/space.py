@@ -7,7 +7,7 @@ from shapely import Polygon, Point, LineString, affinity
 from collections import defaultdict
 from sklearn.metrics import pairwise_distances
 
-from motion_planning.state import NumpyState, AngularNumpyState
+from motion_planning.tools import NumpyState, AngularNumpyState
 from motion_planning.obstacle_sets import ObstacleSet, ParkingSpace
 from motion_planning.utils import create_rectangle_geometry, numpystate_distance, issue_warning, interpolate_edge, batch_interpolate_edge, batch_interpolate_edge_uniform, rad2deg
 from motion_planning.controller.xbox_controller import XboxController

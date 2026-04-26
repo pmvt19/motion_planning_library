@@ -5,18 +5,12 @@ import pickle
 from collections import defaultdict
 
 from motion_planning.space import PointRobot
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.database import Database
 
 # Search Algorithm Imports
-from motion_planning.rrt import RRT
-from motion_planning.prm import PRM
-from motion_planning.lightning import Lightning
-from motion_planning.pdg import PDG
-from motion_planning.optimized_pdg import OptimizedPDG
-
-
+from motion_planning.search import RRT, PRM, Lightning, PDG, OptimizedPDG
 
 def run_experiment(seed, timing_dict, path_dict):
     np.random.seed(seed)

@@ -9,11 +9,11 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 from matplotlib.collections import LineCollection
 
 from motion_planning.space import RobotSpace, PointRobot, PolygonalRobot, FixedArm, PlanarMobileArm, DiscRobot
-from motion_planning.state import NumpyState
+from motion_planning.tools import NumpyState
 from motion_planning.utils import smooth_path, interpolate_path, issue_warning
-from motion_planning.path import Path
+from motion_planning.tools import Path
 from motion_planning.obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, BiasedPassage, WeavingPassage
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 
 import pickle
 
@@ -318,106 +318,17 @@ class BiDirectionalRRT():
 
 if __name__ == "__main__":
     seed = np.random.randint(0, 100)
-    # seed = 22
-    # seed = 18
-    # seed = 81
-    # seed = 5
-    # seed = 25
-    # seed = 6
-    # seed = 66
-    # seed = 95
-    # seed = 82
-    # seed = 56
-    # seed = 57
-    seed = 29
     print(f"Setting Seed: {seed}")
-    
     np.random.seed(seed)
-    # start = (0, 0)
-    # target = (9, 9)
 
-
-    # env = PlanarMobileArm(num_links=3)
-    # env = FixedArm()
-    # env = PolygonalRobot()
-    # env.set_obstacles(TestSet())
-    # env.set_obstacles(ParkingSpace())
-    # env = PointRobot()
-    env = DiscRobot()
-    # env = PolygonalRobot()
-    # env = PlanarMobileArm(num_links=4)
-    # env.set_obstacles(ParkingSpace())
-    # env.set_obstacles(RandomSamplePassage())
+    env = DiscRobot(disc_radius=0.3)
     env.set_obstacles(BiasedPassage(num_walls=1))
-    # env.set_obstacles(WeavingPassage())
-    # env = PlanarMobileArm(num_links=4)
-    # start, target = env.sample_task()
     start, target = env.make_state(np.array([2.5, 5.0])), env.make_state(np.array([17.5, 5.0]))
 
-    # start = env.make_state(np.array([5.0, 0.1]))
-    # target = env.make_state(np.array([5.0, 9.9]))
-
-    # start, target = env.make_state(np.array([5, 2, 0.0])), env.make_state(np.array([-5, -5, 0.0]))
-
-    # start = env.make_state(np.array([0.0,0.0]))
-    # start = env.make_state(np.array([-9.0,-9.0]))
-    # target = env.make_state(np.array([9.0,9.0]))
-    # target = env.make_state(np.array([15.0, 2.0]))
-    # target = env.make_state(np.array([35.0, 2.0]))
-
-    # max_steps = 10
-    # goal_bias = 0.1
-
-    # rrt = RRT(env)
-    # rrt = RRTStar(env)
-    # env = ApproximationSpace(env)
     rrt = RRT(env)
-    # rrt = BiDirectionalRRT(env)
-    # path = rrt.search(start, target, max_steps=150, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=750, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=1000, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=6000, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=8000, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=20000, goal_bias=0.1, animate_search_tree=False)
     path = rrt.search(start, target, max_steps=4000, goal_bias=0.0, animate_search_tree=False)
     
-    # new_rrt = RRT(env)
-    # path = new_rrt.search(start, target, max_steps=100, goal_bias=0.0, animate_search_tree=False, starting_tree=rrt.tree)
-    # path = rrt.search(start, target, max_steps=3000, do_rewire=True, goal_bias=0.4, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
-    # path = rrt.search(start, target, max_steps=4000, goal_bias=0.1, animate_search_tree=False)
-    # rrt.draw_tree(plt.gca(), path=path)
-    # plt.show()
-
-    # rrt.draw_voronoi_diagram()
-    # plt.show()
-
     rrt.draw_tree(plt.gca(), path, show_task=True)
     plt.show()
 
     env.animate_path(path)
-
-    # new_rrt.draw_tree(plt.gca(), path=path)
-    # plt.show()
-
-    # path = smooth_path(env, path)
-    # path = interpolate_path(path, env, 0.1)
-    # rrt.draw_tree(plt.gca(), path=path)
-    # plt.show()
-
-    # pickle.dump(path, open('saved_paths/rrt_path.pickle', 'wb'))
-    # path = interpolate_path(path, 0.1)
-    # env.animate_path(path, frame_delay=0.1)
-    
-    # smoothed_path = smooth_path(env, path)
-    # rrt.draw_tree(plt.gca(), path=smoothed_path)
-    # plt.show()
-
-    # env.animate_path(smoothed_path, frame_delay=0.1)
-
-
-
-    # from kinematic_path_smoothing import smooth_path_trajectory_optimization
-    # smoothed_path = smooth_path_trajectory_optimization(env, path)
-
-    # rrt.draw_voronoi_diagram()

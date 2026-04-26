@@ -7,10 +7,10 @@ from collections import defaultdict
 from shapely import Polygon, Point
 from matplotlib.collections import LineCollection
 
-from motion_planning.state import NumpyState
+from motion_planning.tools import NumpyState
 from motion_planning.utils import smooth_path
-from motion_planning.rrt import RRT 
 from motion_planning.space import PointRobot, PolygonalRobot, PlanarMobileArm
+from motion_planning.search.rrt import RRT
 from motion_planning.obstacle_sets import BiasedPassage
 
 class RandomSampleGeneration(RRT):

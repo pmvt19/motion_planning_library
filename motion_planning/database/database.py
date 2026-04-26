@@ -9,12 +9,12 @@ from fastdtw import fastdtw
 from collections import defaultdict
 from matplotlib.collections import LineCollection
 
-from motion_planning.prm import IncrementalPRM, PRM
+from motion_planning.search import IncrementalPRM, PRM
 from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
 from motion_planning.space import PointRobot
-from motion_planning.circle_approximation import ApproximationSpace
-from motion_planning.path import Path
-from motion_planning.mp_sampler import MPSampler
+from motion_planning.space import ApproximationSpace
+from motion_planning.tools import Path
+from motion_planning.experiments.utils.mp_sampler import MPSampler
 from motion_planning.utils import smooth_path, interpolate_path
 
 class Database():
