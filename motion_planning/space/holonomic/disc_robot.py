@@ -2,7 +2,7 @@ import numpy as np
 
 from shapely import Point
 
-from motion_planning.space.holonomic_robot import HolonomicRobot
+from motion_planning.space.holonomic.holonomic_robot import HolonomicRobot
 from motion_planning.tools import NumpyState
 from motion_planning.controller.xbox_controller import XboxController
 
