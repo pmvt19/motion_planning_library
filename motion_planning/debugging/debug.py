@@ -3,9 +3,9 @@ import time
 import matplotlib.pyplot as plt
 
 from motion_planning.space import PointRobot
-from motion_planning.rrt import RRT
-from motion_planning.state import NumpyState, AngularNumpyState
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.search import RRT
+from motion_planning.tools import NumpyState, AngularNumpyState
+from motion_planning.space import ApproximationSpace
 from motion_planning.obstacle_sets import ParkingSpace
 from motion_planning.utils import batch_interpolate_edge, batch_interpolate_edge_uniform
 

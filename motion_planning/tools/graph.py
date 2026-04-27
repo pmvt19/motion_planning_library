@@ -46,13 +46,9 @@ class Graph():
                     self.edges[b].add(a)
     
     def draw(self, ax):
-        # ax.scatter(self.vertices[:, 0], self.vertices[:, 1], color='purple')
         ax.scatter(self.vertices[:, 0], self.vertices[:, 1], color='#FFA500')
         line = [(self.vertices[a, :2], self.vertices[b, :2]) for a in self.edges for b in self.edges[a] if b >= 0]
-        # ax.add_collection(LineCollection(line, color='#34dbeb'))
         ax.add_collection(LineCollection(line, color="#cccccc", alpha=0.4))
-
-        
 
     def add_vertex(self, vertex):
         self.vertex_to_idx[tuple(vertex)] = len(self.vertices)

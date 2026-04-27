@@ -4,8 +4,8 @@ import copy
 
 from motion_planning.space import RobotSpace, DiscRobot
 from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
-from motion_planning.lidar import Lidar, OptimizedLidar, SuperOptimizedLidar
-from motion_planning.occupancy_map import OccupancyMap
+from motion_planning.sensors import Lidar, OptimizedLidar, SuperOptimizedLidar
+from motion_planning.mapping import OccupancyMap
 
 
 class SLAM():

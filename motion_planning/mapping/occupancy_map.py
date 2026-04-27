@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
 from heapq import *
 
-from motion_planning.lidar import Lidar
+from motion_planning.sensors import Lidar
 from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage, ParkingSpace
 from motion_planning.space import PointRobot
 

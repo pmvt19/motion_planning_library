@@ -469,7 +469,8 @@ if __name__ == '__main__':
     # db_save_path = 'saves/clustered_database_large_bpe_subsampled.pickle'
     # db_save_path = 'saves/clustered_database_large_bpe_mp_sampler.pickle'
     # db_save_path = 'saves/clustered_database_large_bpe_subsampled.pickle'
-    db_save_path = 'saves/smoothed_interpolated_database_large_bpe_subsampled.pickle'
+    # db_save_path = 'saves/smoothed_interpolated_database_large_bpe_subsampled.pickle'
+    db_save_path = 'saves/database_rf2.pickle'
     
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))

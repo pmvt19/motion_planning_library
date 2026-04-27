@@ -9,13 +9,7 @@ from fastdtw import fastdtw
 from collections import defaultdict
 from matplotlib.collections import LineCollection
 
-# from motion_planning.search import IncrementalPRM, PRM
-# from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
-# from motion_planning.space import PointRobot
-# from motion_planning.space import ApproximationSpace
 from motion_planning.tools import Path
-# from motion_planning.experiments.utils.mp_sampler import MPSampler
-# from motion_planning.utils import smooth_path, interpolate_path
 
 class Database():
     def __init__(self):
@@ -44,7 +38,7 @@ class Database():
     def batch_add_paths(self, paths: list[Path]):
         self.paths.extend(paths)
 
-    def merge_dbs(self, other_db):
+    def merge_dbs(self, other_db: "Database"):
         self.paths = self.paths + other_db.paths
     
     def __len__(self):
@@ -165,82 +159,3 @@ class ClusteredDatabase(Database):
             ax.scatter(path_states[:, 0], path_states[:, 1], color=color, zorder=2)
             path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
             ax.add_collection(LineCollection(path_edges, color=color))
-
-def merge_db_lists(dbs):
-    db = Database()
-    for other_db in dbs:
-        db = db + other_db
-    return db
-
-# def generate_database_parallel(db_save_path=None):
-#     dbs = []
-#     with concurrent.futures.ProcessPoolExecutor() as executor:
-#         results = [executor.submit(generate_database) for _ in range(10)]
-
-#         for f in concurrent.futures.as_completed(results):
-#             dbs.append(f.result())
-    
-#     return merge_db_lists(dbs)
-
-if __name__ == '__main__':
-
-    # db_save_path = 'saves/database_v6.pickle'
-    # db_save_path = 'saves/database_v1_bpe3.pickle'
-    # db_save_path = 'saves/database_bpe3_large.pickle'
-    # db_save_path = 'saves/database_bpe3_small.pickle'
-    # db_save_path = 'saves/database_bpe_mp_sampler.pickle'
-    # db_save_path = 'saves/clustered_database_bpe_mp_sampler.pickle'
-    # db_save_path = 'saves/clustered_database_large_bpe_mp_sampler.pickle'
-    # db_save_path = 'saves/smoothed_database_large_bpe_mp_sampler.pickle'
-    db_save_path = 'saves/smoothed_interpolated_database_large_bpe_mp_sampler.pickle'
-    # new_db = generate_database_parallel()
-
-    # new_db = generate_database()
-    # new_db.save_to_path(db_save_path)
-    # end_time = time.time()
-    # print(f"Database Size: {len(new_db)}")
-    # print(f"Time to create database: {end_time-start_time}")
-
-    # db = Database()
-    db = ClusteredDatabase()
-    mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
-
-    # db.populate_db(mp_sampler, num_envs=30, num_tasks_per_env=20, smooth_paths=True, interpolate_paths_delta=0.5)
-    # db.draw_paths(plt.gca())
-    # plt.show()
-
-    # db.save_to_path(db_save_path)
-    # exit()
-
-    db = pickle.load(open(db_save_path, "rb"))
-    # db.draw_paths(plt.gca())
-    # plt.show()
-    # exit()
-
-    # db.cluster(threshold=300)
-    # db.save_to_path(db_save_path)
-    # exit()
-
-    # db.draw_clusters(plt.gca())
-    env = PointRobot()
-    env.set_obstacles(BiasedPassage(num_walls=3, bias=0.5))
-    
-    for cluster_id in db.clusters:
-        plt.cla()
-        env.draw_environment(plt.gca())
-        db.draw_cluster(plt.gca(), cluster_id)
-        plt.show()
-    
-    db.print_cluster_info()
-    # exit()
-
-    print(f"Size of Clustered DB: {len(db)}")
-    ss_db = db.subsample_database(5)
-    print(f"Size of Subsampled DB: {len(ss_db)}")
-
-    # ss_db.draw_paths(plt.gca())
-    # plt.show()
-
-    ss_db.save_to_path("saves/smoothed_interpolated_database_large_bpe_subsampled.pickle")
-
-    

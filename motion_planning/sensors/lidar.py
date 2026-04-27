@@ -7,7 +7,7 @@ from shapely import Polygon
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage, WeavingPassage, TestSet
 from motion_planning.utils import interpolate_edge, batch_interpolate_edge, issue_warning
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 
 class Lidar():
     def __init__(self, noise, angle_range, num_angles, max_dist, obstacle_set=None):

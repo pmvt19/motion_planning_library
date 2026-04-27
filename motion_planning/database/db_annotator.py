@@ -26,3 +26,15 @@ def populate_db(db: Database, mp_sampler: MPSampler, num_envs: int, num_tasks_pe
 
             db.add_path(path)
         print(f"DB Size: {len(db)}")
+
+if __name__ == '__main__':
+    from motion_planning.space import PointRobot
+    from motion_planning.obstacle_sets import BiasedPassage
+
+    path = "saves/database_rf2.pickle"
+
+    db = Database()
+    mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
+
+    populate_db(db, mp_sampler, num_envs=10, num_tasks_per_env=20, smooth_paths=True, interpolate_paths_delta=0.5)
+    db.save_to_path(path)
