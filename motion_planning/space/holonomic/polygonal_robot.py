@@ -7,10 +7,10 @@ from motion_planning.tools import AngularNumpyState
 from motion_planning.utils import create_rectangle_geometry, numpystate_distance
 
 class PolygonalRobot(HolonomicRobot):
-    def __init__(self):
+    def __init__(self, edge_validity_delta=0.5, robot_width=0.5, robot_length=3):
         super().__init__()
 
-        self.edge_validity_delta = 0.5
+        self.edge_validity_delta = edge_validity_delta
 
         self.x_range = [-10,10]
         self.y_range = [-10,10]
@@ -19,8 +19,8 @@ class PolygonalRobot(HolonomicRobot):
 
         self.angular_dims_start = 2
 
-        self.robot_width = 0.5
-        self.robot_length = 3
+        self.robot_width = robot_width
+        self.robot_length = robot_length
 
         self.obstacles = []
 
@@ -119,3 +119,13 @@ class PolygonalRobot(HolonomicRobot):
         points = np.concatenate((points,thetas), axis=1)
         validities = self.batch_is_valid(points)
         return points[validities]
+    
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
+    env = PolygonalRobot()
+    state = env.sample_point()
+
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state)
+    plt.show()

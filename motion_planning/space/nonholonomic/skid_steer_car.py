@@ -118,3 +118,14 @@ class SkidSteerCar(NonHolonomicRobot):
         if down:
             return self.make_control(np.array([self.velocity_range[1], 0.0]))
         return self.make_control(np.array([0.0, 0.0]))
+    
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    env = SkidSteerCar()
+    state = env.sample_point()
+
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state)
+    plt.show()

@@ -1,6 +1,6 @@
 import numpy as np
 
-from shapely import affinity
+from shapely import LineString, affinity
 
 from motion_planning.space import NonHolonomicRobot
 from motion_planning.tools import NumpyState, AngularNumpyState
@@ -157,3 +157,13 @@ class DubinsCar(NonHolonomicRobot):
         
         controls = np.array([accel * self.accel_range[1], steer * self.psi_range[1]])
         return self.make_control(np.array(controls))
+    
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    env = DubinsCar()
+    state = env.sample_point()
+
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state)
+    plt.show()

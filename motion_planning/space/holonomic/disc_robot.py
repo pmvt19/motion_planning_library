@@ -73,3 +73,13 @@ class DiscRobot(HolonomicRobot):
     def batch_sample_points_around_target(self, targets):
         validities = self.batch_is_valid(targets)
         return targets[validities]
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    
+    env = DiscRobot()
+    state = env.sample_point()
+
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state)
+    plt.show()

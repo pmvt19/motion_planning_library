@@ -353,3 +353,13 @@ class PlanarMobileArm(HolonomicRobot):
             'points_radius': 0.0,
             'segments_radii' : 0.1, 
         }
+    
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
+    env = PlanarMobileArm()
+    state = env.sample_point()
+
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state)
+    plt.show()

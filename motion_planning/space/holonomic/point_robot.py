@@ -65,4 +65,11 @@ class PointRobot(HolonomicRobot):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
+    env = PointRobot()
+    state = env.sample_point()
+
+    env.draw_environment(plt.gca())
+    env.draw_state(plt.gca(), state)
+    plt.show()
+
     
