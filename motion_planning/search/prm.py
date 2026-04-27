@@ -157,11 +157,6 @@ class PRM():
             self.graph.vertex_to_idx()
         # Return final Path
         return path
-
-class PRMStar(PRM):
-    def __init__(self, env, num_samples=100, edge_dist_radius=None, cache_edge_validities=True):
-        super().__init__(env=env, num_samples=num_samples, num_neighbors=None, edge_dist_radius=edge_dist_radius)
-        self.cache_graph_edge_validities = cache_edge_validities    
     
 if __name__ == "__main__":
     from motion_planning.space import PointRobot, ApproximationSpace
