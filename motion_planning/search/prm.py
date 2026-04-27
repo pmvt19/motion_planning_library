@@ -1,19 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-# import threading 
 
 from matplotlib.collections import LineCollection
-from heapq import heappop, heappush
 
-from motion_planning.tools import NumpyState
-from motion_planning.utils import smooth_path, interpolate_edge, interpolate_path
-from motion_planning.tools import Path
-from motion_planning.tools import Graph
-from motion_planning.space import RobotSpace, PointRobot, PolygonalRobot, PlanarMobileArm
-from motion_planning.space import ApproximationSpace
-# from motion_planning.circle_approximation_torch import ApproximationSpaceTorch
-from motion_planning.obstacle_sets import TestSet, ParkingSpace, RandomSamplePassage, CentralObstacle, BiasedPassage, WeavingPassage
+from motion_planning.tools import NumpyState, Graph, Path
+from motion_planning.space import RobotSpace
 
 class PRM():
     def __init__(self, env : RobotSpace, num_samples=10, num_neighbors=None, edge_dist_radius=None, validate_edges=False):
@@ -166,158 +158,16 @@ class PRM():
         # Return final Path
         return path
 
-class NonUniformPRM(PRM):
-    def __init__(self, env : RobotSpace, num_samples=10, num_neighbors=10, validate_edges=False, scale=1):
-        super().__init__(env=env, num_samples=num_samples, num_neighbors=num_neighbors, validate_edges=validate_edges)
-        self.scale = scale
-    
-    def batch_generate_sample_points(self, starting_samples=[]):
-        points = np.array([self.env.sample_point().value for _ in range(self.num_samples)] + [sample for sample in starting_samples])
-        offset_points = points + np.random.normal(scale=self.scale, size=points.shape)
-        points_validities = self.env.batch_is_valid(points)
-        offset_points_validities = self.env.batch_is_valid(offset_points)
-        xor_validities = np.logical_xor(points_validities, offset_points_validities)
-        
-        final_validities = np.logical_and(points_validities, xor_validities)
-        final_offset_validities = np.logical_and(offset_points_validities, xor_validities)
-        return np.vstack((points[final_validities], offset_points[final_offset_validities]))
-
-class LazyPRM(PRM):
-    def __init__(self, env, num_samples=10, num_neighbors=10):
-        super().__init__(env, num_samples=num_samples, num_neighbors=num_neighbors, validate_edges=False)
-    
-    def lazy_search(self, start: NumpyState, target: NumpyState, max_iter: int = 1000):
-        i = 0
-        
-        while i < max_iter:
-
-            potential_path = self.graph.dijkstra_search(start=start.value, end=target.value)
-            potential_path_numpy = np.array(potential_path)
-
-            start_edge_states = potential_path_numpy[:-1, :]
-            end_edge_states = potential_path_numpy[1: , :]
-
-            path_edge_validities = self.env.batch_is_valid_edge(start_states=start_edge_states, end_states=end_edge_states)
-            invalid_edge_idxes = np.where(path_edge_validities == False)[0]
-
-            if len(invalid_edge_idxes) == 0: 
-                return potential_path
-
-            for idx in invalid_edge_idxes:
-                start_edge_state = start_edge_states[idx]
-                end_edge_state = end_edge_states[idx]
-
-                start_edge_idx = self.graph.vertex_to_idx[tuple(start_edge_state)]
-                end_edge_idx = self.graph.vertex_to_idx[tuple(end_edge_state)]
-
-                self.graph.edges[start_edge_idx].remove(end_edge_idx)
-        
-            i += 1
-        
-    def search(self, start, target):
-        self.start = start 
-        self.target = target
-
-        # Attach Start and Target to the graph
-        self.graph.add_vertex(start.value)
-        self.graph.add_vertex(target.value)
-
-        # Solve with A* or Dijkstra's Algorithm
-        path = self.lazy_search(start=start, target=target)
-        if path:
-            path = Path([self.env.make_state(p) for p in path])
-        # Return final Path
-        return path
-
-class IncrementalPRM(PRM):
-    def __init__(self, env, num_samples=100, num_neighbors=None, edge_dist_radius=None, cache_edge_validities=True):
-        super().__init__(env=env, num_samples=num_samples, num_neighbors=num_neighbors, edge_dist_radius=edge_dist_radius)
-        self.cache_graph_edge_validities = cache_edge_validities
-
-    def extend_graph(self):
-        old_vertices = self.graph.vertices
-        new_vertices = self.batch_generate_sample_points()
-        vertices = np.vstack((old_vertices, new_vertices))
-        self.graph = Graph(vertices=vertices, num_neighbors=self.num_neighbors, edge_dist_radius=self.edge_dist_radius)
-
-    def _dfs_iterative(self, start, target):
-        start_idx = self.graph.vertex_to_idx[tuple(start.value)]
-        target_idx = self.graph.vertex_to_idx[tuple(target.value)]
-        s = [start_idx]
-
-        visited = set()
-
-        while s:
-            node_idx = s.pop()
-            if node_idx == target_idx:
-                return True
-            if node_idx in visited:
-                continue
-            visited.add(node_idx)
-
-            neighbors = self.graph.edges[node_idx]
-            for nbr in neighbors:
-                s.append(nbr)
-        return False
-
-    def _bfs_iterative(self, start, target):
-        start_idx = self.graph.vertex_to_idx[tuple(start.value)]
-        target_idx = self.graph.vertex_to_idx[tuple(target.value)]
-        q = [start_idx]
-
-        visited = set()
-
-        while q:
-            node_idx = q.pop(0)
-            if node_idx == target_idx:
-                return True
-            if node_idx in visited:
-                continue
-            visited.add(node_idx)
-
-            neighbors = self.graph.edges[node_idx]
-            for nbr in neighbors:
-                q.append(nbr)
-        return False
-
-    def is_nodes_connected(self, start, target):
-        # return self._dfs_iterative(start, target)
-        return self._bfs_iterative(start, target)
-
-    def search(self, start: NumpyState, target: NumpyState):
-        self.start = start 
-        self.target = target
-
-        # Attach Start and Target to the graph
-        self.graph.add_vertex(start.value)
-        self.graph.add_vertex(target.value)
-
-        self.batch_validate_graph_edges()
-        is_connected = self.is_nodes_connected(start, target)
-        num_times_extended = 0
-        while not is_connected:
-            print(f"Adding Nodes, Current Size: {len(self.graph.vertices)}")
-            self.extend_graph()
-            self.batch_validate_graph_edges()
-            is_connected = self.is_nodes_connected(start, target)
-            num_times_extended += 1
-
-        print(f"Num Times Extended: {num_times_extended}")
-
-        # Solve with A* or Dijkstra's Algorithm
-        path = self.graph.dijkstra_search(start=start.value, end=target.value)
-
-        if path:
-            path = Path([self.env.make_state(p) for p in path])
-        # Return final Path
-        return path
-
 class PRMStar(PRM):
     def __init__(self, env, num_samples=100, edge_dist_radius=None, cache_edge_validities=True):
         super().__init__(env=env, num_samples=num_samples, num_neighbors=None, edge_dist_radius=edge_dist_radius)
         self.cache_graph_edge_validities = cache_edge_validities    
     
 if __name__ == "__main__":
+    from motion_planning.space import PointRobot, ApproximationSpace
+    from motion_planning.obstacle_sets import ParkingSpace
+    from motion_planning.utils import interpolate_path
+
     seed = np.random.randint(0, 10000)
     # seed = 15
     # seed = 37 # Goes through the gap for PolygonRobot and ParkingSpace
