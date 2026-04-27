@@ -169,34 +169,3 @@ class RobotSpace():
     
     def batch_sample_points_around_target(self, targets: np.ndarray):
         raise NotImplementedError
-
-if __name__ == '__main__':
-    from motion_planning.space import DiscRobot
-    from motion_planning.utils import set_numpy_seed
-
-    set_numpy_seed(0)
-    env = DiscRobot()
-    env.set_obstacles(ParkingSpace())
-
-    state1 = env.sample_point()
-    state2 = env.sample_point()
-
-    # ik_state = env.inverse_kinematics(np.array([3.0,2.5]))
-    # sampled_states = env.sample_configs_ee_target(np.array([3.0, 2.5]))
-    # ik_state = env.make_state(sampled_states[0])
-    # print()
-
-    env.draw_environment(plt.gca())
-    # env.draw_state(plt.gca(), state1)
-    # env.draw_state(plt.gca(), ik_state)
-    # for state in sampled_states:
-        # env.draw_state(plt.gca(), env.make_state(state))
-    # env.draw_state(plt.gca(), env.make_state(np.array([0.0,0.0,0.0])))
-    env.draw_state(plt.gca(), state1)
-    plt.show()
-
-    # print(env.forward_kinematics(ik_state))
-    # print(env.batch_forward_kinematics(np.array([ik_state.value])))
-    # print(ik_state.value)
-    
-
