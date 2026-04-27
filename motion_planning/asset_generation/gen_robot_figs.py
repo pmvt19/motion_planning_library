@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from motion_planning.space import PointRobot, DiscRobot, PolygonalRobot, PlanarMobileArm
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
-from motion_planning.prm import PRM
+from motion_planning.search import PRM
 from motion_planning.utils import set_numpy_seed, smooth_path, interpolate_path
 
 def save_animated_path_frames(save_dir, env, path):
