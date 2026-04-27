@@ -16,6 +16,3 @@ class KinodynamicPath(Path):
         super().__init__(path=path)
         self.controls = controls
         self.dt = dt
-
-if __name__ == '__main__':
-    pass
