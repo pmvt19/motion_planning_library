@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from motion_planning.database import Database
-from motion_planning.pdg import PDG
+from motion_planning.search import PDG
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 
 def draw_bpe3_env(save_fig=False):
     np.random.seed(0)
