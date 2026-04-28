@@ -16,14 +16,14 @@ class FixedArm(HolonomicRobot):
         self.arm_link_lengths = arm_link_lengths
         self.num_links = len(self.arm_link_lengths)
 
-    def dist(self, state1, state2):
+    def dist(self, state1, state2) -> float:
         return numpystate_distance(state1, state2)
     
-    def sample_point(self):
+    def sample_point(self) -> AngularNumpyState:
         thetas = np.random.uniform(low=np.zeros(self.num_links), high=np.ones(self.num_links)*(2*np.pi), size=(self.num_links,))
         return self.make_state(thetas)
     
-    def make_state(self, state):
+    def make_state(self, state) -> AngularNumpyState:
         return AngularNumpyState(value=state, angular_dims_start=self.angular_dims_start)
     
     def generate_robot_representation(self, state):
@@ -42,7 +42,7 @@ class FixedArm(HolonomicRobot):
                     return True
         return False
     
-    def is_valid(self, state):
+    def is_valid(self, state) -> bool:
         self.num_collision_checks += 1
         lines = self.generate_robot_representation(state)
 
@@ -56,7 +56,7 @@ class FixedArm(HolonomicRobot):
     
         return True
     
-    def forward_kinematics(self, state):
+    def forward_kinematics(self, state) -> np.ndarray:
         thetas = self.get_state_value(state)
 
         cum_thetas = np.cumsum(thetas)
@@ -73,7 +73,7 @@ class FixedArm(HolonomicRobot):
         for line in lines:
             ax.plot(*line.xy, color='blue')
 
-    def input_to_x_dot(self, inputs): 
+    def input_to_x_dot(self, inputs) -> np.ndarray: 
         dt = 0.1
         assert(len(self.arm_link_lengths) == 2), "User Input Only Implemented for Robot with 2 Arms"
 
@@ -83,7 +83,7 @@ class FixedArm(HolonomicRobot):
         return np.array([theta1_dot, theta2_dot])
     
     ## ---- Batched Methods ---- ##
-    def batch_forward_kinematics(self, states):
+    def batch_forward_kinematics(self, states) -> np.ndarray:
         B = states.shape[0]
         states = np.copy(states)
         # states[:, 3:] -= np.pi # Hack to treat angles properly
@@ -96,7 +96,7 @@ class FixedArm(HolonomicRobot):
         joint_pos = np.cumsum(point_der, axis=1)
         return np.concatenate((np.zeros((B, 1, 2)), joint_pos), axis=1)
     
-    def batch_get_robot_representations(self, states):
+    def batch_get_robot_representations(self, states) -> dict:
         segment_points = self.batch_forward_kinematics(states)
         start_points = segment_points[:, :-1, :]
         end_points = segment_points[:, 1:, :]

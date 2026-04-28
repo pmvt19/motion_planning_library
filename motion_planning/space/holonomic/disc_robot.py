@@ -15,7 +15,7 @@ class DiscRobot(HolonomicRobot):
         self.x_range = [-10,10]
         self.y_range = [-10,10]
 
-    def make_state(self, state):
+    def make_state(self, state: np.ndarray) -> NumpyState:
         return NumpyState(state)
 
     def generate_robot_representation(self, state):
@@ -24,15 +24,15 @@ class DiscRobot(HolonomicRobot):
         robot = Point(state).buffer(self.disc_radius)
         return robot
     
-    def sample_point(self):
+    def sample_point(self) -> NumpyState:
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
         return self.make_state(np.array([x, y]))
     
-    def dist(self, state1, state2):
+    def dist(self, state1, state2) -> float:
         return np.linalg.norm(self.get_state_value(state1) - self.get_state_value(state2))
     
-    def is_valid(self, state):
+    def is_valid(self, state) -> bool:
         self.num_collision_checks += 1
         robot = self.generate_robot_representation(state)
 
@@ -51,7 +51,7 @@ class DiscRobot(HolonomicRobot):
         xr, yr = robot.exterior.xy
         ax.fill(xr, yr, color='red')
     
-    def input_to_x_dot(self, inputs): 
+    def input_to_x_dot(self, inputs) -> np.ndarray:
         dt = 0.1
         x_dot = inputs[XboxController.XboxControls.LTHUMBX] * dt
         y_dot = -inputs[XboxController.XboxControls.LTHUMBY] * dt
@@ -59,7 +59,7 @@ class DiscRobot(HolonomicRobot):
 
     ## ---- Batched Methods ---- ##
 
-    def batch_get_robot_representations(self, states: np.ndarray):
+    def batch_get_robot_representations(self, states: np.ndarray) -> dict:
         # TODO:
         # states # (B, 2)
         return {
@@ -70,7 +70,7 @@ class DiscRobot(HolonomicRobot):
             'points_radius': self.disc_radius
         }
     
-    def batch_sample_points_around_target(self, targets: np.ndarray):
+    def batch_sample_points_around_target(self, targets: np.ndarray) -> np.ndarray:
         validities = self.batch_is_valid(targets)
         return targets[validities]
 
