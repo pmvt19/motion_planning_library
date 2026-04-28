@@ -11,17 +11,17 @@ from motion_planning.utils import create_rectangle_geometry, issue_warning
 
 
 class PlanarMobileArm(HolonomicRobot):
-    def __init__(self, num_links=3, arm_lengths=None):
+    def __init__(self, edge_validity_delta: float = 0.5, base_width: float = 2, base_length: float = 0.1, num_links: int = 3, arm_lengths: list[int] | None = None):
         super().__init__()
-        self.base_width = 2
-        self.base_length = 0.1
+        self.base_width = base_width
+        self.base_length = base_length
 
         self.x_range = [-10, 10]
         self.y_range = [-10, 10]
         self.theta1_range = [0, np.pi]
         self.theta_range = [0, 2*np.pi]
 
-        self.edge_validity_delta = 0.5
+        self.edge_validity_delta = edge_validity_delta
 
         assert (num_links > 0), "Num Links Must Be Greater Than Zero"
         
@@ -353,7 +353,7 @@ class PlanarMobileArm(HolonomicRobot):
             'points_radius': 0.0,
             'segments_radii' : 0.1, 
         }
-    
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 

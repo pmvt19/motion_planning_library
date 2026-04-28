@@ -6,9 +6,9 @@ from motion_planning.space import HolonomicRobot
 from motion_planning.tools import NumpyState
 
 class PointRobot(HolonomicRobot):
-    def __init__(self):
+    def __init__(self, edge_validity_delta: float = 0.5):
         super().__init__()
-        self.edge_validity_delta = 0.5
+        self.edge_validity_delta = edge_validity_delta
 
         self.x_range = [-10,10]
         self.y_range = [-10,10]

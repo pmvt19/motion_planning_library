@@ -9,14 +9,12 @@ from motion_planning.utils import numpystate_distance, issue_warning
 from motion_planning.controller.xbox_controller import XboxController
 
 class FixedArm(HolonomicRobot):
-    def __init__(self):
+    def __init__(self, egde_validity_delta: float = 0.5, arm_link_lengths: np.ndarray = np.array([2, 2])):
         super().__init__()
         self.angular_dims_start = 0
-        self.edge_validity_delta = 0.5
-        # self.arm_link_lengths = np.array([2, 2, 2, 2])
-        self.arm_link_lengths = np.array([2, 2])
+        self.edge_validity_delta = egde_validity_delta
+        self.arm_link_lengths = arm_link_lengths
         self.num_links = len(self.arm_link_lengths)
-        self.arm_width = 0.1
 
     def dist(self, state1, state2):
         return numpystate_distance(state1, state2)
@@ -35,7 +33,6 @@ class FixedArm(HolonomicRobot):
             line = LineString([end_points[i], end_points[i+1]])
             lines.append(line)
         return lines
-        # return end_points
 
     def is_self_colliding(self, state):
         lines = self.generate_robot_representation(state)

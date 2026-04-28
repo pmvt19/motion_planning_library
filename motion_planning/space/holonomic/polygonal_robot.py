@@ -7,7 +7,7 @@ from motion_planning.tools import AngularNumpyState
 from motion_planning.utils import create_rectangle_geometry, numpystate_distance
 
 class PolygonalRobot(HolonomicRobot):
-    def __init__(self, edge_validity_delta=0.5, robot_width=0.5, robot_length=3):
+    def __init__(self, edge_validity_delta: float = 0.5, robot_width: float = 0.5, robot_length: float = 3):
         super().__init__()
 
         self.edge_validity_delta = edge_validity_delta

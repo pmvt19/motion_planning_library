@@ -7,9 +7,9 @@ from motion_planning.tools import NumpyState
 from motion_planning.controller.xbox_controller import XboxController
 
 class DiscRobot(HolonomicRobot):
-    def __init__(self, disc_radius=1.5):
+    def __init__(self, edge_validity_delta: float = 0.5, disc_radius: float = 1.5):
         super().__init__()
-        self.edge_validity_delta = 0.5
+        self.edge_validity_delta = edge_validity_delta
         self.disc_radius = disc_radius
 
         self.x_range = [-10,10]
@@ -38,7 +38,7 @@ class DiscRobot(HolonomicRobot):
 
         if not robot.within(self.boundary):
             return False
-        
+
         for obs in self.obstacles:
             # if robot.within(obs):
             if obs.intersects(robot):
@@ -59,7 +59,7 @@ class DiscRobot(HolonomicRobot):
 
     ## ---- Batched Methods ---- ##
 
-    def batch_get_robot_representations(self, states : np.ndarray):
+    def batch_get_robot_representations(self, states: np.ndarray):
         # TODO:
         # states # (B, 2)
         return {
@@ -70,7 +70,7 @@ class DiscRobot(HolonomicRobot):
             'points_radius': self.disc_radius
         }
     
-    def batch_sample_points_around_target(self, targets):
+    def batch_sample_points_around_target(self, targets: np.ndarray):
         validities = self.batch_is_valid(targets)
         return targets[validities]
 
