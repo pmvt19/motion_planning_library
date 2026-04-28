@@ -8,10 +8,10 @@ from motion_planning.utils import numpystate_distance, create_rectangle_geometry
 from motion_planning.controller.xbox_controller import XboxController
 
 class DubinsCar(NonHolonomicRobot):
-    def __init__(self):
+    def __init__(self, edge_validity_delta: float = 0.05):
         super().__init__()
 
-        self.edge_validity_delta = 0.05
+        self.edge_validity_delta = edge_validity_delta
 
         self.x_range = [-10, 10]
         self.y_range = [-10, 10]
