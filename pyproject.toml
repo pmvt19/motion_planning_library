@@ -1,0 +1,41 @@
+[project]
+name = "motion-planning"
+version = "1.1.0"
+description = "Motion Planning Library that enables easy use of popular planning algorithms with a multitude of existing robots"
+authors = [
+    {name="Praval Telagi", email="praval.telagi@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12.9"
+dependencies = [
+    "fastdtw>=0.3.4",
+    "matplotlib>=3.10.9",
+    "numpy>=2.4.4",
+    "opencv-python>=4.13.0.92",
+    "pygame>=2.6.1",
+    "rerun-sdk==0.26.2",
+    "scikit-image>=0.26.0",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
+    "shapely>=2.1.2",
+    "sympy>=1.14.0",
+    "torch==2.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", 
+    "F", 
+    "I"
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+combine-as-imports = true
+section-order = ["future", "standard-libarary", "third-party", "first-party", "local-folder"]
+known-first-party = ["motion_planning"]
