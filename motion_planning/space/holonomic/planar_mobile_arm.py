@@ -34,22 +34,23 @@ class PlanarMobileArm(HolonomicRobot):
         self.obstacle_check_time = 0
         self.generate_state_time = 0
 
-    def dist(self, state1: NumpyState, state2: NumpyState):
+    def dist(self, state1: NumpyState, state2: NumpyState) -> float:
         state1 = self.get_state_value(state1)
         state2 = self.get_state_value(state2)
         return np.linalg.norm(state1 - state2)
     
-    def make_state(self, state: np.ndarray):
+    def make_state(self, state: np.ndarray) -> NumpyState:
         return NumpyState(value=state)
     
-    def sample_point(self):
+    def sample_point(self) -> NumpyState:
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
         theta1 = np.random.uniform(low=self.theta1_range[0], high=self.theta1_range[1])
         link_thetas = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1], size=(self.num_links-1,))
         return self.make_state(np.array([x, y, theta1, *link_thetas]))
     
-    def create_end_effector_representation(self, base_point : np.ndarray):
+    # TODO: Convert to return only an np.ndarray
+    def create_end_effector_representation(self, base_point: np.ndarray) -> list[tuple[np.ndarray, np.ndarray]]:
         x, y = base_point
 
         ee_lengths = [0.5, 0.2]
@@ -86,12 +87,12 @@ class PlanarMobileArm(HolonomicRobot):
         
         return ee_point_pairs
     
-    def get_arm_base_position(self, state):
+    def get_arm_base_position(self, state) -> np.ndarray:
         state = self.get_state_value(state)
         x, y, *_ = state
         return np.array([x, y+self.base_length/2])
 
-    def forward_kinematics(self, state):
+    def forward_kinematics(self, state) -> np.ndarray:
         state = self.get_state_value(state)
         x, y, *thetas = state
 
@@ -132,7 +133,7 @@ class PlanarMobileArm(HolonomicRobot):
             ee_link = affinity.rotate(ee_link, angle=(np.sum(thetas)+rotation_offset), use_radians=True, origin=list(joint_positions[-1]))
             ee.append(ee_link)
 
-        return robot, arms, ee 
+        return robot, arms, ee
 
     def draw_state(self, ax, state, color='red'):
         robot, arms, ee = self.generate_robot_representation(state)
@@ -144,7 +145,7 @@ class PlanarMobileArm(HolonomicRobot):
         for ee_link in ee:
             ax.plot(*ee_link.xy, color=color)
 
-    def collides_with_self(self, robot, arms, ee):
+    def collides_with_self(self, robot, arms, ee) -> bool:
         for i in range(len(arms)):
             for j in range(i+2, len(arms)):
                 if arms[i].intersects(arms[j]):
@@ -155,7 +156,7 @@ class PlanarMobileArm(HolonomicRobot):
                     return True 
         return False 
     
-    def is_valid(self, state):
+    def is_valid(self, state) -> bool:
         start_time = time.time()
         self.num_collision_checks += 1
         robot, arms, ee = self.generate_robot_representation(state)
@@ -215,11 +216,11 @@ class PlanarMobileArm(HolonomicRobot):
         # return self.make_state(q)
         return None
 
-    def batch_sample_point(self, num_points):
+    def batch_sample_point(self, num_points) -> np.ndarray:
         issue_warning(True, "Batch Sample Points is hardcoded for planar mobile arm", 'warning')
         return np.random.uniform(low=np.array([-10,-10,0,0,0]), high=np.array([10,10,2*np.pi,2*np.pi,2*np.pi]), size=(num_points, 5))
 
-    def sample_configs_ee_target(self, target_ee_position):
+    def sample_configs_ee_target(self, target_ee_position) -> np.ndarray:
         tolerance = 0.1
         # q_start = np.array([self.sample_valid_point().value for _ in range(20000)])
         q_start = self.batch_sample_point(100000)
@@ -232,7 +233,7 @@ class PlanarMobileArm(HolonomicRobot):
         return final_qs
 
     ## ---- Batched Methods ---- ##
-    def batch_forward_kinematics(self, states : np.ndarray):
+    def batch_forward_kinematics(self, states : np.ndarray) -> np.ndarray:
         states = np.copy(states)
         states[:, 3:] -= np.pi # Hack to treat angles properly
         arm_bases = np.vstack((states[:, 0], states[:, 1] + self.base_length/2)).T # (B, 2)
@@ -244,7 +245,7 @@ class PlanarMobileArm(HolonomicRobot):
         joint_pos = np.cumsum(point_der, axis=1) + arm_bases.reshape(-1, 1, 2) # (B, num_links, 2)
         return np.concatenate((arm_bases.reshape(-1, 1, 2), joint_pos), axis=1)
     
-    def batch_create_end_effector_segments(self, base_points : np.ndarray, thetas : np.ndarray):
+    def batch_create_end_effector_segments(self, base_points: np.ndarray, thetas: np.ndarray) -> np.ndarray:
         """
         base_points: (N, 2) batch of N points from the end_effector joint
         """
@@ -305,7 +306,7 @@ class PlanarMobileArm(HolonomicRobot):
 
         return batch_ee_points_rotated
     
-    def batch_get_robot_representations(self, states : np.ndarray):
+    def batch_get_robot_representations(self, states: np.ndarray) -> dict:
         rectangles = np.stack((states[:, 0], states[:, 1], np.ones((states.shape[0])) * self.base_width, np.ones((states.shape[0])) * self.base_length), axis=1)
         segment_points = self.batch_forward_kinematics(states)#.reshape(-1, 2, 2)
         start_points = segment_points[:, :-1, :]
