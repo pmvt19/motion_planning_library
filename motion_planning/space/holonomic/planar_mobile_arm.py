@@ -2,7 +2,6 @@ import time
 import numpy as np
 
 from shapely import LineString, affinity
-from collections import defaultdict # TODO: Remove this import
 from sklearn.metrics import pairwise_distances
 
 from motion_planning.space import HolonomicRobot
@@ -34,8 +33,6 @@ class PlanarMobileArm(HolonomicRobot):
         
         self.obstacle_check_time = 0
         self.generate_state_time = 0
-
-        self.timing_dict = defaultdict(float)
 
     def dist(self, state1: NumpyState, state2: NumpyState):
         state1 = self.get_state_value(state1)
@@ -113,38 +110,27 @@ class PlanarMobileArm(HolonomicRobot):
         return np.vstack((arm_base, joint_pos))
 
     def generate_robot_representation(self, state):
-        time0 = time.time()
         state = self.get_state_value(state)
         x, y, *thetas = state
-        time1 = time.time()
+
         robot = create_rectangle_geometry(x_loc=x, y_loc=y, x_width=self.base_width, y_length=self.base_length)
-        time2 = time.time()
+
         rotation_offset = np.pi/2 if self.num_links % 2 == 0 else -np.pi/2
         arms = []
 
-        time3 = time.time()
         joint_positions = self.forward_kinematics(state)
-        time4 = time.time()
+
         for i in range(len(joint_positions) - 1):
             arm = LineString([joint_positions[i], joint_positions[i+1]])
             arms.append(arm)
-        time5 = time.time()
+
         end_effector_point_pairs = self.create_end_effector_representation(joint_positions[-1])
-        # end_effector_point_pairs = []
-        time6 = time.time()
+
         ee = []
         for i in range(len(end_effector_point_pairs)):
             ee_link = LineString(end_effector_point_pairs[i])
             ee_link = affinity.rotate(ee_link, angle=(np.sum(thetas)+rotation_offset), use_radians=True, origin=list(joint_positions[-1]))
             ee.append(ee_link)
-        time7 = time.time()
-
-        self.timing_dict['get_state_value'] += time1-time0
-        self.timing_dict['create_robot_base'] += time2-time1
-        self.timing_dict['forward_kinematics'] += time4-time3
-        self.timing_dict['create_arm_link'] += time5-time4
-        self.timing_dict['create_end_effector_representation'] += time6-time5
-        self.timing_dict['create_end_effector_lines'] += time7-time6
 
         return robot, arms, ee 
 
