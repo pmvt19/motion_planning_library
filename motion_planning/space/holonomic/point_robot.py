@@ -13,7 +13,7 @@ class PointRobot(HolonomicRobot):
         self.x_range = [-10,10]
         self.y_range = [-10,10]
 
-    def make_state(self, state):
+    def make_state(self, state) -> NumpyState:
         return NumpyState(state)
 
     def generate_robot_representation(self, state):
@@ -21,15 +21,15 @@ class PointRobot(HolonomicRobot):
         robot = Point(state)
         return robot
     
-    def sample_point(self):
+    def sample_point(self) -> NumpyState:
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
         return self.make_state(np.array([x, y]))
     
-    def dist(self, state1, state2):
+    def dist(self, state1, state2) -> float:
         return np.linalg.norm(self.get_state_value(state1) - self.get_state_value(state2))
     
-    def is_valid(self, state):
+    def is_valid(self, state) -> bool:
         self.num_collision_checks += 1
         robot = self.generate_robot_representation(state)
 
@@ -48,7 +48,7 @@ class PointRobot(HolonomicRobot):
 
     ## ---- Batched Methods ---- ##
 
-    def batch_get_robot_representations(self, states : np.ndarray):
+    def batch_get_robot_representations(self, states: np.ndarray) -> dict:
         # states # (B, 2)
         return {
             'rectangles' : np.empty((0, 4)),
@@ -58,7 +58,7 @@ class PointRobot(HolonomicRobot):
             'points_radius': 0.0
         }
     
-    def batch_sample_points_around_target(self, targets):
+    def batch_sample_points_around_target(self, targets: np.ndarray) -> np.ndarray:
         validities = self.batch_is_valid(targets)
         return targets[validities]
     
