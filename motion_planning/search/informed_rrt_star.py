@@ -48,10 +48,10 @@ if __name__ == "__main__":
     from motion_planning.obstacle_sets import BiasedPassage
 
     env = PointRobot()
-    env.set_obstacles(BiasedPassage(num_walls=2, bias=0.5))
+    env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
     rrt = InformedRRTStar(env)
 
-    start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([25.0, 5.0]))
+    start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([15.0, 5.0]))
     path = rrt.search(start, target, max_steps=5000)
 
     rrt.draw_tree(plt.gca(), path=path)
