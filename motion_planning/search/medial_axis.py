@@ -40,6 +40,7 @@ def compute_medial_axis_points(env: ApproximationSpace, percent_kept=0.1):
     ma_img = ma_img_unflipped[::-1, :]
     ys, xs = np.where(ma_img == True)
 
+    # TODO: TEST TO SEE IF HACK IS STILL REQUIRED
     # HACK: HARDCODED
     env.x_range = [0,40]
     env.y_range = [0,10]
@@ -105,8 +106,6 @@ class MedialAxisPRM(PRM):
         
         super().__init__(env=env, num_samples=num_samples, num_neighbors=num_neighbors, edge_dist_radius=edge_dist_radius, validate_edges=True)
 
-        # print("Creating Graph In Initialization")
-        # self.create_graph(starting_samples=configs)
     def create_graph(self, starting_samples=[]):
         assert (len(starting_samples) == 0), "Starting Samples Doesn't Work Right Now"
         super().create_graph(starting_samples=self.starting_configs)
