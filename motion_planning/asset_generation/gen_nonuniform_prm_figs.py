@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from motion_planning.prm import NonUniformPRM
+from motion_planning.search import NonUniformPRM
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import RandomSamplePassage
 from motion_planning.utils import set_numpy_seed

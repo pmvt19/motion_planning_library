@@ -10,10 +10,10 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 from matplotlib.collections import LineCollection
 
 from motion_planning.space import SkidSteerCar, DubinsCar
-from motion_planning.state import NumpyState
+from motion_planning.tools import NumpyState
 from motion_planning.utils import smooth_path, interpolate_edge
-from motion_planning.rrt import RRT
-from motion_planning.path import KinodynamicPath
+from motion_planning.search import RRT
+from motion_planning.tools import KinodynamicPath
 from motion_planning.obstacle_sets import TestSet, ParkingSpace
 
 class KinodynamicRRT(RRT):

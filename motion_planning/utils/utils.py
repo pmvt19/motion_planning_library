@@ -5,8 +5,7 @@ import math
 from copy import deepcopy
 from shapely import Polygon
 
-from motion_planning.state import NumpyState, AngularNumpyState
-from motion_planning.path import Path
+from motion_planning.tools import NumpyState, AngularNumpyState, Path
 
 def set_numpy_seed(seed=None):
     if seed:

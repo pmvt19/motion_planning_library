@@ -7,15 +7,11 @@ from matplotlib.collections import LineCollection
 from heapq import heappush, heappop
 from collections import defaultdict
 
-from motion_planning.utils import issue_warning
-
 class Graph():
     def __init__(self, vertices, num_neighbors=None, edge_dist_radius=None):
         self.vertices = vertices
         self.num_neighbors = num_neighbors
         self.edge_dist_radius = edge_dist_radius
-
-        issue_warning(self.num_neighbors is not None and self.edge_dist_radius is not None, 'Specified both num_neighbors and edge_dist_radius, defaulting to num_neighbors', 'warning')
 
         if self.num_neighbors is not None:
             self.connection_strategy = 'knn'
@@ -46,13 +42,9 @@ class Graph():
                     self.edges[b].add(a)
     
     def draw(self, ax):
-        # ax.scatter(self.vertices[:, 0], self.vertices[:, 1], color='purple')
         ax.scatter(self.vertices[:, 0], self.vertices[:, 1], color='#FFA500')
         line = [(self.vertices[a, :2], self.vertices[b, :2]) for a in self.edges for b in self.edges[a] if b >= 0]
-        # ax.add_collection(LineCollection(line, color='#34dbeb'))
         ax.add_collection(LineCollection(line, color="#cccccc", alpha=0.4))
-
-        
 
     def add_vertex(self, vertex):
         self.vertex_to_idx[tuple(vertex)] = len(self.vertices)

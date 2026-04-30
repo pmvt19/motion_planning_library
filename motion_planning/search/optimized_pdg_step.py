@@ -10,10 +10,10 @@ from sklearn.neighbors import KDTree
 from motion_planning.space import PointRobot, RobotSpace
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.database import Database, ClusteredDatabase
-from motion_planning.path import Path
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.tools import Path
+from motion_planning.space import ApproximationSpace
 from motion_planning.utils import interpolate_path, smooth_path
-from motion_planning.rrt import RRT
+from motion_planning.search import RRT
 
 class OptimizedPDG():
     def __init__(self, env, db_path):
@@ -469,7 +469,8 @@ if __name__ == '__main__':
     # db_save_path = 'saves/clustered_database_large_bpe_subsampled.pickle'
     # db_save_path = 'saves/clustered_database_large_bpe_mp_sampler.pickle'
     # db_save_path = 'saves/clustered_database_large_bpe_subsampled.pickle'
-    db_save_path = 'saves/smoothed_interpolated_database_large_bpe_subsampled.pickle'
+    # db_save_path = 'saves/smoothed_interpolated_database_large_bpe_subsampled.pickle'
+    db_save_path = 'saves/database_rf2.pickle'
     
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))

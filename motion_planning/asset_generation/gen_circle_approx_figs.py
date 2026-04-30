@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 from motion_planning.space import PlanarMobileArm
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.utils import set_numpy_seed

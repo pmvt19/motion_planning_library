@@ -7,8 +7,8 @@ import open3d as o3d
 
 from motion_planning.space import RobotSpace, HolonomicRobot
 from motion_planning.utils import numpystate_distance, interpolate_path
-from motion_planning.state import NumpyState, AngularNumpyState
-from motion_planning.prm import PRM
+from motion_planning.tools import NumpyState, AngularNumpyState
+from motion_planning.search import PRM
 from motion_planning.obstacle_sets import ObstacleSet
 
 def rect_prism_to_circles_x_short(aa_rect_prism):

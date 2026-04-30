@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from motion_planning.rsg import RandomSampleGeneration
+from motion_planning.search import RandomSampleGeneration
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.utils import set_numpy_seed

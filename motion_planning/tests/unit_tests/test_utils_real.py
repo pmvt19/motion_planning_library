@@ -1,6 +1,6 @@
 import numpy as np
 
-from motion_planning.state import NumpyState, AngularNumpyState
+from motion_planning.tools import NumpyState, AngularNumpyState
 from motion_planning.utils import numpystate_distance, euclidean_distance, angular_distance
 
 def test_euclidean_distance():

@@ -8,9 +8,8 @@ from matplotlib.widgets import Slider
 
 from motion_planning.utils import smooth_path, interpolate_path
 from motion_planning.controller.xbox_controller import XboxController
-from motion_planning.rrt import RRT
-from motion_planning.space import RobotSpace, FixedArm, DiscRobot
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.search import RRT
+from motion_planning.space import RobotSpace, FixedArm, DiscRobot, ApproximationSpace
 from motion_planning.obstacle_sets import TestSet, ParkingSpace, Shelves2d
 
 # Interactive element 

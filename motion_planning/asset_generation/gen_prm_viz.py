@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from motion_planning.prm import PRM
+from motion_planning.search import PRM
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.utils import set_numpy_seed
-from motion_planning.graph import Graph
+from motion_planning.tools import Graph
 
     
 def visualize_prm_vertices():

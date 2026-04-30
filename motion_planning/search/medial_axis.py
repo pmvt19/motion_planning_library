@@ -8,11 +8,11 @@ from skimage.morphology import medial_axis
 
 from motion_planning.space import PointRobot, PlanarMobileArm, PolygonalRobot
 from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage, TestSet, ParkingSpace
-from motion_planning.circle_approximation import ApproximationSpace
+from motion_planning.space import ApproximationSpace
 from motion_planning.utils import interpolate_path, smooth_path
-from motion_planning.prm import PRM
-from motion_planning.biased_rrt import BiasedSamplingRRT
-from motion_planning.rrt import RRT
+from motion_planning.search import PRM
+from motion_planning.search import BiasedSamplingRRT
+from motion_planning.search import RRT
 
 
 # Medial Axis Can Either Guide PRM (Use as starting vertices) or RRT (Biased Sampling)

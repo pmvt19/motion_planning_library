@@ -1,12 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from motion_planning.prm import PRM, IncrementalPRM
+from motion_planning.search import PRM, IncrementalPRM
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.utils import set_numpy_seed
-from motion_planning.graph import Graph
-from motion_planning.path import Path
+from motion_planning.tools import Graph, Path
 
 def search_and_save(prm, env, start, target, save_figs=False):
     prm.start = start

@@ -4,12 +4,11 @@ from matplotlib.collections import LineCollection
 
 from heapq import heappush, heappop
 
-from motion_planning.prm import LazyPRM
+from motion_planning.search import LazyPRM
 from motion_planning.space import PointRobot
 from motion_planning.obstacle_sets import RandomSamplePassage, BiasedPassage
 from motion_planning.utils import set_numpy_seed
-from motion_planning.state import NumpyState
-from motion_planning.path import Path
+from motion_planning.tools import NumpyState, Path
 
 def draw_invalid_edges(ax, edges):
     # ax.add_collection(LineCollection(edges, color='#a61107'))
