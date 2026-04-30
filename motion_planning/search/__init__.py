@@ -13,3 +13,4 @@ from .lightning import Lightning
 from .pdg import PDG
 from .optimized_pdg import OptimizedPDG as LegacyOptimizedPDG
 from .optimized_pdg_step import OptimizedPDG
+from .informed_rrt_star import InformedRRTStar
