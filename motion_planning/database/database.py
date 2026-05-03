@@ -1,15 +1,13 @@
-import time
 import pickle
-import numpy as np
-import matplotlib.pyplot as plt 
-import multiprocessing
-import concurrent.futures
-
-from fastdtw import fastdtw
 from collections import defaultdict
+
+import matplotlib.pyplot as plt
+import numpy as np
+from fastdtw import fastdtw
 from matplotlib.collections import LineCollection
 
 from motion_planning.tools import Path
+
 
 class Database():
     def __init__(self):
@@ -26,7 +24,10 @@ class Database():
         for i, path in enumerate(self.paths):
             path_states = np.array([state.value for state in path.path])
             ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(i), zorder=2)
-            path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
+            path_edges = [
+                (path[j].value[:2], path[j+1].value[:2])
+                for j in range(len(path)-1)
+            ]
             ax.add_collection(LineCollection(path_edges, color=cmap(i)))
     
     def add_path(self, path):
@@ -75,7 +76,9 @@ class ClusteredDatabase(Database):
         dists = []
         for cluster_id in self.clusters:
             path_idx_representative_for_cluster_id = self.clusters[cluster_id][0]
-            rp_numpy_path = self._path_to_numpy_path(self[path_idx_representative_for_cluster_id])
+            rp_numpy_path = self._path_to_numpy_path(
+                                self[path_idx_representative_for_cluster_id]
+                            )
             dtw_distance, _ = fastdtw(numpy_path, rp_numpy_path, dist=2)
 
             dists.append(dtw_distance)
@@ -129,7 +132,10 @@ class ClusteredDatabase(Database):
         for cluster_id in self.clusters:
             cluster = self.clusters[cluster_id]
             cluster_size = len(cluster)
-            kept_cluster_paths_idxes = np.random.randint(0, cluster_size, size=(min(cluster_size, num_paths_per_cluster),))
+            kept_cluster_paths_idxes = np.random.randint(low=0, 
+                                                         high=cluster_size, 
+                                                         size=(min(cluster_size, 
+                                                                   num_paths_per_cluster),))
 
             for kept_path_idx in kept_cluster_paths_idxes:
                 path_idx = cluster[kept_path_idx]
@@ -148,14 +154,27 @@ class ClusteredDatabase(Database):
             for _, path_idx in enumerate(self.clusters[cluster_id]):
                 path = self[path_idx]
                 path_states = np.array([state.value for state in path.path])
-                ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(cluster_id), zorder=2)
-                path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
+                ax.scatter(
+                    path_states[:, 0], 
+                    path_states[:, 1],
+                    color=cmap(cluster_id),
+                    zorder=2
+                )
+                path_edges = [
+                    (path[j].value[:2], path[j+1].value[:2])
+                    for j in range(len(path)-1)
+                ]
                 ax.add_collection(LineCollection(path_edges, color=cmap(cluster_id)))
 
     def draw_cluster(self, ax, cluster_id, color='blue'):
         for _, path_idx in enumerate(self.clusters[cluster_id]):
             path = self[path_idx]
             path_states = np.array([state.value for state in path.path])
-            ax.scatter(path_states[:, 0], path_states[:, 1], color=color, zorder=2)
-            path_edges = [(path[j].value[:2], path[j+1].value[:2]) for j in range(len(path)-1)]
+            ax.scatter(
+                path_states[:, 0], path_states[:, 1], color=color, zorder=2
+            )
+            path_edges = [
+                (path[j].value[:2], path[j+1].value[:2])
+                for j in range(len(path)-1)
+            ]
             ax.add_collection(LineCollection(path_edges, color=color))
