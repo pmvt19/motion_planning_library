@@ -39,7 +39,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-force-sort-within-sections = true
 combine-as-imports = true
-section-order = ["future", "standard-libarary", "third-party", "first-party", "local-folder"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 known-first-party = ["motion_planning"]
+force-to-top = ["*"]
