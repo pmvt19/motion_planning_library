@@ -91,8 +91,8 @@ class MedialAxisPRM(MedialAxis, PRM):
         PRM.__init__(self, env=env, num_samples=num_samples, num_neighbors=num_neighbors, edge_dist_radius=edge_dist_radius, validate_edges=True)
 
     def create_graph(self, starting_samples=[]):
-        assert (len(starting_samples) == 0), "Starting Samples Doesn't Work Right Now" # TODO: Fix this
-        super().create_graph(starting_samples=self.configs)
+        strting_samples = np.concatenate((starting_samples, self.configs))
+        super().create_graph(starting_samples=strting_samples)
 
 if __name__ == '__main__':
     seed = np.random.randint(0, 100)
