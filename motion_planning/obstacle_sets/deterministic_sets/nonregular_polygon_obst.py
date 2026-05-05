@@ -1,5 +1,6 @@
 
 from shapely import Polygon
+
 from motion_planning.obstacle_sets import ObstacleSet2d
 
 
@@ -21,7 +22,10 @@ class NonRegularPolygonObst(ObstacleSet2d):
         x_range = [-10,10]
         y_range = [-10,10]
 
-        boundary = Polygon([(x_range[0], y_range[0]), (x_range[0], y_range[1]), (x_range[1], y_range[1]), (x_range[1], y_range[0])])
+        boundary = Polygon([[x_range[0], y_range[0]],
+                            [x_range[0], y_range[1]],
+                            [x_range[1], y_range[1]],
+                            [x_range[1], y_range[0]]])
         super().__init__(obstacles=obstacles, boundary=boundary)
 
 if __name__ == '__main__':
