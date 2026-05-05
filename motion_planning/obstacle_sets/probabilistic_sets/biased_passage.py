@@ -1,9 +1,17 @@
-from motion_planning.obstacle_sets import ObstacleSet2d
-from shapely import Polygon
 import numpy as np
+from shapely import Polygon
+
+from motion_planning.obstacle_sets import ObstacleSet2d
+
 
 class BiasedPassage(ObstacleSet2d):
-    def __init__(self, num_walls=1, bias=0.5, main_wall_width=2, sup_wall_width=1, gap_width=1):
+    def __init__(self, 
+                 num_walls=1,
+                 bias=0.5,
+                 main_wall_width=2,
+                 sup_wall_width=1,
+                 gap_width=1):
+
         assert (num_walls > 0)
 
         obstacles = []

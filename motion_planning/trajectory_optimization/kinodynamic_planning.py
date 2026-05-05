@@ -1,6 +1,8 @@
 import casadi as ca
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
+from motion_planning.space import SkidSteerCar
 
 # Car parameters
 L = 2.5  # Length of the car (meters)
@@ -65,7 +67,6 @@ for k in range(N):
     dt = T / N  # Time step
     opti.subject_to(x_var[k+1] == x_var[k] + dt * v_var[k] * ca.cos(theta_var[k]))
     opti.subject_to(y_var[k+1] == y_var[k] + dt * v_var[k] * ca.sin(theta_var[k]))
-    # opti.subject_to(theta_var[k+1] == theta_var[k] + dt * v_var[k] / L * ca.tan(delta_var[k]))
     opti.subject_to(theta_var[k+1] == theta_var[k] + dt * delta_var[k])
     opti.subject_to(v_var[k] * delta_var[k] == 0)
 
@@ -121,8 +122,6 @@ print(np.stack((x_opt, y_opt, theta_opt), axis=1))
 
 print(v_opt)
 print(delta_opt)
-
-from space import SkidSteerCar
 
 env = SkidSteerCar()
 

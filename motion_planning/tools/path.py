@@ -1,5 +1,3 @@
-import numpy as np 
-
 class Path():
     def __init__(self, path=[]):
         assert(isinstance(path, list)), "Path must be of type list"

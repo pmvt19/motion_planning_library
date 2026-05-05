@@ -8,6 +8,7 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12.9"
 dependencies = [
+    "casadi>=3.7.2",
     "fastdtw>=0.3.4",
     "matplotlib>=3.10.9",
     "numpy>=2.4.4",
@@ -38,8 +39,12 @@ select = [
     "I"
 ]
 
+# Ignore Import Orders in __init__.py files
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["I"]
+
 [tool.ruff.lint.isort]
-force-sort-within-sections = true
 combine-as-imports = true
-section-order = ["future", "standard-libarary", "third-party", "first-party", "local-folder"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 known-first-party = ["motion_planning"]
+force-to-top = ["*"]

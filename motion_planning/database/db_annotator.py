@@ -1,9 +1,14 @@
 from motion_planning.database import Database
-from motion_planning.utils import smooth_path, interpolate_path
 from motion_planning.experiments.utils.mp_sampler import MPSampler
 from motion_planning.search import IncrementalPRM
+from motion_planning.utils import smooth_path, interpolate_path
 
-def populate_db(db: Database, mp_sampler: MPSampler, num_envs: int, num_tasks_per_env: int, smooth_paths: bool = False, interpolate_paths_delta: float = 0.0):
+def populate_db(db: Database, 
+                mp_sampler: MPSampler, 
+                num_envs: int, 
+                num_tasks_per_env: int, 
+                smooth_paths: bool = False, 
+                interpolate_paths_delta: float = 0.0):
     for i in range(num_envs):
         env = mp_sampler.sample_env()
         prm = IncrementalPRM(env, num_samples=1000, num_neighbors=5)
@@ -28,9 +33,9 @@ def populate_db(db: Database, mp_sampler: MPSampler, num_envs: int, num_tasks_pe
         print(f"DB Size: {len(db)}")
 
 if __name__ == '__main__':
-    from motion_planning.space import PointRobot
     from motion_planning.obstacle_sets import BiasedPassage
-
+    from motion_planning.space import PointRobot
+    
     path = "saves/database_rf2.pickle"
 
     db = Database()

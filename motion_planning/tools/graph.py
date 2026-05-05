@@ -1,11 +1,11 @@
-import time
-import numpy as np
-import matplotlib.pyplot as plt
-
-from sklearn.neighbors import KDTree
-from matplotlib.collections import LineCollection
-from heapq import heappush, heappop
 from collections import defaultdict
+from heapq import heappop, heappush
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.collections import LineCollection
+from sklearn.neighbors import KDTree
+
 
 class Graph():
     def __init__(self, vertices, num_neighbors=None, edge_dist_radius=None):
@@ -25,7 +25,8 @@ class Graph():
 
     def get_node_connections(self, vertices):
         if self.connection_strategy == 'knn':
-            ind = self.kdt.query(vertices, k=self.num_neighbors+1, return_distance=False)
+            ind = self.kdt.query(vertices, k=self.num_neighbors+1, 
+                                 return_distance=False)
         elif self.connection_strategy == 'r_neighborhood':
             ind = self.kdt.query_radius(vertices, r=self.edge_dist_radius)
         return ind
@@ -43,7 +44,12 @@ class Graph():
     
     def draw(self, ax):
         ax.scatter(self.vertices[:, 0], self.vertices[:, 1], color='#FFA500')
-        line = [(self.vertices[a, :2], self.vertices[b, :2]) for a in self.edges for b in self.edges[a] if b >= 0]
+        line = [
+            (self.vertices[a, :2], self.vertices[b, :2]) 
+            for a in self.edges 
+            for b in self.edges[a]
+            if b >= 0
+        ]
         ax.add_collection(LineCollection(line, color="#cccccc", alpha=0.4))
 
     def add_vertex(self, vertex):
