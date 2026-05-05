@@ -5,11 +5,7 @@ from motion_planning.utils import create_rectangle_geometry
 
 
 class CentralObstacle(ObstacleSet2d):
-    def __init__(self):
-        
-        x_range = [0,10]
-        y_range = [0,10]
-
+    def __init__(self, x_range=[0, 10], y_range=[0, 10]):
         obstacles = []
         obs = create_rectangle_geometry(5,5,2,2)
         obstacles.append(obs)

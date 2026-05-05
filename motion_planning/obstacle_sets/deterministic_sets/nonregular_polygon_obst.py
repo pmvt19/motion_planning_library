@@ -5,7 +5,7 @@ from motion_planning.obstacle_sets import ObstacleSet2d
 
 
 class NonRegularPolygonObst(ObstacleSet2d):
-    def __init__(self):
+    def __init__(self, x_range=[-10, 10], y_range=[-10, 10]):
         obstacles = []
 
         obs = Polygon([
@@ -18,9 +18,6 @@ class NonRegularPolygonObst(ObstacleSet2d):
         ])
 
         obstacles.append(obs)
-
-        x_range = [-10,10]
-        y_range = [-10,10]
 
         boundary = Polygon([[x_range[0], y_range[0]],
                             [x_range[0], y_range[1]],
