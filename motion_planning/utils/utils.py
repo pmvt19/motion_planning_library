@@ -1,11 +1,11 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import math
-
 from copy import deepcopy
+
+import numpy as np
 from shapely import Polygon
 
-from motion_planning.tools import NumpyState, AngularNumpyState, Path
+from motion_planning.tools import AngularNumpyState, NumpyState, Path
+
 
 def set_numpy_seed(seed=None):
     if seed:
@@ -14,7 +14,6 @@ def set_numpy_seed(seed=None):
         seed = np.random.randint(0, 10000)
         print(f"Using Random Numpy Seed: {seed}")
     np.random.seed(seed)
-    
 
 def issue_warning(condition, statement, level):
     WARNING = '\033[93m'
@@ -23,9 +22,11 @@ def issue_warning(condition, statement, level):
     if condition:
         print(f"{FAIL if level == 'fail' else WARNING}{statement}{ENDC}")
 
-def smooth_path(env, path_obj : Path):
+def smooth_path(env, path_obj: Path):
     path = deepcopy(path_obj.path) # Do not modify original path
-    original_path_length = sum([np.linalg.norm(path[i].value - path[i+1].value) for i in range(len(path)-1)])
+    original_path_length = sum(
+        [np.linalg.norm(path[i].value - path[i+1].value) for i in range(len(path)-1)]
+    )
     i = 0
     while i < len(path)-1:
         j = len(path) - 1
@@ -36,7 +37,9 @@ def smooth_path(env, path_obj : Path):
             else:
                 j -= 1
         i += 1
-    smoothed_path_length = sum([np.linalg.norm(path[i].value - path[i+1].value) for i in range(len(path)-1)])
+    smoothed_path_length = sum(
+        [np.linalg.norm(path[i].value - path[i+1].value) for i in range(len(path)-1)]
+    )
     print(f"Smoothed Path from Length {original_path_length} to Length {smoothed_path_length}")
     return Path(path=path)
 
@@ -47,7 +50,7 @@ def create_rectangle_geometry(x_loc, y_loc, x_width, y_length):
                         [x_loc+x_width/2, y_loc-y_length/2],])
     return shape
 
-def calculate_edge_gradient(start_state : NumpyState, end_state : NumpyState):
+def calculate_edge_gradient(start_state: NumpyState, end_state: NumpyState):
     start = start_state.value
     end = end_state.value
     gradient = (end - start)
@@ -58,7 +61,7 @@ def calculate_edge_gradient(start_state : NumpyState, end_state : NumpyState):
 
     return gradient
 
-def bisect_edge(start : NumpyState, end : NumpyState):
+def bisect_edge(start: NumpyState, end: NumpyState):
     gradient = calculate_edge_gradient(start, end)
     edge_length = np.linalg.norm(gradient)
     gradient /= edge_length
@@ -68,7 +71,7 @@ def bisect_edge(start : NumpyState, end : NumpyState):
 
     return midpoint
 
-def interpolate_edge(start : NumpyState, end : NumpyState, delta : float):
+def interpolate_edge(start: NumpyState, end: NumpyState, delta: float):
 
     gradient = calculate_edge_gradient(start, end)
     edge_length = np.linalg.norm(gradient)
@@ -86,14 +89,14 @@ def interpolate_edge(start : NumpyState, end : NumpyState, delta : float):
     return edge_states
 
 
-def batch_calculate_gradient(start_states : np.ndarray, end_states : np.ndarray, angular_dims_start):
+def batch_calculate_gradient(start_states: np.ndarray, end_states: np.ndarray, angular_dims_start):
     # start_states: (B, d), # end_states: (B, d)
     batch_gradient = end_states - start_states
     if angular_dims_start is not None:
         batch_gradient[:, angular_dims_start:] = np.arctan2(np.sin(batch_gradient[:, angular_dims_start:]), np.cos(batch_gradient[:, angular_dims_start:]))
     return batch_gradient
 
-def batch_interpolate_edge(start_states : np.ndarray, end_states : np.ndarray, delta : float, angular_dims_start):
+def batch_interpolate_edge(start_states: np.ndarray, end_states: np.ndarray, delta: float, angular_dims_start):
     # (B, d), # (B, d)
     B, d  = start_states.shape
     gradients = (end_states - start_states)
@@ -111,7 +114,7 @@ def batch_interpolate_edge(start_states : np.ndarray, end_states : np.ndarray, d
     edge_states[np.arange(B), (num_steps-1), :] = end_states
     return edge_states, num_steps
 
-def batch_interpolate_edge_uniform(start_states : np.ndarray, end_states : np.ndarray, delta : float, angular_dims_start):
+def batch_interpolate_edge_uniform(start_states: np.ndarray, end_states: np.ndarray, delta: float, angular_dims_start):
     # (B, d), # (B, d)
     B, d  = start_states.shape
     gradients = (end_states - start_states)
