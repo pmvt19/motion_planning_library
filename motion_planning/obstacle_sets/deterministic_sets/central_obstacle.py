@@ -1,8 +1,9 @@
 from shapely import Polygon
+
 from motion_planning.obstacle_sets import ObstacleSet2d
 from motion_planning.utils import create_rectangle_geometry
 
-# TODO: Fix range definitions
+
 class CentralObstacle(ObstacleSet2d):
     def __init__(self):
         
@@ -10,15 +11,13 @@ class CentralObstacle(ObstacleSet2d):
         y_range = [0,10]
 
         obstacles = []
-        # obs = create_rectangle_geometry(5,5,5.1,5)
         obs = create_rectangle_geometry(5,5,2,2)
-        # obs = create_rectangle_geometry(5,5,0.01,0.01)
         obstacles.append(obs)
 
-        boundary = Polygon([[0, 0],
-                            [0, 10],
-                            [x_range[1], 10],
-                            [x_range[1], 0]])
+        boundary = Polygon([[x_range[0], y_range[0]],
+                            [x_range[0], y_range[1]],
+                            [x_range[1], y_range[1]],
+                            [x_range[1], y_range[0]]])
 
         super().__init__(obstacles=obstacles, boundary=boundary)
 
