@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class NumpyState():
     def __init__(self, value):
         self.value = value
