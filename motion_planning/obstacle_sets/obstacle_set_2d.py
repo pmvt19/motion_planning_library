@@ -1,5 +1,6 @@
 from motion_planning.obstacle_sets import ObstacleSet
 
+
 class ObstacleSet2d(ObstacleSet):
     def __init__(self, obstacles, boundary):
         super().__init__(obstacles=obstacles, boundary=boundary)
