@@ -59,33 +59,16 @@ PATH = 1.5
 
 class OccupancyMap():
     def __init__(self, resolution=0.1, x_range=None, y_range=None):
-
-        
-
         self.res = resolution
-
-        # self.x_range = [-10,10]
-        # self.y_range = [-10,10]
 
         self.x_range = x_range
         self.y_range = y_range
 
-        # self.x_range = [-15,15]
-        # self.y_range = [-15,15]
-
         self.x_points = np.arange(self.x_range[0]-resolution, self.x_range[1]+resolution, resolution)
         self.y_points = np.arange(self.y_range[0]-resolution, self.y_range[1]+resolution, resolution)
 
-        # print(self.x_points)
-        # print(self.y_points)
-
-        
-
         self.x_points_centered = self.x_points + resolution/2
         self.y_points_centered = self.y_points + resolution/2
-
-        # print(self.x_points_centered)
-        # print(self.y_points_centered)
 
         self.x_idxes = (self.x_points - self.x_range[0]) / self.res
         self.y_idxes = (self.y_points - self.y_range[0]) / self.res
@@ -94,10 +77,6 @@ class OccupancyMap():
         self.inds = np.stack((x_ind, y_ind), axis=2)
         self.inds = self.inds.reshape(-1, 2)
 
-        # print(self.x_idxes)
-        # print(self.y_idxes)
-
-        # self.map = np.zeros((len(self.x_points), len(self.y_points)))
         self.map = np.ones((len(self.x_points), len(self.y_points))) * UNKNOWN
 
         x_cir, y_cir = np.meshgrid(self.x_points_centered, self.y_points_centered)
@@ -105,9 +84,6 @@ class OccupancyMap():
         self.circles = np.stack((x_cir, y_cir), axis=2)
         self.circles = self.circles.reshape(-1, 2)
         self.circles = np.hstack((self.circles, np.ones((len(self.circles), 1)) * (self.res/2)))
-
-        # print(self.circles.shape)
-        # print(self.circles)
 
         self.lines = []
 
@@ -123,7 +99,6 @@ class OccupancyMap():
     def coord_to_idx(self, coord : np.ndarray):
         # idx is the map based numbers, coord is the env based numbers
         x, y = coord
-        # print(x, y)
         x_idx = np.where(self.x_points < x)[0][-1]
         y_idx = np.where(self.y_points < y)[0][-1]
 
@@ -141,8 +116,6 @@ class OccupancyMap():
                 idx = self.coord_to_idx(point.value)
                 
                 # self.map[idx[1], idx[0]] = 1
-
-                # print(line_seg_to_points_dist(sensor_position.value, point.value, self.circles[:, :2]).shape)
 
                 dists = line_seg_to_points_dist(sensor_position.value, point.value, self.circles[:, :2])
                 mask = dists < (self.circles[:, 2] * math.sqrt(2))
@@ -165,12 +138,6 @@ class OccupancyMap():
                 inds = inds[new_mask]
 
                 self.map[inds[:, 0], inds[:, 1]] = EMPTY
-
-                # for ind in inds:
-                #     if self.map[ind[0], ind[1]] == UNKNOWN:
-                #         self.map[ind[0], ind[1]] = EMPTY
-
-                # self.map[inds[:, 0], inds[:, 1]] = EMPTY
 
     def buffer_obstacles(self, spread_value=0.4):
 
@@ -219,7 +186,6 @@ class OccupancyMap():
 
             visited[(x,y)] = parent
 
-            # neighbors = [(x+1,y),(x-1,y),(x,y-1),(x,y+1),(x+1,y+1),(x+1,y-1),(x-1,y+1),(x-1,y-1)]
             neighbors = [(x+1,y),(x-1,y),(x,y-1),(x,y+1)]
 
             for nx, ny in neighbors:
@@ -236,20 +202,9 @@ class OccupancyMap():
     def draw_map(self, ax):
         ax.imshow(np.rot90(self.map, k=1))
         ax.minorticks_on()
-        # ax.yaxis.set_inverted(False)
-
-        # ax.invert_yaxis()
-        # ax.invert_xaxis()
-        # ax.rot90()
 
         ax.grid(which='minor', linestyle=':', alpha=0.6)
         ax.grid(which='major', linestyle=':', linewidth=0.6)
-
-        # for line in self.lines:
-        #     ax.plot([line[0][1], line[1][1]], [line[0][0], line[1][0]])
-
-            # ax.plot([line[0][1], line[1][0]], [line[0][0], line[1][1]])
-            # ax.plot([line[0][0], line[1][0]], [line[0][1], line[1][1]])
 
 
 
@@ -287,7 +242,7 @@ if __name__ == '__main__':
     om.update_map(ls.engine.make_state(sensor_loc), readings)
     om.draw_map(plt.gca())
     plt.show()
-    # exit()
+
     all_lps = []
     for i in range(20):
         print(f"Running Iteration: {i}")
@@ -325,14 +280,3 @@ if __name__ == '__main__':
 
     om.draw_map(plt.gca())
     plt.show()
-
-
-
-    
-
-
-
-    # xi, yi = om.coord_to_idx(np.array([7.25, 5.45]))
-
-    # print(xi, yi)
-    # print(om.x_points[xi], om.y_points[yi])
