@@ -1,7 +1,21 @@
+import unittest
+
 import numpy as np
 
 from motion_planning.tools import NumpyState, AngularNumpyState
 from motion_planning.utils import numpystate_distance, euclidean_distance, angular_distance
+
+class TestUtils(unittest.TestCase):
+    def test_euclidean_distance(self):
+        start = np.array([32.42, 23.42])
+        end = np.array([74.35, 24.53])
+
+        distance = euclidean_distance(start, end)
+        self.assertTrue(isinstance(distance, float))
+        self.assertAlmostEqual(distance, 41.94468, places=4)
+        # assert (isinstance(distance, float))
+        # assert (np.isclose(distance, 41.94468))
+
 
 def test_euclidean_distance():
     start = np.array([32.42, 23.42])
@@ -44,5 +58,5 @@ def test_numpystate_distance():
     assert (np.isclose(distance, 5.49181))
 
 # test_euclidean_distance()
-test_angular_distance()
+# test_angular_distance()
 # test_numpystate_distance()
