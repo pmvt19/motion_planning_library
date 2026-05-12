@@ -13,17 +13,15 @@ class TestUtils(unittest.TestCase):
         distance = euclidean_distance(start, end)
         self.assertTrue(isinstance(distance, float))
         self.assertAlmostEqual(distance, 41.94468, places=4)
-        # assert (isinstance(distance, float))
-        # assert (np.isclose(distance, 41.94468))
 
+    def test_angular_distance(self):
+        start = np.array([np.pi/2, np.pi])
+        end = np.array([np.pi/4, np.pi/3])
 
-def test_euclidean_distance():
-    start = np.array([32.42, 23.42])
-    end = np.array([74.35, 24.53])
+        distance = angular_distance(start, end)
 
-    distance = euclidean_distance(start, end)
-    assert (isinstance(distance, float))
-    assert (np.isclose(distance, 41.94468))
+        self.assertTrue(isinstance(distance, np.ndarray))
+        self.assertTrue(np.all(np.isclose(distance, np.array([0.78539816, 2.0943951]))))
 
 def test_angular_distance():
     start = np.array([np.pi/2, np.pi])
