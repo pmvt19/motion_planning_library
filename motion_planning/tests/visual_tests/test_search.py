@@ -9,6 +9,14 @@ from motion_planning.search import RRT, BiDirectionalRRT, RRTStar, MedialAxisRRT
 from motion_planning.obstacle_sets import BiasedPassage
 
 
+class TestRRTSearchMethods(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_rrt(self):
+        pass
+
 ## --- RRT Tests --- ##
 def test_rrt(env: RobotSpace, start: NumpyState, target: NumpyState):
     rrt = RRT(env)
