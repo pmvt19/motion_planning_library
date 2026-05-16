@@ -12,10 +12,20 @@ from motion_planning.obstacle_sets import BiasedPassage
 class TestRRTSearchMethods(unittest.TestCase):
 
     def setUp(self):
-        pass
+        # Create the Environment
+        self.env = PointRobot()
+        self.env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
+        
+        # Manually Define the Task
+        self.start, self.target = self.env.make_state(np.array([5.0, 5.0])), self.env.make_state(np.array([15.0, 5.0]))
 
     def test_rrt(self):
-        pass
+        rrt = RRT(self.env)
+        path = rrt.search(self.start, self.target, max_steps=1000)
+
+        # Visualize Output
+        rrt.draw_tree(plt.gca(), path, show_task=True)
+        plt.show()
 
 ## --- RRT Tests --- ##
 def test_rrt(env: RobotSpace, start: NumpyState, target: NumpyState):
