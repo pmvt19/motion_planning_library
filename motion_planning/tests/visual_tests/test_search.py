@@ -27,6 +27,14 @@ class TestRRTSearchMethods(unittest.TestCase):
         rrt.draw_tree(plt.gca(), path, show_task=True)
         plt.show()
 
+    def test_bidirectional_rrt(self):
+        rrt = BiDirectionalRRT(self.env)
+        path = rrt.search(self.start, self.target, max_steps=1000)
+
+        # Visualize Output
+        rrt.draw_tree(plt.gca(), path, show_task=True)
+        plt.show()
+
 ## --- RRT Tests --- ##
 def test_rrt(env: RobotSpace, start: NumpyState, target: NumpyState):
     rrt = RRT(env)
