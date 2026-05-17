@@ -34,6 +34,14 @@ class TestRRTSearchMethods(unittest.TestCase):
         # Visualize Output
         rrt.draw_tree(plt.gca(), path, show_task=True)
         plt.show()
+    
+    def test_rrt_star(self):
+        rrt = RRTStar(self.env)
+        path = rrt.search(self.start, self.target, max_steps=1000)
+
+        # Visualize Output
+        rrt.draw_tree(plt.gca(), path, show_task=True)
+        plt.show()
 
 ## --- RRT Tests --- ##
 def test_rrt(env: RobotSpace, start: NumpyState, target: NumpyState):
