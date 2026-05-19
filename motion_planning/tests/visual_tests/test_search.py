@@ -16,13 +16,12 @@ from motion_planning.search import (
     RRTStar,
 )
 from motion_planning.space import ApproximationSpace, PointRobot, RobotSpace
-from motion_planning.tools import NumpyState
 
 
 class TestRRTSearchMethods(unittest.TestCase):
     def setUp(self):
         # Create the Environment
-        self.env = PointRobot()
+        self.env: RobotSpace = PointRobot()
         self.env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
 
         # Manually Define the Task
@@ -130,16 +129,12 @@ class TestPRMSearchMethods(unittest.TestCase):
         plt.show()
 
 
-## --- Database Tests --- ##
+class TestDatabaseSearchMethods(unittest.TestCase):
+    def test_lightning(self):
+        pass
 
+    def test_pdg(self):
+        pass
 
-def test_lightning(env: RobotSpace, start: NumpyState, target: NumpyState):
-    pass
-
-
-def test_pdg(env: RobotSpace, start: NumpyState, target: NumpyState):
-    pass
-
-
-def test_bidirectional_pdg(env: RobotSpace, start: NumpyState, target: NumpyState):
-    pass
+    def test_bidirectional_pdg(self):
+        pass
