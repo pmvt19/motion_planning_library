@@ -130,6 +130,10 @@ class TestPRMSearchMethods(unittest.TestCase):
 
 
 class TestDatabaseSearchMethods(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
     def test_lightning(self):
         pass
 
