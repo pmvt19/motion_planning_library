@@ -12,28 +12,28 @@
 
 ## Installation
 
-Python Version: `3.12.9`
+<!-- Python Version: `>=3.12.9`
 
-1. Clone the repository
+Install via pip
+```
+pip install pmpl-robot
+```
+
+Install via Source
+1. Clone the Repository
 ```
 git clone https://github.com/pmvt19/motion_planning_library.git
 ```
 
-2. Create a Conda Environment
+2. Change Directories into the `motion_planning_library` directory
 ```
-conda create -n <name> python=3.12.9
-```
-
-3. Change Directories into the cloned repository
-```
-cd motion_planning_library
+cd motion_planning_library/
 ```
 
-4. Install the package to the environment
-
+3. Install the Package
 ```
 pip install -e .
-```
+``` -->
 
 ## Environments
 
