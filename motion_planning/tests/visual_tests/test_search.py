@@ -34,29 +34,30 @@ class TestRRTSearchMethods(unittest.TestCase):
         self.start = self.env.make_state(np.array([5.0, 5.0]))
         self.target = self.env.make_state(np.array([15.0, 5.0]))
 
+    def visualize_search(self, rrt: RRT, path):
+        rrt.draw_tree(plt.gca(), path, show_task=True)
+        plt.show()
+
     def test_rrt(self):
         rrt = RRT(self.env)
         path = rrt.search(self.start, self.target, max_steps=1000)
 
         # Visualize Output
-        rrt.draw_tree(plt.gca(), path, show_task=True)
-        plt.show()
+        self.visualize_search(rrt, path)
 
     def test_bidirectional_rrt(self):
         rrt = BiDirectionalRRT(self.env)
         path = rrt.search(self.start, self.target, max_steps=1000)
 
         # Visualize Output
-        rrt.draw_tree(plt.gca(), path, show_task=True)
-        plt.show()
+        self.visualize_search(rrt, path)
 
     def test_rrt_star(self):
         rrt = RRTStar(self.env)
         path = rrt.search(self.start, self.target, max_steps=1000)
 
         # Visualize Output
-        rrt.draw_tree(plt.gca(), path, show_task=True)
-        plt.show()
+        self.visualize_search(rrt, path)
 
     def test_medial_axis_rrt(self):
         local_env = ApproximationSpace(self.env, do_overapproximation=True)
@@ -64,8 +65,7 @@ class TestRRTSearchMethods(unittest.TestCase):
         path = rrt.search(self.start, self.target, max_steps=1000)
 
         # Visualize Output
-        rrt.draw_tree(plt.gca(), path, show_task=True)
-        plt.show()
+        self.visualize_search(rrt, path)
 
 
 class TestPRMSearchMethods(unittest.TestCase):
