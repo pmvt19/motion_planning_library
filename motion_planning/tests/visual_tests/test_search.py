@@ -78,7 +78,7 @@ class TestPRMSearchMethods(unittest.TestCase):
         # Manually Define the Task
         self.start = self.env.make_state(np.array([5.0, 5.0]))
         self.target = self.env.make_state(np.array([15.0, 5.0]))
-    
+
     def visualize_search(self, prm: PRM, path):
         self.env.draw_environment(plt.gca())
         prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
@@ -127,7 +127,6 @@ class TestPRMSearchMethods(unittest.TestCase):
 
 
 class TestDatabaseSearchMethods(unittest.TestCase):
-
     def setUp(self):
         self.create_database()
 
@@ -144,8 +143,12 @@ class TestDatabaseSearchMethods(unittest.TestCase):
 
         if not os.path.exists(self.db_path):
             db = Database()
-            mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
-            populate_db(db, mp_sampler, num_envs=5, num_tasks_per_env=10, smooth_paths=False)
+            mp_sampler = MPSampler(
+                PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5}
+            )
+            populate_db(
+                db, mp_sampler, num_envs=5, num_tasks_per_env=10, smooth_paths=False
+            )
             db.save_to_path(self.db_path)
 
             # Ensure Created Database is Non-Empty
