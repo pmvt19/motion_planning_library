@@ -4,6 +4,9 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
+from motion_planning.database import Database
+from motion_planning.database.db_annotator import populate_db
+from motion_planning.experiments.utils.mp_sampler import MPSampler
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.search import (
     PRM,
@@ -11,18 +14,16 @@ from motion_planning.search import (
     BiDirectionalRRT,
     IncrementalPRM,
     LazyPRM,
+    Lightning,
     MedialAxisPRM,
     MedialAxisRRT,
     NonUniformPRM,
-    RRTStar,
-    Lightning,
+    OptimizedBiDirectionalPDG,
     OptimizedPDG,
-    OptimizedBiDirectionalPDG
+    RRTStar,
 )
 from motion_planning.space import ApproximationSpace, PointRobot, RobotSpace
-from motion_planning.database import Database
-from motion_planning.database.db_annotator import populate_db
-from motion_planning.experiments.utils.mp_sampler import MPSampler
+
 
 class TestRRTSearchMethods(unittest.TestCase):
     def setUp(self):
