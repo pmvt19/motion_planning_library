@@ -38,6 +38,8 @@ class PolygonalRobotCSpaceVisualizer(CSpaceVisualizer3D):
         self._generate_obstacle_points()
 
     def run_interactive_space(self, tick_delay=0.01):
+        # On the matplotlib side, you should be able to change the parameters 
+        # of the polygonal robot and recompute the obstacle points
         raise NotImplementedError
 
 
