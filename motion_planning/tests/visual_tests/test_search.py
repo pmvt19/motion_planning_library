@@ -1,138 +1,180 @@
-import numpy as np
+import os
+import unittest
+
 import matplotlib.pyplot as plt
+import numpy as np
 
-from motion_planning.tools import NumpyState
-from motion_planning.space import RobotSpace, PointRobot, ApproximationSpace
-from motion_planning.search import RRT, BiDirectionalRRT, RRTStar, MedialAxisRRT, PRM, LazyPRM, IncrementalPRM, NonUniformPRM, MedialAxisPRM
+from motion_planning.database import Database
+from motion_planning.database.db_annotator import populate_db
+from motion_planning.experiments.utils.mp_sampler import MPSampler
 from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.search import (
+    PRM,
+    RRT,
+    BiDirectionalRRT,
+    IncrementalPRM,
+    LazyPRM,
+    Lightning,
+    MedialAxisPRM,
+    MedialAxisRRT,
+    NonUniformPRM,
+    OptimizedBiDirectionalPDG,
+    OptimizedPDG,
+    RRTStar,
+)
+from motion_planning.space import ApproximationSpace, PointRobot, RobotSpace
 
 
-## --- RRT Tests --- ##
-def test_rrt(env: RobotSpace, start: NumpyState, target: NumpyState):
-    rrt = RRT(env)
-    path = rrt.search(start, target, max_steps=1000)
+class TestRRTSearchMethods(unittest.TestCase):
+    def setUp(self):
+        # Create the Environment
+        self.env: RobotSpace = PointRobot()
+        self.env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
 
-    # Visualize Output
-    rrt.draw_tree(plt.gca(), path, show_task=True)
-    plt.show()
+        # Manually Define the Task
+        self.start = self.env.make_state(np.array([5.0, 5.0]))
+        self.target = self.env.make_state(np.array([15.0, 5.0]))
 
-def test_bidirectional_rrt(env: RobotSpace, start: NumpyState, target: NumpyState):
-    rrt = BiDirectionalRRT(env)
-    path = rrt.search(start, target, max_steps=1000)
+    def visualize_search(self, rrt: RRT, path):
+        rrt.draw_tree(plt.gca(), path, show_task=True)
+        plt.show()
 
-    # Visualize Output
-    rrt.draw_tree(plt.gca(), path, show_task=True)
-    plt.show()
+    def test_rrt(self):
+        rrt = RRT(self.env)
+        path = rrt.search(self.start, self.target, max_steps=1000)
 
-def test_rrt_start(env: RobotSpace, start: NumpyState, target: NumpyState):
-    rrt = RRTStar(env)
-    path = rrt.search(start, target, max_steps=1000)
+        # Visualize Output
+        self.visualize_search(rrt, path)
 
-    # Visualize Output
-    rrt.draw_tree(plt.gca(), path, show_task=True)
-    plt.show()
+    def test_bidirectional_rrt(self):
+        rrt = BiDirectionalRRT(self.env)
+        path = rrt.search(self.start, self.target, max_steps=1000)
 
-def test_medial_axis_rrt(env: RobotSpace, start: NumpyState, target: NumpyState):
-    env = ApproximationSpace(env, do_overapproximation=True)
-    rrt = MedialAxisRRT(env)
-    path = rrt.search(start, target, max_steps=1000)
+        # Visualize Output
+        self.visualize_search(rrt, path)
 
-    # Visualize Output
-    rrt.draw_tree(plt.gca(), path, show_task=True)
-    plt.show()
+    def test_rrt_star(self):
+        rrt = RRTStar(self.env)
+        path = rrt.search(self.start, self.target, max_steps=1000)
 
-## --- PRM Tests --- ##
-def test_prm(env: RobotSpace, start: NumpyState, target: NumpyState):
-    prm = PRM(env=env, num_samples=5000, num_neighbors=10, validate_edges=True)
-    prm.create_graph()
+        # Visualize Output
+        self.visualize_search(rrt, path)
 
-    path = prm.search(start, target)
+    def test_medial_axis_rrt(self):
+        local_env = ApproximationSpace(self.env, do_overapproximation=True)
+        rrt = MedialAxisRRT(local_env)
+        path = rrt.search(self.start, self.target, max_steps=1000)
 
-    # Visualize Output
-    env.draw_environment(plt.gca())
-    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
-    plt.show()
+        # Visualize Output
+        self.visualize_search(rrt, path)
 
-def test_lazy_prm(env: RobotSpace, start: NumpyState, target: NumpyState):
-    prm = LazyPRM(env=env, num_samples=5000, num_neighbors=10)
-    prm.create_graph()
 
-    path = prm.search(start, target)
+class TestPRMSearchMethods(unittest.TestCase):
+    def setUp(self):
+        # Create the Environment
+        self.env = PointRobot()
+        self.env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
 
-    # Visualize Output
-    env.draw_environment(plt.gca())
-    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
-    plt.show()
+        # Manually Define the Task
+        self.start = self.env.make_state(np.array([5.0, 5.0]))
+        self.target = self.env.make_state(np.array([15.0, 5.0]))
 
-def test_incremental_prm(env: RobotSpace, start: NumpyState, target: NumpyState):
-    prm = IncrementalPRM(env=env, num_samples=1000, num_neighbors=5)
-    prm.create_graph()
+    def visualize_search(self, prm: PRM, path):
+        self.env.draw_environment(plt.gca())
+        prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
+        plt.show()
 
-    path = prm.search(start, target)
+    def test_prm(self):
+        prm = PRM(env=self.env, num_samples=5000, num_neighbors=10, validate_edges=True)
+        prm.create_graph()
 
-    # Visualize Output
-    env.draw_environment(plt.gca())
-    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
-    plt.show()
+        path = prm.search(self.start, self.target)
 
-def test_nonuniform_prm(env: RobotSpace, start: NumpyState, target: NumpyState):
-    prm = IncrementalPRM(env=env, num_samples=1000, num_neighbors=5)
-    prm.create_graph()
+        self.visualize_search(prm, path)
 
-    path = prm.search(start, target)
+    def test_lazy_prm(self):
+        prm = LazyPRM(env=self.env, num_samples=5000, num_neighbors=10)
+        prm.create_graph()
 
-    # Visualize Output
-    env.draw_environment(plt.gca())
-    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
-    plt.show()
+        path = prm.search(self.start, self.target)
 
-def test_medial_axis_prm(env: RobotSpace, start: NumpyState, target: NumpyState):
-    env = ApproximationSpace(env, do_overapproximation=True)
-    prm = MedialAxisPRM(env=env, num_samples=1000, num_neighbors=5)
-    prm.create_graph()
+        self.visualize_search(prm, path)
 
-    path = prm.search(start, target)
+    def test_incremental_prm(self):
+        prm = IncrementalPRM(env=self.env, num_samples=1000, num_neighbors=5)
+        prm.create_graph()
 
-    # Visualize Output
-    env.draw_environment(plt.gca())
-    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
-    plt.show()
+        path = prm.search(self.start, self.target)
 
-## --- Database Tests --- ##
+        self.visualize_search(prm, path)
 
-def test_lightning(env: RobotSpace, start: NumpyState, target: NumpyState):
-    pass
+    def test_nonuniform_prm(self):
+        prm = NonUniformPRM(env=self.env, num_samples=1000, num_neighbors=5)
+        prm.create_graph()
 
-def test_pdg(env: RobotSpace, start: NumpyState, target: NumpyState):
-    pass
+        path = prm.search(self.start, self.target)
 
-def test_bidirectional_pdg(env: RobotSpace, start: NumpyState, target: NumpyState):
-    pass
+        self.visualize_search(prm, path)
 
-if __name__ == '__main__':
-    # Create the Environment
-    env = PointRobot()
-    env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
-    
-    # Manually Define the Task
-    start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([15.0, 5.0]))
+    def test_medial_axis_prm(self):
+        local_env = ApproximationSpace(self.env, do_overapproximation=True)
+        prm = MedialAxisPRM(env=local_env, num_samples=1000, num_neighbors=5)
+        prm.create_graph()
 
-    ## Run Visual Search Tests
+        path = prm.search(self.start, self.target)
 
-    # RRTs
-    test_rrt(env, start, target)
-    test_bidirectional_rrt(env, start, target)
-    test_rrt_start(env, start, target)
-    test_medial_axis_rrt(env, start, target)
+        self.visualize_search(prm, path)
 
-    # PRMs
-    test_prm(env, start, target)
-    test_lazy_prm(env, start, target)
-    test_incremental_prm(env, start, target)
-    test_nonuniform_prm(env, start, target)
-    test_medial_axis_prm(env, start, target)
 
-    # Database Methods
-    test_lightning(env, start, target)
-    test_pdg(env, start, target)
-    test_bidirectional_pdg(env, start, target)
+class TestDatabaseSearchMethods(unittest.TestCase):
+    def setUp(self):
+        self.create_database()
+
+        # Create the Environment
+        self.env = PointRobot()
+        self.env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
+
+        # Manually Define the Task
+        self.start = self.env.make_state(np.array([5.0, 5.0]))
+        self.target = self.env.make_state(np.array([15.0, 5.0]))
+
+    def create_database(self):
+        self.db_path = "saves/tests/test_database_search_method_db.pickle"
+
+        if not os.path.exists(self.db_path):
+            db = Database()
+            mp_sampler = MPSampler(
+                PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5}
+            )
+            populate_db(
+                db, mp_sampler, num_envs=5, num_tasks_per_env=10, smooth_paths=False
+            )
+            db.save_to_path(self.db_path)
+
+            # Ensure Created Database is Non-Empty
+            self.assertGreater(len(db), 0)
+
+    def test_lightning(self):
+        lightning = Lightning(env=self.env, db_path=self.db_path)
+        path = lightning.search(self.start, self.target)
+
+        self.env.draw_environment(plt.gca())
+        lightning.draw(plt.gca(), path=path, show_task=True)
+        plt.show()
+
+    def test_pdg(self):
+        pdg = OptimizedPDG(env=self.env, db_path=self.db_path)
+        pdg.compute_retained_paths(self.target)
+        path = pdg.search(self.start, self.target)
+
+        self.env.draw_environment(plt.gca())
+        pdg.draw_tree(plt.gca(), path=path)
+        plt.show()
+
+    def test_bidirectional_pdg(self):
+        pdg = OptimizedBiDirectionalPDG(env=self.env, db_path=self.db_path)
+        path = pdg.search(self.start, self.target)
+
+        self.env.draw_environment(plt.gca())
+        pdg.draw_tree(plt.gca(), path=path)
+        plt.show()

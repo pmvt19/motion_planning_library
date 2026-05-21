@@ -1,16 +1,17 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import copy
 
-from motion_planning.space import RobotSpace, DiscRobot
-from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
-from motion_planning.sensors import Lidar, OptimizedLidar, SuperOptimizedLidar
+import matplotlib.pyplot as plt
+import numpy as np
+
 from motion_planning.mapping import OccupancyMap
+from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.sensors import SuperOptimizedLidar
+from motion_planning.space import DiscRobot, RobotSpace
 
 
 class SLAM():
-    def __init__(self, env : RobotSpace):
-        self.env : RobotSpace = env
+    def __init__(self, env: RobotSpace):
+        self.env: RobotSpace = env
         
 
         os = BiasedPassage(num_walls=2)

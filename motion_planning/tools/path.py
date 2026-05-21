@@ -1,7 +1,7 @@
 class Path():
     def __init__(self, path=[]):
         assert(isinstance(path, list)), "Path must be of type list"
-        self.path : list = path 
+        self.path: list = path 
     
     def __len__(self):
         return len(self.path)
@@ -12,5 +12,5 @@ class Path():
 class KinodynamicPath(Path):
     def __init__(self, path=[], controls=[], dt=None):
         super().__init__(path=path)
-        self.controls = controls
-        self.dt = dt
+        self.controls: list = controls
+        self.dt: float = dt

@@ -91,8 +91,10 @@ class MedialAxisPRM(MedialAxis, PRM):
         PRM.__init__(self, env=env, num_samples=num_samples, num_neighbors=num_neighbors, edge_dist_radius=edge_dist_radius, validate_edges=True)
 
     def create_graph(self, starting_samples=[]):
-        strting_samples = np.concatenate((starting_samples, self.configs))
-        super().create_graph(starting_samples=strting_samples)
+        num_samples = len(starting_samples)
+        starting_samples = np.array(starting_samples).reshape(num_samples, self.configs.shape[1])
+        starting_samples = np.concatenate((starting_samples, self.configs))
+        super().create_graph(starting_samples=starting_samples)
 
 if __name__ == '__main__':
     seed = np.random.randint(0, 100)
