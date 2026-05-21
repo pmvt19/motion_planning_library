@@ -3,6 +3,7 @@ import pygame
 import time
 import matplotlib
 import matplotlib.pyplot as plt
+import argparse
 
 from matplotlib.widgets import Slider
 
@@ -263,11 +264,17 @@ class DiscRobotCSpaceVisualizer(CSpaceVisualizer):
     
 if __name__ == '__main__':
 
-    # task_type = 'search' 
-    task_type = 'interactive' # Will be made as an argument
+    parser = argparse.ArgumentParser(prog='Configuration Space Visualizer',
+                                     description='Allows you to visualize the sequence of states in Configuration Space of a Kinematic Robot Path. The path can either be generated via a traditional search algorithm or user generated via a controller',
+                                     )
+    
+    parser.add_argument('--task_type', default="search", choices=["interactive", "search"])
+    parser.add_argument('--robot_type', default="FixedArm", choices=["FixedArm", "DiscRobot"])
 
-    robot_type = 'FixedArm'
-    # robot_type = 'DiscRobot'
+    args = parser.parse_args()
+
+    task_type = args.task_type
+    robot_type = args.robot_type
 
     np.random.seed(0)
 
