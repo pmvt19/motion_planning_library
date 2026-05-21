@@ -33,9 +33,11 @@ class CSpaceVisualizer:
     def run_visualized_search(self, start=None, target=None):
         if start is None or target is None:
             print(
-                "Either Start or Target is not specified. Randomly Sampling Start and Target Configurations"
+                "Either Start or Target is not specified."
+                "Randomly Sampling Start and Target Configurations"
             )
-            start, target = self.env.sample_valid_point(), self.env.sample_valid_point()
+            start = self.env.sample_valid_point()
+            target = self.env.sample_valid_point()
 
         rrt = RRT(self.env)
         path = rrt.search(start, target, max_steps=5000)
