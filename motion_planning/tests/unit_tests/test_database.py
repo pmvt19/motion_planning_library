@@ -34,7 +34,7 @@ class TestDatabase(unittest.TestCase):
 
         for _ in range(num_paths):
             self.db.add_path(Path([]))
-        
+
         self.assertEqual(num_paths, len(self.db))
 
     def test_database_indexing(self):
