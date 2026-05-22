@@ -1,12 +1,11 @@
 import numpy as np
-
 from shapely import LineString
-from sklearn.metrics import pairwise_distances
 
+from motion_planning.controller.xbox_controller import XboxController
 from motion_planning.space import HolonomicRobot
 from motion_planning.tools import AngularNumpyState
-from motion_planning.utils import numpystate_distance, issue_warning
-from motion_planning.controller.xbox_controller import XboxController
+from motion_planning.utils import numpystate_distance
+
 
 class FixedArm(HolonomicRobot):
     def __init__(self, egde_validity_delta: float = 0.5, arm_link_lengths: np.ndarray = np.array([2, 2])):
