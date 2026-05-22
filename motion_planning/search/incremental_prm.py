@@ -3,16 +3,33 @@ import numpy as np
 from motion_planning.search import PRM
 from motion_planning.tools import Graph, NumpyState, Path
 
+
 class IncrementalPRM(PRM):
-    def __init__(self, env, num_samples=100, num_neighbors=None, edge_dist_radius=None, cache_edge_validities=True):
-        super().__init__(env=env, num_samples=num_samples, num_neighbors=num_neighbors, edge_dist_radius=edge_dist_radius)
+    def __init__(
+        self,
+        env,
+        num_samples=100,
+        num_neighbors=None,
+        edge_dist_radius=None,
+        cache_edge_validities=True,
+    ):
+        super().__init__(
+            env=env,
+            num_samples=num_samples,
+            num_neighbors=num_neighbors,
+            edge_dist_radius=edge_dist_radius,
+        )
         self.cache_graph_edge_validities = cache_edge_validities
 
     def extend_graph(self):
         old_vertices = self.graph.vertices
         new_vertices = self.batch_generate_sample_points()
         vertices = np.vstack((old_vertices, new_vertices))
-        self.graph = Graph(vertices=vertices, num_neighbors=self.num_neighbors, edge_dist_radius=self.edge_dist_radius)
+        self.graph = Graph(
+            vertices=vertices,
+            num_neighbors=self.num_neighbors,
+            edge_dist_radius=self.edge_dist_radius,
+        )
 
     def _dfs_iterative(self, start, target):
         start_idx = self.graph.vertex_to_idx[tuple(start.value)]
@@ -59,7 +76,7 @@ class IncrementalPRM(PRM):
         return self._bfs_iterative(start, target)
 
     def search(self, start: NumpyState, target: NumpyState):
-        self.start = start 
+        self.start = start
         self.target = target
 
         # Attach Start and Target to the graph
@@ -85,13 +102,13 @@ class IncrementalPRM(PRM):
             path = Path([self.env.make_state(p) for p in path])
         # Return final Path
         return path
-    
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    from motion_planning.space import PolygonalRobot
     from motion_planning.obstacle_sets import RandomSamplePassage
+    from motion_planning.space import PolygonalRobot
     from motion_planning.utils import set_numpy_seed
 
     set_numpy_seed()
@@ -102,7 +119,10 @@ if __name__ == '__main__':
     prm = IncrementalPRM(env, num_samples=1000, num_neighbors=10)
     prm.create_graph()
 
-    start, target = env.make_state(np.array([5.0, 5.0, 0.0])), env.make_state(np.array([35.0, 5.0, 0.0]))
+    start, target = (
+        env.make_state(np.array([5.0, 5.0, 0.0])),
+        env.make_state(np.array([35.0, 5.0, 0.0])),
+    )
 
     path = prm.search(start, target)
 
