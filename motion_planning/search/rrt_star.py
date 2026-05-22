@@ -1,36 +1,43 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import time
 
+import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.neighbors import KDTree
 
 from motion_planning.search import RRT
 from motion_planning.tools import Path
+
 
 class RRTStar(RRT):
     def __init__(self, env, delta=0.5, rewire_radius=1, max_rewire_neighbors=20):
         super().__init__(env=env, delta=delta)
         self.rewire_radius = rewire_radius
         self.max_rewire_neighbors = max_rewire_neighbors
-    
+
     def init_search(self, start, target):
         self.start = start
         self.target = target
         self.tree[self.start] = []
         self.child_to_parent[self.start] = (None, 0)
-    
+
     def expand_node(self, node, sampled_point):
-        if self.target not in self.tree and self.env.dist(self.target, node) < self.delta:
+        if (
+            self.target not in self.tree
+            and self.env.dist(self.target, node) < self.delta
+        ):
             new_node = self.target
         else:
             new_node = self.env.shoot_ray(node, sampled_point, self.delta)
-        
+
         if new_node != node:
             self.tree[node].append(new_node)
             self.tree[new_node]
-            self.child_to_parent[new_node] = (node, self.child_to_parent[node][1] + self.env.dist(node, new_node))
+            self.child_to_parent[new_node] = (
+                node,
+                self.child_to_parent[node][1] + self.env.dist(node, new_node),
+            )
         return new_node
-    
+
     def dfs_update(self, parent, cost):
         for child in self.tree[parent]:
             child_cost = cost + self.env.dist(parent, child)
@@ -50,7 +57,6 @@ class RRTStar(RRT):
         # Update Descendant Cost
         self.dfs_update(child, child_cost)
 
-
     def rewire(self, q_new):
         k = min(int(len(self.tree) * 1), self.max_rewire_neighbors)
 
@@ -60,7 +66,7 @@ class RRTStar(RRT):
         # print(dists, ind)
         dists = dists[0][1:]
         ind = ind[0][1:]
-        
+
         for i, idx in enumerate(ind):
             if dists[i] < self.rewire_radius:
                 q = self.env.make_state(nodes[idx])
@@ -95,16 +101,23 @@ class RRTStar(RRT):
             path.append(node)
             node = self.child_to_parent[node][0]
         return Path(path=path[::-1])
-    
 
-    def search(self, start, target, max_steps=10000, goal_bias=0.1, do_rewire=True, animate_search_tree=False):
+    def search(
+        self,
+        start,
+        target,
+        max_steps=10000,
+        goal_bias=0.1,
+        do_rewire=True,
+        animate_search_tree=False,
+    ):
         self.init_search(start, target)
 
         num_steps = 0
         start_time = time.time()
-        while (num_steps < max_steps):
-            print(f"Searching Step: {num_steps}", end='\r')
-            cur_node = self.step_search(rewire=do_rewire, goal_bias=goal_bias)
+        while num_steps < max_steps:
+            print(f"Searching Step: {num_steps}", end="\r")
+            self.step_search(rewire=do_rewire, goal_bias=goal_bias)
             num_steps += 1
             if animate_search_tree:
                 self.draw_tree(plt.gca())
@@ -112,13 +125,16 @@ class RRTStar(RRT):
                 plt.clf()
 
         search_time = time.time() - start_time
-        print(f"Search Time: {search_time}, Collision Checks: {self.env.num_collision_checks}")
+        print(
+            f"Search Time: {search_time}, Collision Checks: {self.env.num_collision_checks}"
+        )
         path = self.backtrack(end=target)
         return path
 
-if __name__ == '__main__':
-    from motion_planning.space import PointRobot
+
+if __name__ == "__main__":
     from motion_planning.obstacle_sets import BiasedPassage
+    from motion_planning.space import PointRobot
     from motion_planning.utils import set_numpy_seed
 
     set_numpy_seed()
@@ -127,9 +143,9 @@ if __name__ == '__main__':
     env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
     rrt = RRTStar(env)
 
-    start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([15.0, 5.0]))
+    start = env.make_state(np.array([5.0, 5.0]))
+    target = env.make_state(np.array([15.0, 5.0]))
     path = rrt.search(start, target, max_steps=1000)
 
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
-    
