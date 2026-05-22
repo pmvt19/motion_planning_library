@@ -10,30 +10,28 @@ class TestPath(unittest.TestCase):
         # Path Cannot Be Instantiated with an Integer
         with self.assertRaises(AssertionError):
             Path(path=4)
-        
+
         # Path Cannot Be Instantiated with a float
         with self.assertRaises(AssertionError):
             Path(path=4.0)
-        
+
         # Path Cannot Be Instantiated with a NumpyState
         with self.assertRaises(AssertionError):
             Path(path=NumpyState(np.array([0.0, 0.0])))
-        
-        path = [
-            NumpyState(np.array([0.0, 0.0])), 
-            NumpyState(np.array([1.0, 1.0]))
-        ]
+
+        path = [NumpyState(np.array([0.0, 0.0])), NumpyState(np.array([1.0, 1.0]))]
 
         Path(path=path)
 
     def test_path_can_be_empty(self):
         Path(path=[])
-    
+
+
 class TestKinodynamicPath(unittest.TestCase):
     def test_kinodynamic_path_accepts_valid_path_controls_and_dt(self):
         path = [
             NumpyState(np.array([0.0, 0.0, 0.0, 0.0])),
-            NumpyState(np.array([1.0, 1.0, 0.5, -0.2]))
+            NumpyState(np.array([1.0, 1.0, 0.5, -0.2])),
         ]
         controls = [np.array([0.1, 0.0]), np.array([0.0, -0.1])]
         dt = 0.05
