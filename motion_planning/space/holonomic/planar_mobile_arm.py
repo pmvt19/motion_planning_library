@@ -1,6 +1,6 @@
 import time
-import numpy as np
 
+import numpy as np
 from shapely import LineString, affinity
 from sklearn.metrics import pairwise_distances
 
@@ -10,7 +10,14 @@ from motion_planning.utils import create_rectangle_geometry, issue_warning
 
 
 class PlanarMobileArm(HolonomicRobot):
-    def __init__(self, edge_validity_delta: float = 0.5, base_width: float = 2, base_length: float = 0.1, num_links: int = 3, arm_lengths: list[int] | None = None):
+    def __init__(
+            self, 
+            edge_validity_delta: float = 0.5, 
+            base_width: float = 2,
+            base_length: float = 0.1,
+            num_links: int = 3,
+            arm_lengths: list[int] | None = None
+    ):
         super().__init__()
         self.base_width = base_width
         self.base_length = base_length
@@ -334,11 +341,11 @@ class PlanarMobileArm(HolonomicRobot):
         ## Handling End Effector Lines -- END
 
         return {
-            'rectangles' : rectangles,
-            'segments' : segments, 
-            'points' : np.empty((0, 2)),
+            'rectangles': rectangles,
+            'segments': segments, 
+            'points': np.empty((0, 2)),
             'points_radius': 0.0,
-            'segments_radii' : 0.1, 
+            'segments_radii': 0.1, 
         }
 
 if __name__ == '__main__':
