@@ -20,7 +20,7 @@ class RRTStar(RRT):
         self.child_to_parent[self.start] = (None, 0)
     
     def expand_node(self, node, sampled_point):
-        if self.target not in self.tree and self.env.dist(self.target.value, node.value) < self.delta:
+        if self.target not in self.tree and self.env.dist(self.target, node) < self.delta:
             new_node = self.target
         else:
             new_node = self.env.shoot_ray(node, sampled_point, self.delta)
@@ -28,12 +28,12 @@ class RRTStar(RRT):
         if new_node != node:
             self.tree[node].append(new_node)
             self.tree[new_node]
-            self.child_to_parent[new_node] = (node, self.child_to_parent[node][1] + self.env.dist(node.value, new_node.value))
+            self.child_to_parent[new_node] = (node, self.child_to_parent[node][1] + self.env.dist(node, new_node))
         return new_node
     
     def dfs_update(self, parent, cost):
         for child in self.tree[parent]:
-            child_cost = cost + self.env.dist(parent.value, child.value)
+            child_cost = cost + self.env.dist(parent, child)
             self.child_to_parent[child] = (parent, child_cost)
             self.dfs_update(child, child_cost)
 
@@ -44,7 +44,7 @@ class RRTStar(RRT):
 
         # Update Parent of Child
         self.tree[parent].append(child)
-        child_cost = self.child_to_parent[parent][1] + self.env.dist(parent.value, child.value)
+        child_cost = self.child_to_parent[parent][1] + self.env.dist(parent, child)
         self.child_to_parent[child] = (parent, child_cost)
 
         # Update Descendant Cost
@@ -67,7 +67,7 @@ class RRTStar(RRT):
                 cost_q = self.child_to_parent[q][1]
                 cost_qnew = self.child_to_parent[q_new][1]
 
-                distance = self.env.dist(q.value, q_new.value)
+                distance = self.env.dist(q, q_new)
                 qq_new_edge_validity = self.env.is_valid_edge(q, q_new)
 
                 if (cost_qnew + distance < cost_q) and qq_new_edge_validity:
@@ -119,13 +119,16 @@ class RRTStar(RRT):
 if __name__ == '__main__':
     from motion_planning.space import PointRobot
     from motion_planning.obstacle_sets import BiasedPassage
+    from motion_planning.utils import set_numpy_seed
+
+    set_numpy_seed()
 
     env = PointRobot()
     env.set_obstacles(BiasedPassage(num_walls=1, bias=0.5))
     rrt = RRTStar(env)
 
     start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([15.0, 5.0]))
-    path = rrt.search(start, target)
+    path = rrt.search(start, target, max_steps=1000)
 
     rrt.draw_tree(plt.gca(), path=path)
     plt.show()
