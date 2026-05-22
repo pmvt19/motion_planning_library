@@ -5,6 +5,7 @@ from shapely import affinity
 from motion_planning.space import HolonomicRobot
 from motion_planning.tools import AngularNumpyState
 from motion_planning.utils import create_rectangle_geometry, numpystate_distance
+from motion_planning.controller.xbox_controller import XboxController
 
 class PolygonalRobot(HolonomicRobot):
     def __init__(self, edge_validity_delta: float = 0.5, robot_width: float = 0.5, robot_length: float = 3):
@@ -62,6 +63,14 @@ class PolygonalRobot(HolonomicRobot):
     def draw_state(self, ax, state):
         robot = self.generate_robot_representation(state)
         ax.plot(*robot.exterior.xy, color='red')
+    
+    def input_to_x_dot(self, inputs) -> np.ndarray:
+        dt = 0.1
+        x_dot = inputs[XboxController.XboxControls.LTHUMBX] * dt
+        y_dot = -inputs[XboxController.XboxControls.LTHUMBY] * dt
+        theta_dot = inputs[XboxController.XboxControls.RTHUMBX] * dt
+        return np.array([x_dot, y_dot, theta_dot])
+
 
     ### Batch Methods ###
     
