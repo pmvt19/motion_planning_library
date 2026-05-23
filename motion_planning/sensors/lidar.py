@@ -40,16 +40,7 @@ class Lidar():
             
             ex, ey = sx + dx, sy + dy
 
-
-
-            # self.engine.shoot_ray()
-            # points = self.engine.shoot_ray(self.engine.make_state(sensor_position), self.engine.make_state(np.array([ex,ey])), self.max_dist)
             points = interpolate_edge(self.engine.make_state(sensor_position), self.engine.make_state(np.array([ex,ey])), self.resolution)
-
-            # self.engine.draw_environment(plt.gca())
-            # plt.scatter(x=[5.0], y=[5.0], color='green', marker='*')
-            # plt.scatter(points[:, 0], points[:, 1], color='blue')
-            # plt.show()
             
 
             obstacle_point = None
@@ -57,10 +48,12 @@ class Lidar():
                 if not self.engine.is_valid(state):
                     obstacle_point = self.engine.make_state(state)
                     break
-            # print(type(sensor_position), )
+
             last_point = points[-1]
+
             # angle_noise = np.random.normal(loc=0, scale=self.noise[0])
             # dist_noise = np.random.normal(loc=0, scale=self.noise[1])
+
             angle_noise = 0
             dist_noise = 0
             if obstacle_point:
@@ -104,10 +97,6 @@ class OptimizedLidar():
         pts, steps = batch_interpolate_edge(sensor_position_repeated, farthest_points, self.resolution, None)
         pts_reshape = pts.reshape(-1, d)
         pt_validities = self.engine.batch_is_valid(pts_reshape).reshape(B, -1)
-        # pts = pts.reshape(B, -1)
-        # Loop and find the first instance of invalid:
-        # edge_validities = np.array([np.all(pt_validities[i, :steps[i]]) for i in range(len(steps))])
-        # [pt_validities[i, :steps[i]] for i in range(len(steps))]
 
         for i in range(len(steps)):
             idx_list = np.where(pt_validities[i, :steps[i]] == False)[0]
@@ -148,75 +137,6 @@ class SuperOptimizedLidar():
                 print("Only Polygon Obstacles are Supported")
                 raise NotImplementedError
         self.lines = np.array(self.lines)
-
-    def read_sensor_semioptimized(self, sensor_position):
-        # TODO: Should be doable with fully parallelized numpy operations
-
-        sensor_position = self.engine.get_state_value(sensor_position)
-
-        readings = [] # Format: [(angle, point, dist)]
-        angles = np.linspace(self.angle_range[0], self.angle_range[1], self.num_angles)
-
-        for angle in angles:
-            # print(angle)
-
-            dx = np.cos(angle) * self.max_dist
-            dy = np.sin(angle) * self.max_dist
-
-            sx, sy = sensor_position
-            
-            ex, ey = sx + dx, sy + dy
-
-            max_dist_point = np.array([ex,ey])
-            farthest_max_dist_point = np.array([ex,ey])
-            min_dist = self.max_dist
-
-            for line in self.lines:
-                x1, y1, x2, y2 = line
-
-                x3, y3 = sensor_position
-                x4, y4 = max_dist_point
-
-                a = (x4 - x3) * (y3 - y1) - (y4 - y3) * (x3 - x1)
-                b = (x4 - x3) * (y2 - y1) - (y4 - y3) * (x2 - x1)
-                c = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
-
-                alpha = a / b
-                beta = c / b
-
-                if np.isclose(b, 0): # Two Line Segments are Parallel
-                    pass
-                elif np.isclose(a, 0) and np.isclose(b, 0): # Lines are Colinear (Need to deal with edge case though)
-                    print("Found Super Rare Edge Case: Not Implemented")
-                    raise NotImplementedError
-                elif 0 < alpha and alpha < 1 and 0 < beta and beta < 1:
-                    # do something
-                    x0 = x1 + alpha * (x2 - x1)
-                    y0 = y1 + alpha * (y2 - y1)
-                    my_dist = self.engine.dist(self.engine.make_state(np.array([x0, y0])), self.engine.make_state(sensor_position))
-                    if my_dist < min_dist:
-                        max_dist_point = np.array([x0, y0])
-                        min_dist = my_dist
-                else:
-                    pass
-
-            if min_dist < self.max_dist:
-                readings.append((angle, self.engine.make_state(max_dist_point), min_dist, self.engine.make_state(farthest_max_dist_point)))
-            else:
-                readings.append((angle, None, np.inf, self.engine.make_state(farthest_max_dist_point)))
-
-        return readings
-    
-    # Used in Testing
-    def get_farthest_points(self, sensor_position):
-        angles = np.linspace(self.angle_range[0], self.angle_range[1], self.num_angles)
-
-        dx_cos = np.cos(angles).reshape(-1, 1) * self.max_dist
-        dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
-
-        farthest_points = sensor_position.reshape(-1, 2) + np.hstack((dx_cos, dy_sin)) 
-        return farthest_points
-
 
     def read_sensor(self, sensor_position):
         sensor_position = self.engine.get_state_value(sensor_position)
@@ -300,10 +220,6 @@ class SuperOptimizedLidar():
                 readings.append((angles[i], None, np.inf, self.engine.make_state(fp)))
 
         return readings        
-
-
-
-    
 
 if __name__ == '__main__':
     # np.random.seed(0)
