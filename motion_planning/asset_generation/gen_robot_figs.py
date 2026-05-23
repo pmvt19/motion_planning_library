@@ -1,11 +1,17 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from motion_planning.space import PointRobot, DiscRobot, PolygonalRobot, PlanarMobileArm
-from motion_planning.space import ApproximationSpace
 from motion_planning.obstacle_sets import BiasedPassage, RandomSamplePassage
 from motion_planning.search import PRM
-from motion_planning.utils import set_numpy_seed, smooth_path, interpolate_path
+from motion_planning.space import (
+    ApproximationSpace,
+    DiscRobot,
+    PlanarMobileArm,
+    PointRobot,
+    PolygonalRobot,
+)
+from motion_planning.utils import interpolate_path, set_numpy_seed, smooth_path
+
 
 def save_animated_path_frames(save_dir, env, path):
     for i, state in enumerate(path):
@@ -13,6 +19,7 @@ def save_animated_path_frames(save_dir, env, path):
         env.draw_environment(plt.gca())
         env.draw_state(plt.gca(), state)
         plt.savefig(f"{save_dir}/step_{i}.png")
+
 
 def generate_point_robot_figs(save_figs=False):
     set_numpy_seed()
@@ -22,15 +29,23 @@ def generate_point_robot_figs(save_figs=False):
     env.set_obstacles(os)
     env = ApproximationSpace(env, do_overapproximation=True)
 
-    start, target = env.make_state(np.array([2.5, 5.0])), env.make_state(np.array([17.5, 5.0]))
+    start, target = (
+        env.make_state(np.array([2.5, 5.0])),
+        env.make_state(np.array([17.5, 5.0])),
+    )
     prm = PRM(env, num_samples=1000, num_neighbors=10, validate_edges=True)
     prm.create_graph()
 
     path = prm.search(start, target)
-    smoothed_and_interpolated_path = interpolate_path(smooth_path(env, path), env, delta=0.1)
+    smoothed_and_interpolated_path = interpolate_path(
+        smooth_path(env, path), env, delta=0.1
+    )
     print(f"Final Path Length: {len(smoothed_and_interpolated_path)}")
     if save_figs:
-        save_animated_path_frames('saves/robots/point_robot/', env.space, smoothed_and_interpolated_path)
+        save_animated_path_frames(
+            "saves/robots/point_robot/", env.space, smoothed_and_interpolated_path
+        )
+
 
 def generate_disc_robot_figs(save_figs=False):
     set_numpy_seed(2243)
@@ -40,18 +55,26 @@ def generate_disc_robot_figs(save_figs=False):
     env.set_obstacles(os)
     env = ApproximationSpace(env, do_overapproximation=True)
 
-    start, target = env.make_state(np.array([2.5, 5.0])), env.make_state(np.array([17.5, 5.0]))
+    start, target = (
+        env.make_state(np.array([2.5, 5.0])),
+        env.make_state(np.array([17.5, 5.0])),
+    )
     prm = PRM(env, num_samples=40000, num_neighbors=10, validate_edges=True)
     prm.create_graph()
 
     path = prm.search(start, target)
-    smoothed_and_interpolated_path = interpolate_path(smooth_path(env, path), env, delta=0.1)
+    smoothed_and_interpolated_path = interpolate_path(
+        smooth_path(env, path), env, delta=0.1
+    )
     print(f"Final Path Length: {len(smoothed_and_interpolated_path)}")
 
     if save_figs:
-        save_animated_path_frames('saves/robots/disc_robot/', env.space, smoothed_and_interpolated_path)
+        save_animated_path_frames(
+            "saves/robots/disc_robot/", env.space, smoothed_and_interpolated_path
+        )
     else:
         env.space.animate_path(smoothed_and_interpolated_path)
+
 
 def generate_polygonal_robot_figs():
     set_numpy_seed(4909)
@@ -61,14 +84,22 @@ def generate_polygonal_robot_figs():
     env.set_obstacles(os)
     env = ApproximationSpace(env, do_overapproximation=True)
 
-    start, target = env.make_state(np.array([2.5, 5.0, 0.0])), env.make_state(np.array([27.5, 5.0, 0.0]))
+    start, target = (
+        env.make_state(np.array([2.5, 5.0, 0.0])),
+        env.make_state(np.array([27.5, 5.0, 0.0])),
+    )
     prm = PRM(env, num_samples=10000, num_neighbors=10, validate_edges=True)
     prm.create_graph()
 
     path = prm.search(start, target)
-    smoothed_and_interpolated_path = interpolate_path(smooth_path(env, path), env, delta=0.1)
+    smoothed_and_interpolated_path = interpolate_path(
+        smooth_path(env, path), env, delta=0.1
+    )
     print(f"Final Path Length: {len(smoothed_and_interpolated_path)}")
-    save_animated_path_frames('saves/robots/polygonal_robot/', env.space, smoothed_and_interpolated_path)
+    save_animated_path_frames(
+        "saves/robots/polygonal_robot/", env.space, smoothed_and_interpolated_path
+    )
+
 
 def generate_planer_mobile_arm_figs(save_figs=False):
     set_numpy_seed(980)
@@ -81,29 +112,35 @@ def generate_planer_mobile_arm_figs(save_figs=False):
     start = env.sample_valid_point()
     target = env.sample_valid_point()
 
-    start = env.make_state(np.array([2.5, 5.0, np.pi/2, np.pi+(np.pi/4), np.pi+(np.pi/4)]))
-    target = env.make_state(np.array([17.5, 5.0, np.pi/2, np.pi-(np.pi/4), np.pi-(np.pi/4)]))
+    start = env.make_state(
+        np.array([2.5, 5.0, np.pi / 2, np.pi + (np.pi / 4), np.pi + (np.pi / 4)])
+    )
+    target = env.make_state(
+        np.array([17.5, 5.0, np.pi / 2, np.pi - (np.pi / 4), np.pi - (np.pi / 4)])
+    )
 
     prm = PRM(env, num_samples=4000, num_neighbors=10, validate_edges=True)
     prm.create_graph()
 
     path = prm.search(start, target)
-    smoothed_and_interpolated_path = interpolate_path(smooth_path(env, path), env, delta=0.1)
+    smoothed_and_interpolated_path = interpolate_path(
+        smooth_path(env, path), env, delta=0.1
+    )
     print(f"Final Path Length: {len(smoothed_and_interpolated_path)}")
 
     if save_figs:
-        save_animated_path_frames('saves/robots/planar_mobile_arm_robot/', env.space, smoothed_and_interpolated_path)
+        save_animated_path_frames(
+            "saves/robots/planar_mobile_arm_robot/",
+            env.space,
+            smoothed_and_interpolated_path,
+        )
     else:
         env.space.animate_path(smoothed_and_interpolated_path)
         # env.animate_path(smoothed_and_interpolated_path)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # generate_polygonal_robot_figs()
     # generate_disc_robot_figs(save_figs=True)
     # generate_planer_mobile_arm_figs(save_figs=True)
     generate_point_robot_figs(save_figs=True)
-    
-
-
-    
-    
