@@ -61,6 +61,7 @@ class Lidar():
             else:
                 readings.append((angle+angle_noise, obstacle_point, np.inf, self.engine.make_state(last_point)))
 
+        # TODO: Change the return result to only angle, dist
 
         return readings
         
