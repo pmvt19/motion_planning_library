@@ -171,7 +171,8 @@ class DubinsCar(NonHolonomicRobot):
     def state_derivative(self, state, control):
         x, y, v, phi, theta = self.get_state_value(state)
         a, psi = self.get_state_value(control)
-        # theta += np.pi/2 # Hack to treat the upward direction as the 0 radians orientation (Should Fix)
+        # theta += np.pi/2 # Hack to treat the upward direction
+        # as the 0 radians orientation (Should Fix)
         x_dot = np.array(
             [
                 v * np.cos(theta) * self.dt,
