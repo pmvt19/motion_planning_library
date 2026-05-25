@@ -99,8 +99,9 @@ class FixedArm(HolonomicRobot):
     def batch_forward_kinematics(self, states) -> np.ndarray:
         B = states.shape[0]
         states = np.copy(states)
-        # states[:, 3:] -= np.pi # Hack to treat angles properly
-        # arm_bases = np.vstack((states[:, 0], states[:, 1] + self.base_length/2)).T # (B, 2)
+        # states[:, 3:] -= np.pi  # Hack to treat angles properly
+        # arm_bases = np.vstack((states[:, 0], states[:, 1] \
+        # + self.base_length/2)).T # (B, 2)
         link_thetas = np.cumsum(states, axis=1)  # (B, num_links)
         link_cosines = np.cos(link_thetas)  # (B, num_links)
         link_sines = np.sin(link_thetas)  # (B, num_links)

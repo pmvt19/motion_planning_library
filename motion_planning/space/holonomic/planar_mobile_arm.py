@@ -236,7 +236,8 @@ class PlanarMobileArm(HolonomicRobot):
         for i in range(num_steps):
             noise = np.random.normal(scale=scale, size=(sample_size, d))
             q_near = q.reshape(1, -1) + noise
-            # validities = np.array([self.is_valid(self.make_state(q_val)) for q_val in q_near])
+            # validities =\
+            # np.array([self.is_valid(self.make_state(q_val)) for q_val in q_near])
             # q_near = q_near[validities]
 
             positions = self.batch_forward_kinematics(q_near)
