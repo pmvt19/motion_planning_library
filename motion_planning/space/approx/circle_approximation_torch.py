@@ -1,16 +1,14 @@
-import time
-import torch
 import math
-import numpy as np
-import matplotlib.pyplot as plt
+import time
+
 import matplotlib.patches as patches
-
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from matplotlib.collections import PatchCollection
-from shapely import Point, Polygon
-from sklearn.metrics import pairwise_distances
 
-from motion_planning.space import RobotSpace, PlanarMobileArm, PolygonalRobot
-from motion_planning.obstacle_sets import TestSet#, NonRegularPolygonObst
+from motion_planning.obstacle_sets import TestSet  #, NonRegularPolygonObst
+from motion_planning.space import PolygonalRobot, RobotSpace
 
 
 class ApproximationSpaceTorch(RobotSpace):
