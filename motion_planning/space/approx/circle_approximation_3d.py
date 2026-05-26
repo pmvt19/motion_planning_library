@@ -1,15 +1,15 @@
 import math
 import time
-import rerun as rr
-import numpy as np
-import matplotlib.pyplot as plt
-import open3d as o3d
 
-from motion_planning.space import RobotSpace, HolonomicRobot
-from motion_planning.utils import numpystate_distance, interpolate_path
-from motion_planning.tools import NumpyState, AngularNumpyState
-from motion_planning.search import PRM
+import numpy as np
+import open3d as o3d
+import rerun as rr
+
 from motion_planning.obstacle_sets import ObstacleSet
+from motion_planning.space import HolonomicRobot, RobotSpace
+from motion_planning.tools import AngularNumpyState, NumpyState
+from motion_planning.utils import numpystate_distance
+
 
 def rect_prism_to_circles_x_short(aa_rect_prism):
     # aa_rect (x,y,z,xl,yl,zl)

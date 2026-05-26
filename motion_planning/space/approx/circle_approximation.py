@@ -1,15 +1,13 @@
-import time
 import math
-import numpy as np
-import matplotlib.pyplot as plt
+
 import matplotlib.patches as patches
-
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.collections import PatchCollection
-from shapely import Point, Polygon
-from sklearn.metrics import pairwise_distances
 
-from motion_planning.space import RobotSpace, PlanarMobileArm, PolygonalRobot
-from motion_planning.obstacle_sets import TestSet, NonRegularPolygonObst
+from motion_planning.obstacle_sets import TestSet
+from motion_planning.space import PlanarMobileArm, RobotSpace
+
 
 class ApproximationSpace(RobotSpace):
     def __init__(self, space : RobotSpace, batch_size=1000, do_overapproximation=False):
@@ -52,9 +50,12 @@ class ApproximationSpace(RobotSpace):
         return state_circles
 
     def rectangles_to_circles(self, aa_rect):
-        # Let's say that we get the output of this as (x,y,w,h) -> Thus would have a shape of (N,4)
-        # The way I was thinking about it, one would need to loop through each rectangle to create the points
-        # While this isn't necessarily a problem for the environment (since we can just create this once and leave it)
+        # Let's say that we get the output of this as 
+        # (x,y,w,h) -> Thus would have a shape of (N,4)
+        # The way I was thinking about it, one would need to loop through each
+        # rectangle to create the points
+        # While this isn't necessarily a problem for the environment
+        # (since we can just create this once and leave it)
         # It might be slightly problematic for the robot approximation
 
         # self.space.obstacles
@@ -148,9 +149,7 @@ class ApproximationSpace(RobotSpace):
         segment_lengths = np.linalg.norm(batch_rays, axis=1).reshape(-1, 1) # (B,1)
 
         num_distinct_segment_lengths = len(np.unique(np.round(segment_lengths, 10)))
-        # print(radius, segment_lengths, 'here')
-        # assert len(np.unique(np.round(segment_lengths, 10))) == 1, "All Segments currently must have the same length"
-        # assert(np.all(radius < segment_lengths/2)), "Segment approximation radius must be smaller than half of the length of smallest segment"
+
         batch_normalized_rays = batch_rays / segment_lengths # (B, 2)
         modified_segment_lengths = segment_lengths - (2*radius)
 

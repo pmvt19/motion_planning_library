@@ -1,7 +1,5 @@
 from .space import RobotSpace
 
-# TODO: These Import Order is a Temoporary Fix
-# Please use direct imports for Holonomic and NonHolonomic Robots
 from .holonomic.holonomic_robot import HolonomicRobot
 from .nonholonomic.nonholonomic_robot import NonHolonomicRobot
 
