@@ -377,12 +377,15 @@ class PlanarMobileArm(HolonomicRobot):
         ).reshape(-1, 4, 2, 3)
 
         rotation_mats = rotation_mats.transpose(2, 0, 1)
+        
+        batch_ee_points_homogeneous = batch_ee_points_homogeneous.reshape(-1, 8, 3)
+        batch_ee_points_homogeneous = batch_ee_points_homogeneous.transpose(0, 2, 1)
 
         batch_ee_points_rotated = rotation_mats @ batch_ee_points_homogeneous
-        batch_ee_points_rotated = batch_ee_points_rotated.reshape(-1, 8, 3)
-        batch_ee_points_rotated = batch_ee_points_rotated.transpose(0, 2, 1)
+
         batch_ee_points_rotated = batch_ee_points_rotated.transpose(0, 2, 1)
         batch_ee_points_rotated = batch_ee_points_rotated.reshape(-1, 4, 2, 3)
+
         batch_ee_points_rotated = batch_ee_points_rotated[:, :, :, :2]
         batch_ee_points_rotated = batch_ee_points_rotated.reshape(-1, 2, 2)
 
