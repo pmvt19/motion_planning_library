@@ -73,11 +73,6 @@ class Lidar():
 
 if __name__ == '__main__':
     # np.random.seed(0)
-    # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
-    # lidar = SuperOptimizedLidar(None, (np.pi/4, np.pi/2), 100, 4.9, BiasedPassage(num_walls=1))
-    # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
-    # lidar = SuperOptimizedLidar(None, (0, 2*np.pi), 100, 4.9, TestSet())
-    # lidar = OptimizedLidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     # lidar = Lidar(0, (0, 2*np.pi), 100, 4.9, RandomSamplePassage(num_walls=3))
     # lidar = Lidar()
