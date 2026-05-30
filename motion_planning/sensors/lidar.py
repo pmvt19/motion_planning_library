@@ -86,15 +86,6 @@ if __name__ == '__main__':
     # readings = lidar.read_sensor(np.array((5.0,5.0)))
     et = time.time()
     print(f"Time to Run: {et-st}")
-    
-
-    # print(readings)
-
-    # for r in readings:
-    #     if r[1]:
-    #         print(r[0], r[1].value, r[2])
-    #     else:
-    #         print(r[0], r[1], r[2])
 
     lidar.engine.draw_environment(plt.gca())
     plt.scatter(x=[5.0], y=[5.0], color='green', marker='*')
