@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     st = time.time()
     readings = lidar.read_sensor(np.array([5.0, 5.0]))
-    # readings = lidar.read_sensor(np.array((5.0,5.0)))
+
     et = time.time()
     print(f"Time to Run: {et-st}")
 
