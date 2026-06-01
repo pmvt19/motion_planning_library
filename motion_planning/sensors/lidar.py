@@ -120,7 +120,6 @@ if __name__ == '__main__':
     lidar.engine.draw_environment(plt.gca())
     plt.scatter(x=locs[:, 0], y=locs[:, 1], color='green', marker='*')
 
-    # lidar_points = np.array([r[1].value for r in readings if r[1] is not None])
     plt.scatter(all_lidar_points[:, 0], all_lidar_points[:, 1], color='red', zorder=2)
     plt.show()
 
