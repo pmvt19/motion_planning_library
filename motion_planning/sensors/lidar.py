@@ -78,8 +78,6 @@ if __name__ == '__main__':
     # lidar = Lidar()
     lidar = Lidar(0,0,0,0)
 
-    # readings = lidar.read_sensor_optimized(np.array([5.0, 5.0]))
-
     st = time.time()
     readings = lidar.read_sensor(np.array([5.0, 5.0]))
 
