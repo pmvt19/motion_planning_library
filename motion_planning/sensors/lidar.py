@@ -68,11 +68,9 @@ class Lidar():
                 readings.append((angle+angle_noise, obstacle_point, np.inf, self.engine.make_state(last_point)))
 
         # TODO: Change the return result to only angle, dist
-
         return readings
 
 if __name__ == '__main__':
-    # np.random.seed(0)
     # lidar = Lidar((0.01, 0.1), (0, 2*np.pi), 100, 4.9, BiasedPassage(num_walls=1))
     lidar = Lidar(0,0,0,0)
 
