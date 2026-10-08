@@ -1,4 +1,7 @@
 # Praval's Motion Planning Library
+<p align="center">
+<img src="./assets/PMPL Logo.png" alt="PMPL Logo" width="100%">
+</p>
 
 # Table Of Contents
 - [Installation](#installation)
@@ -12,7 +15,7 @@
 
 ## Installation
 
-<!-- Python Version: `>=3.12.9`
+Python Version: `>=3.12.9`
 
 Install via pip
 ```
@@ -33,7 +36,7 @@ cd motion_planning_library/
 3. Install the Package
 ```
 pip install -e .
-``` -->
+```
 
 ## Environments
 
