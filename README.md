@@ -1,6 +1,6 @@
 # Praval's Motion Planning Library
 <p align="center">
-<img src="./assets/PMPL Logo.png" alt="PMPL Logo" width="100%">
+<img src="./assets/PMPL Logo.png" alt="PMPL Logo" width="70%">
 </p>
 
 # Table Of Contents
