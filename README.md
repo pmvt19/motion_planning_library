@@ -38,6 +38,8 @@ pip install -e .
 
 # Usage
 
+A simple python script which runs RRT with a point robot in the BiasedPassage Environment.
+
 ```python
 import matplotlib.pyplot as plt
 import numpy as np
@@ -65,6 +67,8 @@ env.draw_environment(plt.gca())
 rrt.draw_tree(plt.gca(), path=path, show_task=True)
 plt.show()
 ```
+
+More detailed examples with various search methods, robots, and environments can be found in the `examples/` directory.
 
 ## Environments
 
