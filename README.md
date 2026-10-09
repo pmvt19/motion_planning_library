@@ -11,8 +11,6 @@
 - [Accelerated Collision Checks](#accelerated-collision-checks)
 - [Acknowledgements](#acknowledgements)
 
-# Usage
-
 ## Installation
 
 Python Version: `>=3.12.9`
@@ -36,6 +34,36 @@ cd motion_planning_library/
 3. Install the Package
 ```
 pip install -e .
+```
+
+# Usage
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+from motion_planning.obstacle_sets import BiasedPassage
+from motion_planning.search import RRT
+from motion_planning.space import PointRobot
+
+# Create Robot and Set Obstacles in Environment
+env = PointRobot()
+env.set_obstacles(BiasedPassage())
+
+# Define Task: Start & Target
+start = env.make_state(np.array([5.0, 5.0]))
+target = env.make_state(np.array([15.0, 5.0]))
+
+# Initialize Search Method
+rrt = RRT(env)
+
+# Run Search Method
+path = rrt.search(start=start, target=target, max_steps=10000, goal_bias=0.1)
+
+# Draw Environment, Search Tree, and Path if found
+env.draw_environment(plt.gca())
+rrt.draw_tree(plt.gca(), path=path, show_task=True)
+plt.show()
 ```
 
 ## Environments
