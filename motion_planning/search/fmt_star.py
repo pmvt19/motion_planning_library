@@ -6,8 +6,9 @@ from matplotlib.collections import LineCollection
 from pqdict import pqdict
 from sklearn.neighbors import KDTree
 
-from motion_planning.tools import NumpyState, Path
 from motion_planning.space import RobotSpace
+from motion_planning.tools import NumpyState, Path
+
 
 class FastMarchingTreeStar:
     def __init__(self, env: RobotSpace, query_radius: float = 0.5):
@@ -28,13 +29,21 @@ class FastMarchingTreeStar:
 
         kdt = KDTree(self.batch_points_numpy)
         ind, _ = kdt.query_radius(
-            self.batch_points_numpy, r=self.query_radius, return_distance=True, sort_results=True
+            self.batch_points_numpy,
+            r=self.query_radius,
+            return_distance=True,
+            sort_results=True,
         )
 
         for i in range(N):
             idxes = ind[i]
-            idxes = idxes[1:] # Remove the closest point (always first point) which is itself
-            self.neighbor_cache[batch_points[i]] = set([batch_points[idx] for idx in idxes])
+
+            # Remove the closest point (always first point) which is itself
+            idxes = idxes[1:]
+
+            self.neighbor_cache[batch_points[i]] = set(
+                [batch_points[idx] for idx in idxes]
+            )
 
     def backtrack(self, end=None):
 
@@ -54,10 +63,15 @@ class FastMarchingTreeStar:
             node = child_to_parent[node]
         return Path(path=path[::-1])
 
-    def search(self, start: NumpyState, target: NumpyState, max_steps: int = 10000, batch_size: int = 3000):
+    def search(
+        self,
+        start: NumpyState,
+        target: NumpyState,
+        max_steps: int = 10000,
+        batch_size: int = 3000,
+    ):
         self.start = start
         self.target = target
-
 
         batch_points = self.generate_batch_points(batch_size)
         batch_points_with_task = batch_points + [self.start, self.target]
@@ -65,12 +79,11 @@ class FastMarchingTreeStar:
 
         V_open = pqdict({self.start: 0.0})
         V_unvisited = set(batch_points_with_task)
-        
 
         z = self.start
         V_unvisited.remove(self.start)
         self.tree[z]
-        
+
         for i in range(max_steps):
             Nz = self.neighbor_cache[z]
 
@@ -123,11 +136,12 @@ class FastMarchingTreeStar:
             path = [
                 (path[i].value[:2], path[i + 1].value[:2]) for i in range(len(path) - 1)
             ]
-            ax.add_collection(LineCollection(path, color="red"))            
+            ax.add_collection(LineCollection(path, color="red"))
+
 
 if __name__ == "__main__":
-    from motion_planning.space import PointRobot
     from motion_planning.obstacle_sets import BiasedPassage
+    from motion_planning.space import PointRobot
 
     # Create Robot & Environment
     env = PointRobot()
@@ -142,5 +156,3 @@ if __name__ == "__main__":
     path = fmt.search(start, target)
     fmt.draw_tree(plt.gca(), path=path, show_task=True)
     plt.show()
-
-
