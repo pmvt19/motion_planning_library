@@ -10,8 +10,9 @@ from motion_planning.tools import NumpyState, Path
 from motion_planning.space import RobotSpace
 
 class FastMarchingTreeStar:
-    def __init__(self, env: RobotSpace):
+    def __init__(self, env: RobotSpace, query_radius: float = 0.5):
         self.env: RobotSpace = env
+        self.query_radius = query_radius
 
         self.tree = defaultdict(list)
         self.neighbor_cache: dict[NumpyState, set[NumpyState]] = {}
@@ -20,14 +21,14 @@ class FastMarchingTreeStar:
         batch_points = [self.env.sample_valid_point() for _ in range(num_points)]
         return batch_points
 
-    def precompute_neighbors(self, batch_points: list[NumpyState], radius: float = 1.5):
+    def precompute_neighbors(self, batch_points: list[NumpyState]):
         self.batch_points_numpy = np.array([node.value for node in batch_points])
 
         N, d = self.batch_points_numpy.shape
 
         kdt = KDTree(self.batch_points_numpy)
         ind, _ = kdt.query_radius(
-            self.batch_points_numpy, r=radius, return_distance=True, sort_results=True
+            self.batch_points_numpy, r=self.query_radius, return_distance=True, sort_results=True
         )
 
         for i in range(N):
