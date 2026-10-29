@@ -11,12 +11,12 @@ class Tree:
 
     def get_nodes(self):
         return self.tree.keys()
-    
+
     def init_tree(self, root_node):
         self.root = root_node
         self.tree[root_node] = []
         self.child_to_parent[root_node] = None
-    
+
     def add_node(self, parent_node, child_node):
         self.tree[parent_node].append(child_node)
         self.tree[child_node]
@@ -44,4 +44,3 @@ class Tree:
         ]
         edges = LineCollection(edges, color="blue")
         ax.add_collection(edges)
-    
