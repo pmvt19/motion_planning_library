@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
@@ -103,7 +101,9 @@ class FastMarchingTreeStar:
     def draw_tree(self, ax, path: Path | None = None, show_task: bool = True):
         self.env.draw_environment(ax)
         self.tree.draw_tree(ax)
-        ax.scatter(self.batch_points_numpy[:, 0], self.batch_points_numpy[:, 1], zorder=0)
+        ax.scatter(
+            self.batch_points_numpy[:, 0], self.batch_points_numpy[:, 1], zorder=0
+        )
 
         if show_task:
             ax.scatter(self.start.value[0], self.start.value[1], s=100, c="green")
@@ -114,6 +114,7 @@ class FastMarchingTreeStar:
                 (path[i].value[:2], path[i + 1].value[:2]) for i in range(len(path) - 1)
             ]
             ax.add_collection(LineCollection(path, color="red"))
+
 
 if __name__ == "__main__":
     from motion_planning.obstacle_sets import BiasedPassage
