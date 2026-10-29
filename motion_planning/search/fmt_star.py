@@ -8,6 +8,7 @@ from sklearn.neighbors import KDTree
 
 from motion_planning.space import RobotSpace
 from motion_planning.tools import NumpyState, Path
+from motion_planning.tools.tree import Tree
 
 
 class FastMarchingTreeStar:
@@ -15,7 +16,7 @@ class FastMarchingTreeStar:
         self.env: RobotSpace = env
         self.query_radius = query_radius
 
-        self.tree = defaultdict(list)
+        self.tree = Tree()
         self.neighbor_cache: dict[NumpyState, set[NumpyState]] = {}
 
     def generate_batch_points(self, num_points: int = 10000):
@@ -45,30 +46,12 @@ class FastMarchingTreeStar:
                 [batch_points[idx] for idx in idxes]
             )
 
-    def backtrack(self, end=None):
-
-        child_to_parent = {}
-        for parent in self.tree:
-            for child in self.tree[parent]:
-                child_to_parent[child] = parent
-        child_to_parent[self.start] = None
-
-        if end is None or end not in child_to_parent:
-            return Path()
-
-        path = []
-        node = end
-        while node:
-            path.append(node)
-            node = child_to_parent[node]
-        return Path(path=path[::-1])
-
     def search(
         self,
         start: NumpyState,
         target: NumpyState,
         max_steps: int = 10000,
-        batch_size: int = 3000,
+        batch_size: int = 4000,
     ):
         self.start = start
         self.target = target
@@ -82,7 +65,7 @@ class FastMarchingTreeStar:
 
         z = self.start
         V_unvisited.remove(self.start)
-        self.tree[z]
+        self.tree.init_tree(z)
 
         for i in range(max_steps):
             Nz = self.neighbor_cache[z]
@@ -100,7 +83,7 @@ class FastMarchingTreeStar:
                     y_min = Ynear[min_idx]
 
                     if self.env.is_valid_edge(y_min, x):
-                        self.tree[y_min].append(x)
+                        self.tree.add_node(y_min, x)
                         Hnew.add((x, costs[min_idx]))
                         V_unvisited.remove(x)
 
@@ -114,19 +97,14 @@ class FastMarchingTreeStar:
                 print("FMT*: No More Nodes Open to Expansion")
                 break
 
-        return self.backtrack(self.target)
+        backtracked_path = self.tree.backtrack(self.target)
+        ordered_path = backtracked_path[::-1]
+        return Path(path=ordered_path)
 
     def draw_tree(self, ax, path: Path | None = None, show_task: bool = True):
         self.env.draw_environment(ax)
-        ax.scatter(self.batch_points_numpy[:, 0], self.batch_points_numpy[:, 1])
-
-        edges = [
-            [(p.value[0], p.value[1]), (c.value[0], c.value[1])]
-            for p in self.tree
-            for c in self.tree[p]
-        ]
-        edges = LineCollection(edges, color="blue")
-        ax.add_collection(edges)
+        self.tree.draw_tree(ax)
+        ax.scatter(self.batch_points_numpy[:, 0], self.batch_points_numpy[:, 1], zorder=0)
 
         if show_task:
             ax.scatter(self.start.value[0], self.start.value[1], s=100, c="green")
@@ -137,7 +115,6 @@ class FastMarchingTreeStar:
                 (path[i].value[:2], path[i + 1].value[:2]) for i in range(len(path) - 1)
             ]
             ax.add_collection(LineCollection(path, color="red"))
-
 
 if __name__ == "__main__":
     from motion_planning.obstacle_sets import BiasedPassage
