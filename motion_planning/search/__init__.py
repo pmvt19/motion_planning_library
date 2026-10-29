@@ -14,3 +14,4 @@ from .optimized_pdg import OptimizedPDG as LegacyOptimizedPDG
 from .optimized_pdg_step import OptimizedPDG, BiDirectionalPDG as OptimizedBiDirectionalPDG
 from .informed_rrt_star import InformedRRTStar
 from .kinodynamic_rrt import KinodynamicRRT
+from .fmt_star import FastMarchingTreeStar
