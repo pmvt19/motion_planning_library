@@ -7,8 +7,7 @@ from pqdict import pqdict
 from sklearn.neighbors import KDTree
 
 from motion_planning.space import RobotSpace
-from motion_planning.tools import NumpyState, Path
-from motion_planning.tools.tree import Tree
+from motion_planning.tools import NumpyState, Path, Tree
 
 
 class FastMarchingTreeStar:
