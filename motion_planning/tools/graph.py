@@ -101,7 +101,14 @@ class Graph():
 
         return None
 
-        
+    def get_neighbors(self, vertex: int | tuple) -> list[tuple]:
+        if isinstance(vertex, tuple):
+            vertex_idx = self.vertex_to_idx[vertex]
+        else:
+            vertex_idx = vertex
+
+        return [self.vertices[vert] for vert in self.edges[vertex_idx]]
+
 
 if __name__ == '__main__':
     np.random.seed(0)
