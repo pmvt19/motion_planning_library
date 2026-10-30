@@ -1,11 +1,10 @@
 import numpy as np
-
 from matplotlib.collections import LineCollection
 from sklearn.neighbors import KDTree
 
 from motion_planning.search import PRM
 from motion_planning.space import RobotSpace
-from motion_planning.tools import NumpyState, Tree, Path
+from motion_planning.tools import NumpyState, Path, Tree
 
 
 class PRMRRT(PRM):
@@ -18,11 +17,11 @@ class PRMRRT(PRM):
         validate_edges=False,
     ):
         super().__init__(
-            env=env, 
+            env=env,
             num_samples=num_samples,
             num_neighbors=num_neighbors,
             edge_dist_radius=edge_dist_radius,
-            validate_edges=validate_edges
+            validate_edges=validate_edges,
         )
 
         self.tree = Tree()
@@ -33,9 +32,7 @@ class PRMRRT(PRM):
         else:
             sampled_point = self.env.sample_valid_point()
 
-        # print([node.value for node in self.tree.tree.keys()])
         nodes = np.array([node.value for node in self.tree.tree.keys()])
-        # print("Node: ", nodes.shape)
         kdt = KDTree(nodes)
         _, ind = kdt.query(np.array([sampled_point.value]), k=1)
         idx = ind[0][0]
@@ -47,13 +44,14 @@ class PRMRRT(PRM):
 
         # Get Neighbors of Chosen Node via Graph functions
         neighbors_tuple = self.graph.get_neighbors(tuple(node.value))
-        # print(neighbors_tuple)
 
         # Convert Graph Neighbors to type: NumpyState
         neighbors_state = [self.env.make_state(state) for state in neighbors_tuple]
 
         # Extend to the closest neighbor to the sampled point
-        ordered_dists = [self.env.dist(sampled_point, neighbor) for neighbor in neighbors_state]
+        ordered_dists = [
+            self.env.dist(sampled_point, neighbor) for neighbor in neighbors_state
+        ]
         min_idx = np.argmin(ordered_dists)
         potential_new_child = neighbors_state[min_idx]
         if potential_new_child in self.tree.tree:
@@ -67,12 +65,18 @@ class PRMRRT(PRM):
         self.target = target
 
         self.tree.init_tree(self.start)
-        
+
         # Attach Start and Target to the graph
         self.graph.add_vertex(start.value)
         self.graph.add_vertex(target.value)
 
-    def search(self, start: NumpyState, target: NumpyState, max_steps: int = 1000):
+    def search(
+        self,
+        start: NumpyState,
+        target: NumpyState,
+        max_steps: int = 1000,
+        animate_search_tree: bool = False,
+    ):
         self.init_search(start, target)
 
         step_num = 0
@@ -81,12 +85,18 @@ class PRMRRT(PRM):
             potential_cur_node = self.step_search(step_num)
             if potential_cur_node:
                 cur_node = potential_cur_node
+
+                if animate_search_tree:
+                    self.draw(plt.gca())
+                    plt.pause(0.1)
+                    plt.clf()
+
             step_num += 1
 
         reversed_path = self.tree.backtrack(target)
         return Path(reversed_path[::-1])
 
-    def draw(self, ax, path: Path | None, show_task: bool = True):
+    def draw(self, ax, path: Path | None = None, show_task: bool = True):
         self.env.draw_environment(ax)
 
         self.graph.draw(ax)
@@ -102,6 +112,7 @@ class PRMRRT(PRM):
             ]
             ax.add_collection(LineCollection(path, color="red"))
 
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
@@ -116,10 +127,7 @@ if __name__ == "__main__":
 
     prmrrt = PRMRRT(env=env, num_samples=500, num_neighbors=10, validate_edges=True)
     prmrrt.create_graph()
-    path = prmrrt.search(start, target)
+    path = prmrrt.search(start, target, animate_search_tree=False)
 
     prmrrt.draw(plt.gca(), path)
     plt.show()
-            
-
-        
