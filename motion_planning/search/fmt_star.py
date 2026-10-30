@@ -49,6 +49,7 @@ class FastMarchingTreeStar:
         target: NumpyState,
         max_steps: int = 10000,
         batch_size: int = 4000,
+        animate_search_tree: bool = False
     ):
         self.start = start
         self.target = target
@@ -83,6 +84,12 @@ class FastMarchingTreeStar:
                         self.tree.add_node(y_min, x)
                         Hnew.add((x, costs[min_idx]))
                         V_unvisited.remove(x)
+
+                # Animation Logic (Not Part of Core Algorithm)
+                if animate_search_tree:
+                    self.draw_tree(plt.gca())
+                    plt.pause(0.1)
+                    plt.clf()
 
             # Add candidates to the open set
             for node, c2a in Hnew:
