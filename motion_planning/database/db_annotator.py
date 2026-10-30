@@ -44,7 +44,7 @@ if __name__ == "__main__":
     from motion_planning.obstacle_sets import BiasedPassage
     from motion_planning.space import PointRobot
 
-    path = "saves/database_rf2.pickle"
+    path = "saves/database_pr_bp3.pickle"
 
     db = Database()
     mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
