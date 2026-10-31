@@ -300,11 +300,16 @@ class OptimizedPDG():
         self.path_state_path_idxes = np.array([i for i, path in enumerate(self.validated_paths) for _ in path])
         self.c2g_estimates = self.compute_c2g_estimates_for_states(self.tree_states, self.path_states)
 
-    def search(self, start, target, max_steps=5000):
+    def search(self, start, target, max_steps=5000, animate_search_tree: bool = True):
         self.init_search(start, target)
 
         for i in range(max_steps):
             self.step_search(i)
+
+            if animate_search_tree:
+                self.draw_tree(plt.gca())
+                plt.pause(0.1)
+                plt.cla()
 
             if self.target in self.tree:
                 return self.backtrack(self.target)
@@ -462,15 +467,7 @@ if __name__ == '__main__':
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
-    # db_save_path = 'saves/database_v5.pickle'
-    # db_save_path = "saves/database_bpe3_large.pickle"
-    # db_save_path = "saves/database_bpe8_large.pickle"
-    # db_save_path = 'saves/database_v1_bpe3.pickle'
-    # db_save_path = 'saves/clustered_database_large_bpe_subsampled.pickle'
-    # db_save_path = 'saves/clustered_database_large_bpe_mp_sampler.pickle'
-    # db_save_path = 'saves/clustered_database_large_bpe_subsampled.pickle'
-    # db_save_path = 'saves/smoothed_interpolated_database_large_bpe_subsampled.pickle'
-    db_save_path = 'saves/database_rf2.pickle'
+    db_save_path = 'saves/database_pr_bp3.pickle'
     
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
@@ -478,14 +475,15 @@ if __name__ == '__main__':
 
     pdg = OptimizedPDG(env, db_save_path)
 
-    start, target = env.space.sample_task()
-    # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([85.0, 5.0]))
+    # start, target = env.space.sample_task()
+    start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([35.0, 5.0]))
 
     start_time = time.time()
     pdg.compute_retained_paths(target)
     end_time = time.time()
     time_to_compute_retained_paths = end_time-start_time
     print(f"Time to compute paths: {time_to_compute_retained_paths}")
+    
 
     start_time = time.time()
     path = pdg.search(start, target)
@@ -497,6 +495,7 @@ if __name__ == '__main__':
 
     pdg.draw_tree(plt.gca(), path)
     plt.show()
+    exit()
 
     bidirectional_pdg = BiDirectionalPDG(env, db_save_path)
 
