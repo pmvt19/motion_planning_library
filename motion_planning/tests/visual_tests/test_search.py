@@ -18,7 +18,7 @@ from motion_planning.search import (
     MedialAxisPRM,
     MedialAxisRRT,
     NonUniformPRM,
-    OptimizedBiDirectionalPDG,
+    BiDirectionalPDG,
     OptimizedPDG,
     RRTStar,
 )
