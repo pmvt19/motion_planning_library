@@ -22,7 +22,6 @@ class OptimizedPDG():
         self.use_delete_radius = True
     
     def compute_retained_paths(self, target):
-
         path_lengths = [0] + [len(path) for path in self.db.paths]
         path_idxes = np.cumsum(path_lengths)
 
@@ -89,7 +88,6 @@ class OptimizedPDG():
 
     def compute_c2g_for_paths(self, paths, target):
         # Paths require the last node to be the goal
-
         path_c2gs = []
         for path in paths:
             path = np.array([state.value for state in path.path])
@@ -168,7 +166,6 @@ class OptimizedPDG():
         if len(invalid_idxes) == 0:
             add_to_tree_segment = following_path
             kept_path_segment = following_path
-
         else:
             invalid_idx = invalid_idxes[0]
             deletion_offset = 1
@@ -184,7 +181,6 @@ class OptimizedPDG():
             kept_path_segment = following_path[invalid_idx+deletion_offset:] # TODO: Figure out logic for updating path states and all
 
             self.validated_paths[path_starting_idx] = Path([self.env.make_state(state) for state in kept_path_segment])
-
 
             if self.use_delete_radius:
                 bad_state_in_follow_path = following_path[invalid_idx]
@@ -358,10 +354,8 @@ class OptimizedPDG():
         if np.linalg.norm(self.target.value - node.value) < self.delta:
             new_node = self.target
         else:
-            # print(np.linalg.norm(sampled_point.value - node.value), 'dist')
-            # new_node = self.env.shoot_ray(node, sampled_point, self.delta)
             new_node = self.env.shoot_ray(node, sampled_point, min(self.delta, np.linalg.norm(sampled_point.value - node.value)))
-            # assert(new_node.value[1] < 10), "ERROR EXPAND NODE"
+
         if new_node != node:
             self.tree[node].append(new_node)
             self.tree[new_node]
