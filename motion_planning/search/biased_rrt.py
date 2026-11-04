@@ -8,7 +8,6 @@ from motion_planning.search import RRT
 class BiasedSamplingRRT(RRT):
     def __init__(self, env, biased_points, points_bias=0.4, delta=0.5):
         super().__init__(env=env, delta=delta)
-        # self.sampling_path = pickle.load(open('saved_paths/rrt_path.pickle', 'rb'))
         self.biased_points = biased_points
         self.points_bias = points_bias
         assert len(self.biased_points) > 0, (
