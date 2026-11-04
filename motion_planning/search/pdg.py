@@ -364,10 +364,10 @@ class OptimizedPDG():
         return new_node
 
 class BiDirectionalPDG():
-    def __init__(self, env, db_path):
-        self.env = env
-        self.db_path = db_path
-        self.max_connection_distance = 0.5
+    def __init__(self, env: RobotSpace, db_path: str):
+        self.env: RobotSpace = env
+        self.db_path: str = db_path
+        self.max_connection_distance: float = 0.5
 
         start_time = time.time()
         self.forward_pdg = OptimizedPDG(self.env, self.db_path)
