@@ -172,7 +172,7 @@ class TestDatabaseSearchMethods(unittest.TestCase):
         plt.show()
 
     def test_bidirectional_pdg(self):
-        pdg = OptimizedBiDirectionalPDG(env=self.env, db_path=self.db_path)
+        pdg = BiDirectionalPDG(env=self.env, db_path=self.db_path)
         path = pdg.search(self.start, self.target)
 
         self.env.draw_environment(plt.gca())
