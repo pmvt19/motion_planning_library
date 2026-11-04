@@ -17,10 +17,8 @@ from motion_planning.search import RRT
 
 class OptimizedPDG():
     def __init__(self, env, db_path):
-        self.db : Database = pickle.load(open(db_path, 'rb'))
-        # self.db.paths = self.db.paths[:50]
-        self.env : RobotSpace = env
-
+        self.db: Database = pickle.load(open(db_path, 'rb'))
+        self.env: RobotSpace = env
         self.use_delete_radius = True
     
     def compute_retained_paths(self, target):
