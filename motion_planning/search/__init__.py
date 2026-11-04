@@ -9,7 +9,7 @@ from .rsg import RandomSampleGeneration
 from .biased_rrt import BiasedSamplingRRT
 from .medial_axis import MedialAxisRRT, MedialAxisPRM
 from .lightning import Lightning
-from .optimized_pdg_step import OptimizedPDG, BiDirectionalPDG
+from .pdg import OptimizedPDG, BiDirectionalPDG
 from .informed_rrt_star import InformedRRTStar
 from .kinodynamic_rrt import KinodynamicRRT
 from .fmt_star import FastMarchingTreeStar
