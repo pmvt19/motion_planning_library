@@ -36,7 +36,8 @@ def populate_db(
             if interpolate_paths_delta > 0.0:
                 path = interpolate_path(path, env, interpolate_paths_delta)
 
-            db.add_path(path)
+            if len(path) > 0:
+                db.add_path(path)
         print(f"DB Size: {len(db)}")
 
 
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     from motion_planning.obstacle_sets import BiasedPassage
     from motion_planning.space import PointRobot
 
-    path = "saves/database_pr_bp3.pickle"
+    path = "saves/database_pr_bp3_large.pickle"
 
     db = Database()
     mp_sampler = MPSampler(PointRobot(), BiasedPassage, {"num_walls": 3, "bias": 0.5})
@@ -52,8 +53,8 @@ if __name__ == "__main__":
     populate_db(
         db,
         mp_sampler,
-        num_envs=10,
-        num_tasks_per_env=20,
+        num_envs=100,
+        num_tasks_per_env=50,
         smooth_paths=True,
         interpolate_paths_delta=0.5,
     )
