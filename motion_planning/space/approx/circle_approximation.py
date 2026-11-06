@@ -10,12 +10,12 @@ from motion_planning.space import PlanarMobileArm, RobotSpace
 
 
 class ApproximationSpace(RobotSpace):
-    def __init__(self, space : RobotSpace, batch_size=1000, do_overapproximation=False):
+    def __init__(self, space: RobotSpace, batch_size=1000, do_overapproximation=False):
         super().__init__()
-        self.space = space
-        self.do_overapproximation = do_overapproximation
-        self.batch_size = batch_size
-        self.obstacle_circles = self.space_to_circles()
+        self.space: RobotSpace = space
+        self.do_overapproximation: bool = do_overapproximation
+        self.batch_size: int = batch_size
+        self.obstacle_circles: np.ndarray = self.space_to_circles()
         
     def dist(self, state1, state2):
         return self.space.dist(state1, state2)
