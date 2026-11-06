@@ -12,7 +12,7 @@ from motion_planning.obstacle_sets import BiasedPassage
 # Search Algorithm Imports
 from motion_planning.search import RRT, PRM, Lightning, OptimizedPDG
 
-def run_experiment(seed, timing_dict, path_dict):
+def run_experiment(seed, timing_dict: dict[str, list], path_dict: dict[str, list]):
     np.random.seed(seed)
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
