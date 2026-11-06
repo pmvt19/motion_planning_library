@@ -12,6 +12,10 @@ class PointRobot(HolonomicRobot):
 
         self.x_range = [-10, 10]
         self.y_range = [-10, 10]
+        
+        self.state_dims = 2 # (X, Y)
+        self.c_space_lower_bound = np.array([-10, -10])
+        self.c_space_upper_bound = np.array([10, 10])
 
     def make_state(self, state) -> NumpyState:
         return NumpyState(state)
