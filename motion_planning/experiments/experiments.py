@@ -10,7 +10,7 @@ from motion_planning.obstacle_sets import BiasedPassage
 # from motion_planning.database import Database
 
 # Search Algorithm Imports
-from motion_planning.search import RRT, PRM, Lightning, PDG, OptimizedPDG
+from motion_planning.search import RRT, PRM, Lightning, OptimizedPDG
 
 def run_experiment(seed, timing_dict, path_dict):
     np.random.seed(seed)
@@ -26,16 +26,11 @@ def run_experiment(seed, timing_dict, path_dict):
     rrt = RRT(env)
     prm = PRM(env, num_samples=5000, num_neighbors=10, validate_edges=True)
     lightning = Lightning(env, db_path=db_path)
-    pdg = PDG(env=env, db_path=db_path)
     optimized_pdg = OptimizedPDG(env=env, db_path=db_path)
 
     prm_create_graph_start = time.time()
     prm.create_graph()
     prm_create_graph_end = time.time()
-
-    pdg_compute_retained_start = time.time()
-    pdg.compute_retained_paths(target)
-    pdg_compute_retained_end = time.time()
 
     optimized_pdg_compute_retained_start = time.time()
     optimized_pdg.compute_retained_paths(target)
@@ -56,10 +51,6 @@ def run_experiment(seed, timing_dict, path_dict):
     lightning_path = lightning.search(start, target)
     lightning_end_time = time.time()
 
-    pdg_start_time = time.time()
-    pdg_path = pdg.search(start, target)
-    pdg_end_time = time.time()
-
     optimized_pdg_start_time = time.time()
     optimized_pdg_path = optimized_pdg.search(start, target)
     optimized_pdg_end_time = time.time()
@@ -67,18 +58,14 @@ def run_experiment(seed, timing_dict, path_dict):
     timing_dict['rrt_search_time'].append(rrt_end_time - rrt_start_time)
     timing_dict['prm_search_time'].append(prm_end_time - prm_start_time)
     timing_dict['lightning_search_time'].append(lightning_end_time - lightning_start_time)
-    timing_dict['pdg_search_time'].append(pdg_end_time - pdg_start_time)
     timing_dict['optimized_pdg_search_time'].append(optimized_pdg_end_time - optimized_pdg_start_time)
 
     timing_dict['prm_create_graph'].append(prm_create_graph_end - prm_create_graph_start)
-
-    timing_dict['pdg_retained_paths'].append(pdg_compute_retained_end - pdg_compute_retained_start)
     timing_dict['optimized_pdg_retained_paths'].append(optimized_pdg_compute_retained_end - optimized_pdg_compute_retained_start)
 
     path_dict['rrt_path'].append(rrt_path)
     path_dict['prm_path'].append(prm_path)
     path_dict['lightning_path'].append(lightning_path)
-    path_dict['pdg_path'].append(pdg_path)
     path_dict['optimized_pdg_path'].append(optimized_pdg_path)    
 
 
