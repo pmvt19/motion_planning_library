@@ -15,11 +15,14 @@ from motion_planning.space import ApproximationSpace
 from motion_planning.utils import interpolate_path, smooth_path
 from motion_planning.search import RRT
 
+from motion_planning.tools.timer import Timer
+
 class OptimizedPDG():
-    def __init__(self, env, db_path):
+    def __init__(self, env, db_path, prevalidate_paths: bool = True):
         self.db: Database = pickle.load(open(db_path, 'rb'))
         self.env: RobotSpace = env
-        self.use_delete_radius = True
+        self.use_delete_radius: bool = True
+        self.prevalidate_paths: bool = prevalidate_paths
     
     def compute_retained_paths(self, target):
         path_lengths = [0] + [len(path) for path in self.db.paths]
@@ -42,47 +45,28 @@ class OptimizedPDG():
                 if len(new_path) > 0:
                     retained_paths.append(Path(path=new_path + [target]))
 
-        # new_db = Database()
-        # new_db.paths = retained_paths#[:1]
-        # new_db.draw_paths(plt.gca())
-        # self.env.draw_environment(plt.gca())
-        # plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
-        # plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
-
-        # plt.show()
-        # plt.clf()
-
         # TODO: Need to validate the edge from path to goal
 
         # Keep valid path segments
-        # if pre_validate:
-        # retained_path_lengths = [0] + [len(path) for path in retained_paths]
-        # # print(retained_path_lengths)
-        # retained_path_idxes = np.cumsum(retained_path_lengths)
-        # all_retained_path_states = np.array([state.value for path in retained_paths for state in path])
+        if self.prevalidate_paths:
+            retained_path_lengths = [0] + [len(path) for path in retained_paths]
+            retained_path_idxes = np.cumsum(retained_path_lengths)
+            all_retained_path_states = np.array([state.value for path in retained_paths for state in path])
 
-        # path_state_validities = self.env.batch_is_valid(all_retained_path_states)
+            path_state_validities = self.env.batch_is_valid(all_retained_path_states)
 
-        # validated_paths = []
-        # for i, path in enumerate(retained_paths):
-        #     s = retained_path_idxes[i]
-        #     e = retained_path_idxes[i+1]
+            validated_paths = []
+            for i, path in enumerate(retained_paths):
+                s = retained_path_idxes[i]
+                e = retained_path_idxes[i+1]
 
-        #     invalid_portions = np.where(path_state_validities[s:e] == False)[0]
-        #     if len(invalid_portions) > 0:
-        #         validated_paths.append(Path(path.path[invalid_portions[-1]+1:]))
-        #     else:
-        #         validated_paths.append(Path(path.path))
-        
-        # new_db = Database()
-        # new_db.paths = validated_paths
-        # new_db.draw_paths(plt.gca())
-        # self.env.draw_environment(plt.gca())
-        # plt.scatter(start.value[0], start.value[1], color='green', s=100, zorder=2)
-        # plt.scatter(target.value[0], target.value[1], color='red', s=100, zorder=2)
-        # plt.show()
-        # plt.clf()
-        # self.validated_paths = validated_paths
+                invalid_portions = np.where(path_state_validities[s:e] == False)[0]
+                if len(invalid_portions) > 0:
+                    validated_paths.append(Path(path.path[invalid_portions[-1]+1:]))
+                else:
+                    validated_paths.append(Path(path.path))
+            retained_paths = validated_paths
+
         self.validated_paths = retained_paths
         self.compute_c2g_for_paths(self.validated_paths, target)
 
@@ -294,7 +278,7 @@ class OptimizedPDG():
         self.path_state_path_idxes = np.array([i for i, path in enumerate(self.validated_paths) for _ in path])
         self.c2g_estimates = self.compute_c2g_estimates_for_states(self.tree_states, self.path_states)
 
-    def search(self, start, target, max_steps=5000, animate_search_tree: bool = True):
+    def search(self, start, target, max_steps=5000, animate_search_tree: bool = False):
         self.init_search(start, target)
 
         for i in range(max_steps):
@@ -321,7 +305,7 @@ class OptimizedPDG():
             node = self.child_to_parent[node]
         return Path(path=path[::-1])
 
-    def draw_tree(self, ax, path=None, show_task=True):
+    def draw_tree(self, ax: plt.Axes, path=None, show_task=True):
         self.env.draw_environment(ax)
         nodes = np.array([node.value for node in self.tree.keys()])
         ax.scatter(nodes[:, 0], nodes[:, 1], color='pink')
@@ -337,6 +321,17 @@ class OptimizedPDG():
         if path:
             path = [(path[i].value[:2], path[i+1].value[:2]) for i in range(len(path)-1)]
             ax.add_collection(LineCollection(path, color='red'))
+
+    def draw_selected_paths(self, ax: plt.Axes):
+        self.env.draw_environment(ax)
+        cmap = plt.get_cmap("tab10", len(self.validated_paths))
+        for i, path in enumerate(self.validated_paths):
+            path_states = np.array([state.value for state in path.path])
+            ax.scatter(path_states[:, 0], path_states[:, 1], color=cmap(i), zorder=2)
+            path_edges = [
+                (path[j].value[:2], path[j + 1].value[:2]) for j in range(len(path) - 1)
+            ]
+            ax.add_collection(LineCollection(path_edges, color=cmap(i)))
         
     def select_node(self, goal_bias=0):
         if np.random.random() < goal_bias:
@@ -459,29 +454,46 @@ if __name__ == '__main__':
     print(f"Using Seed: {seed}")
     np.random.seed(seed)
 
-    db_save_path = 'saves/database_pr_bp3.pickle'
+    db_save_path = 'saves/database_pr_bp3_large.pickle'
     
     env = PointRobot()
     env.set_obstacles(BiasedPassage(bias=0.5, num_walls=3))
     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=True)
 
+    timer = Timer()
+
+    timer.mark_time("Creating PDG Object")
     pdg = OptimizedPDG(env, db_save_path)
 
-    # start, target = env.space.sample_task()
-    start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([35.0, 5.0]))
+    
+    timer.mark_time("Creating Task")
+    start, target = env.space.sample_task()
+    print(f"Start: {start.value}, Target: {target.value}")
+    # start = env.make_state(np.array([37.31920848, 7.20121084]))
+    start = env.make_state(np.array([25.0, 5.0]))
+    target = env.make_state(np.array([13.22324166, 9.40198732]))
+    # start, target = env.make_state(np.array([5.0, 5.0])), env.make_state(np.array([35.0, 5.0]))
 
     start_time = time.time()
+    timer.mark_time("Computing Retained Paths")
     pdg.compute_retained_paths(target)
+    timer.mark_time("Drawing Retained Paths")
+    pdg.draw_selected_paths(plt.gca())
+    plt.show()
     end_time = time.time()
     time_to_compute_retained_paths = end_time-start_time
     print(f"Time to compute paths: {time_to_compute_retained_paths}")
     
 
     start_time = time.time()
+    timer.mark_time("Searching for Path")
     path = pdg.search(start, target)
     end_time = time.time()
+    timer.mark_time("END")
     time_to_search = end_time - start_time
     print(f"Time to search: {time_to_search}")
+
+    print(timer)
 
     print(f"Full Optimized PDG Planning Time: {time_to_search + time_to_compute_retained_paths}")
 
