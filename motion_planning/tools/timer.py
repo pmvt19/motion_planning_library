@@ -17,5 +17,4 @@ class Timer:
         formatted_results = ""
         for result in results:
             formatted_results += f"{result}: {results[result]}\n"
-        # return str(results)
         return formatted_results
