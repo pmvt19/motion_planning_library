@@ -5,16 +5,17 @@ import numpy as np
 from sklearn.neighbors import KDTree
 
 from motion_planning.search import RRT
+from motion_planning.space import RobotSpace
 from motion_planning.tools import Path
 
 
 class BiDirectionalRRT:
-    def __init__(self, env, delta=0.5, max_connection_distance=1):
-        self.env = env
-        self.delta = delta
-        self.max_connection_distance = max_connection_distance
+    def __init__(self, env: RobotSpace, delta: float = 0.5, max_connection_distance: int = 1):
+        self.env: RobotSpace = env
+        self.delta: float = delta
+        self.max_connection_distance: int = max_connection_distance
 
-        self.animation_delay = 0.01
+        self.animation_delay: float = 0.01
 
     def attempt_tree_connection(self, forward_rrt, backward_rrt):
         forward_tree_nodes = np.array([node.value for node in forward_rrt.tree.keys()])
