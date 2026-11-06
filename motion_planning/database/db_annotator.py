@@ -13,6 +13,7 @@ def populate_db(
     interpolate_paths_delta: float = 0.0,
     prm_num_samples: int = 1000,
     prm_num_neighbors: int = 5,
+    retry_empty_paths: bool = False,
 ):
     for i in range(num_envs):
         env = mp_sampler.sample_env()
@@ -21,7 +22,8 @@ def populate_db(
         )
         prm.create_graph()
 
-        for j in range(num_tasks_per_env):
+        j = 0
+        while j < num_tasks_per_env:
             print(f"Env {i + 1}, Task {j + 1}")
             start, target = mp_sampler.sample_task(env)
 
@@ -38,6 +40,13 @@ def populate_db(
 
             if len(path) > 0:
                 db.add_path(path)
+
+            if retry_empty_paths and len(path) == 0:
+                print(f"Retrying Task: {j + 1}")
+                continue
+
+            # Increment Loop Counter
+            j += 1
         print(f"DB Size: {len(db)}")
 
 
@@ -57,5 +66,6 @@ if __name__ == "__main__":
         num_tasks_per_env=50,
         smooth_paths=True,
         interpolate_paths_delta=0.5,
+        retry_empty_paths=True
     )
     db.save_to_path(path)
