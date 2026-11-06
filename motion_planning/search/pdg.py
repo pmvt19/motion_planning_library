@@ -23,6 +23,12 @@ class OptimizedPDG():
         self.env: RobotSpace = env
         self.use_delete_radius: bool = True
         self.prevalidate_paths: bool = prevalidate_paths
+
+        self.delta: float = 0.5
+        self.num_connections_to_keep: int = 4500
+
+        self.path_to_target_threshold: float = 1.0
+        self.max_path_node_to_tree_node_threshold: float = 5.0
     
     def compute_retained_paths(self, target):
         path_lengths = [0] + [len(path) for path in self.db.paths]
@@ -35,8 +41,7 @@ class OptimizedPDG():
         closest_idxes = np.array([np.argmin(state_dists_to_target[path_idxes[i]:path_idxes[i+1]]) for i in range(len(self.db.paths))])
         closest_idxes_flattened = closest_idxes + path_idxes[:-1]
 
-        threshold = 1.0
-        kept_paths_mask = state_dists_to_target[closest_idxes_flattened] < threshold
+        kept_paths_mask = state_dists_to_target[closest_idxes_flattened] < self.path_to_target_threshold
 
         retained_paths = []
         for i, path in enumerate(self.db.paths):
@@ -90,8 +95,7 @@ class OptimizedPDG():
             return np.empty((0, len(path_states)))
         dist_mat = np.sqrt(np.sum(tree_states**2, axis=1, keepdims=True) + np.sum(path_states**2, axis=1, keepdims=True).T + (-2 * (tree_states @ path_states.T)))
 
-        threshold = 5.0
-        dist_mat[dist_mat > threshold] = np.inf
+        dist_mat[dist_mat > self.max_path_node_to_tree_node_threshold] = np.inf
         dist_mat[dist_mat == 0.0] = np.inf
 
         c2g_estimates = dist_mat + self.flattened_c2gs
@@ -108,12 +112,10 @@ class OptimizedPDG():
 
         vals = c2g_estimates[potential_connection_edges_idxes[0], potential_connection_edges_idxes[1]]
 
-        num_connections_to_keep = 4500 # TODO: Make Configuration Variable
-
         argsorted_vals = np.argsort(vals)
 
-        best_n_connections = argsorted_vals[:num_connections_to_keep]
-        other_n_connections = argsorted_vals[num_connections_to_keep:]
+        best_n_connections = argsorted_vals[:self.num_connections_to_keep]
+        other_n_connections = argsorted_vals[self.num_connections_to_keep:]
 
         edge_starts = tree_states[potential_connection_edges_idxes[0][best_n_connections]]
         edge_ends = path_states[potential_connection_edges_idxes[1][best_n_connections]]
@@ -345,7 +347,6 @@ class OptimizedPDG():
         return self.env.make_state(nodes[idx]), sampled_point
 
     def expand_node(self, node, sampled_point):
-        self.delta = 0.5
         if np.linalg.norm(self.target.value - node.value) < self.delta:
             new_node = self.target
         else:
