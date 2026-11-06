@@ -156,6 +156,8 @@ class RobotSpace:
         # In this case, do not adjust the c space lower and upper bounds
         # As this would adjust the angular dimensions instead
         # Example: FixedArm
+        # This assumes the first two dimensions are the X and Y spatial information 
+        # respectively
         if self.angular_dims_start is None or self.angular_dims_start >= 2:
             self.c_space_lower_bound[0] = min_x
             self.c_space_upper_bound[0] = max_x
@@ -197,7 +199,9 @@ class RobotSpace:
         return edge_validities
 
     def batch_sample_points(self, num_points):
-        return np.random.uniform(low=self.c_space_lower_bound, high=self.c_space_lower_bound, size=(num_points, self.state_dims))
+        return np.random.uniform(
+            low=self.c_space_lower_bound, high=self.c_space_upper_bound, size=(num_points, self.state_dims)
+        )
 
     def batch_get_robot_representations(self, states: np.ndarray):
         raise NotImplementedError
