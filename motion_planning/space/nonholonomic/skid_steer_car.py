@@ -28,7 +28,7 @@ class SkidSteerCar(NonHolonomicRobot):
         self.state_dim = 3
         self.control_dim = 2
 
-        self.state_dims = 2 # (X, Y, theta)
+        self.state_dims = 3 # (X, Y, theta)
         self.c_space_lower_bound = np.array([-10, -10, 0.0])
         self.c_space_upper_bound = np.array([10, 10, 2*np.pi])
 
