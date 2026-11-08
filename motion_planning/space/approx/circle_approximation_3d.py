@@ -2,13 +2,12 @@ import math
 import time
 
 import numpy as np
-import open3d as o3d
 import rerun as rr
 
 from motion_planning.obstacle_sets import ObstacleSet
 from motion_planning.space import HolonomicRobot, RobotSpace
 from motion_planning.tools import AngularNumpyState, NumpyState
-from motion_planning.utils import numpystate_distance
+from motion_planning.utils import numpystate_distance, interpolate_path
 
 
 def rect_prism_to_circles_x_short(aa_rect_prism):
@@ -219,76 +218,76 @@ def drawSphere(xCenter, yCenter, zCenter, r):
     z = r*z + zCenter
     return (x,y,z)
 
-def visualize(prisms, edges, circles):
-    # line_set = o3d.geometry.LineSet(
-    #     points=o3d.utility.Vector3dVector(vertices),
-    #     lines=o3d.utility.Vector2iVector(edges),
-    # )
+# def visualize(prisms, edges, circles):
+#     # line_set = o3d.geometry.LineSet(
+#     #     points=o3d.utility.Vector3dVector(vertices),
+#     #     lines=o3d.utility.Vector2iVector(edges),
+#     # )
 
-    line_sets = []
-    for prism in prisms:
-        line_set = o3d.geometry.LineSet(
-            points=o3d.utility.Vector3dVector(xyzwhl_to_ordered_vertices(prism)),
-            lines=o3d.utility.Vector2iVector(edges),
-        )
-        line_sets.append(line_set)
+#     line_sets = []
+#     for prism in prisms:
+#         line_set = o3d.geometry.LineSet(
+#             points=o3d.utility.Vector3dVector(xyzwhl_to_ordered_vertices(prism)),
+#             lines=o3d.utility.Vector2iVector(edges),
+#         )
+#         line_sets.append(line_set)
 
-    mesh_circles = []
-    for x,y,z,r in circles:
+#     mesh_circles = []
+#     for x,y,z,r in circles:
 
-        sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+#         sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
 
-        # 2. Define the new center coordinates
-        new_center = np.array([x,y,z])
+#         # 2. Define the new center coordinates
+#         new_center = np.array([x,y,z])
 
-        # 3. Translate the sphere to the new center
-        sphere.translate(new_center, relative=False)
+#         # 3. Translate the sphere to the new center
+#         sphere.translate(new_center, relative=False)
 
-        # 4. Compute vertex normals for proper shading
-        sphere.compute_vertex_normals()
-        mesh_circles.append(sphere)
+#         # 4. Compute vertex normals for proper shading
+#         sphere.compute_vertex_normals()
+#         mesh_circles.append(sphere)
 
-    # 5. Visualize the sphere
-    o3d.visualization.draw_geometries(mesh_circles+line_sets)
+#     # 5. Visualize the sphere
+#     o3d.visualization.draw_geometries(mesh_circles+line_sets)
 
-    # o3d.visualization.draw_geometries([line_set], zoom=0.8)
+#     # o3d.visualization.draw_geometries([line_set], zoom=0.8)
 
-def viz_cylinder():
-    radius = 1.0
-    height = 2.0
-    cylinder = o3d.geometry.TriangleMesh.create_cylinder(radius=radius, height=height)
+# def viz_cylinder():
+#     radius = 1.0
+#     height = 2.0
+#     cylinder = o3d.geometry.TriangleMesh.create_cylinder(radius=radius, height=height)
 
-    # Define the target location
-    target_location = np.array([5.0, 2.0, 1.0])
+#     # Define the target location
+#     target_location = np.array([5.0, 2.0, 1.0])
 
-    # Translate the cylinder to the target location
-    cylinder.translate(target_location)
-    # cylinder.compute_vertex_normals()
+#     # Translate the cylinder to the target location
+#     cylinder.translate(target_location)
+#     # cylinder.compute_vertex_normals()
 
-    # Optional: Add a coordinate frame for reference
-    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0, 0, 0])
+#     # Optional: Add a coordinate frame for reference
+#     mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0, 0, 0])
 
-    # Visualize the cylinder (and optional coordinate frame)
-    o3d.visualization.draw_geometries([o3d.geometry.LineSet.create_from_triangle_mesh(cylinder), mesh_frame], mesh_show_wireframe=True)
+#     # Visualize the cylinder (and optional coordinate frame)
+#     o3d.visualization.draw_geometries([o3d.geometry.LineSet.create_from_triangle_mesh(cylinder), mesh_frame], mesh_show_wireframe=True)
 
-def viz_circles(circles):
-    mesh_circles = []
-    for x,y,z,r in circles:
+# def viz_circles(circles):
+#     mesh_circles = []
+#     for x,y,z,r in circles:
 
-        sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
+#         sphere = o3d.geometry.TriangleMesh.create_sphere(radius=r)
 
-        # 2. Define the new center coordinates
-        new_center = np.array([x,y,z])
+#         # 2. Define the new center coordinates
+#         new_center = np.array([x,y,z])
 
-        # 3. Translate the sphere to the new center
-        sphere.translate(new_center, relative=False)
+#         # 3. Translate the sphere to the new center
+#         sphere.translate(new_center, relative=False)
 
-        # 4. Compute vertex normals for proper shading
-        sphere.compute_vertex_normals()
-        mesh_circles.append(sphere)
+#         # 4. Compute vertex normals for proper shading
+#         sphere.compute_vertex_normals()
+#         mesh_circles.append(sphere)
 
-    # 5. Visualize the sphere
-    o3d.visualization.draw_geometries(mesh_circles)
+#     # 5. Visualize the sphere
+#     o3d.visualization.draw_geometries(mesh_circles)
 
 class RobotSpace3D(RobotSpace):
     def __init__(self):
@@ -647,7 +646,7 @@ class SphereRobot(HolonomicRobot):
         ax.set_ylim(self.y_range[0], self.y_range[1])
         ax.set_zlim(self.z_range[0], self.z_range[1])
         
-        for prism in prisms:
+        for prism in self.obstacles:
             ordered_verts = xyzwhl_to_ordered_vertices(prism)
             for a,b in edges:
                 point_a = ordered_verts[a]
@@ -707,7 +706,8 @@ class UR5(HolonomicRobot):
         theta_0 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         theta_1 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         theta_2 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
-        return self.make_state(np.array([theta_0, theta_1, theta_2]))
+        theta_3 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
+        return self.make_state(np.array([theta_0, theta_1, theta_2, theta_3]))
     
     def generate_robot_representation(self, state):
         raise NotImplementedError
@@ -726,61 +726,220 @@ class UR5(HolonomicRobot):
         ax.set_ylim(self.y_range[0], self.y_range[1])
         ax.set_zlim(self.z_range[0], self.z_range[1])
         
-        for prism in prisms:
+        for prism in self.obstacles:
             ordered_verts = xyzwhl_to_ordered_vertices(prism)
             for a,b in edges:
                 point_a = ordered_verts[a]
                 point_b = ordered_verts[b]
                 ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
     
+    # def forward_kinematics(self, state: NumpyState):
+    #     theta1, theta2, theta3 = state.value
+    #     print(theta1, theta2)
+    #     # H_j1f_2_wf
+    #     H1 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
+    #                    [np.sin(theta1), np.cos(theta1), 0.0, 0.0],
+    #                    [0.0, 0.0, 0.0, 0.0],
+    #                    [0.0, 0.0, 0.0, 1.0]])
+        
+    #     # H_j2f_2_j1f
+    #     H2 = np.array([[np.cos(theta2), 0.0, np.sin(theta2), 1.0],
+    #                    [0.0,            1.0,            0.0, 0.0],
+    #                    [-np.sin(theta2), 0.0, np.cos(theta2), 1.0],
+    #                    [0.0,             0.0,            0.0, 1.0]])
+        
+    #     H3 = np.array([[np.cos(theta3), 0.0, np.sin(theta3), -2.0],
+    #                    [0.0,            1.0,            0.0, 0.0],
+    #                    [-np.sin(theta3), 0.0, np.cos(theta3), 1.0],
+    #                    [0.0,             0.0,            0.0, 1.0]])
+        
+    #     homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+
+    #     # ee1 = H1 @ H2 @ homogenous_origin
+    #     # ee2 = H2 @ homogenous_origin
+
+    #     ee1 = H1 @ H2 @ homogenous_origin
+    #     ee2 = H1 @ homogenous_origin
+
+    #     ee3 = H1 @ H2 @ H3 @ homogenous_origin
+
+    #     # print(ee1)
+    #     # print(H2 @ homogenous_origin)
+
+    #     joint_poses = np.stack([np.array([0.0, 0.0, 0.0]),
+    #                             ee2[:3],
+    #                             ee1[:3],
+    #                             ee3[:3]
+    #                             ], axis=0)
+    #     print(joint_poses.shape)
+    #     print(joint_poses)
+
+    #     ees = np.stack((joint_poses[:-1], joint_poses[1:]), axis=1)
+
+    #     print(ees.shape, 'here')
+    #     print(ees)
+
+    #     return ees
+
+    # def forward_kinematics(self, state: NumpyState):
+    #     theta1, theta2, theta3 = state.value
+    #     H_10 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
+    #                      [np.sin(theta1), np.cos(theta1),  0.0, 0.0],
+    #                      [0.0,            0.0,             1.0, 0.0],
+    #                      [0.0,            0.0,             0.0, 1.0]])
+
+    #     H_21 = np.array([[np.cos(theta2), -np.sin(theta2), 0.0, 0.0],
+    #                      [0.0,            1.0,             0.0, 0.0],
+    #                      [np.sin(theta2), np.cos(theta2),  0.0, 0.0],
+    #                      [0.0,            0.0,             0.0, 1.0]])
+
+    #     H_32 = np.array([[np.cos(theta3), -np.sin(theta3), 0.0, 0.0],
+    #                      [0.0,            1.0,             0.0, 0.0],
+    #                      [np.sin(theta3), np.cos(theta3),  0.0, 0.0],
+    #                      [0.0,            0.0,             0.0, 1.0]])
+
+    #     homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+    #     homogenous_ep = np.array([1.0, 0.0, 0.0, 1.0])
+    #     homogenous_ep2 = np.array([1.0, 0.0, 0.0, 1.0])
+    #     homogenous_ep3 = np.array([1.0, 0.0, 0.0, 1.0])
+
+    #     ee = H_10 @ homogenous_ep
+    #     ee2 = H_10 @ H_21 @ homogenous_ep2
+    #     ee3 = H_10 @ H_21 @ H_32 @ homogenous_ep3
+
+    #     ee2 = ee + ee2
+    #     # ee3 = ee2 + ee3
+    #     print("HErE")
+    #     # print(ee)
+    #     # print(ee2)
+    #     # print(ee3)
+
+    #     print(H_32 @ homogenous_ep3)
+    #     print(H_21 @ H_32 @ homogenous_ep3)
+    #     print(H_10 @ H_21 @ H_32 @ homogenous_ep3)
+    #     # print("Temp", H_21 @ homogenous_ep2)
+    #     # ees = None
+    #     link1 = np.array([[0.0, 0.0, 0.0],
+    #                       ee[:3]])
+    #     link2 = np.array([ee[:3], ee2[:3]])
+    #     link3 = np.array([ee2[:3], ee3[:3]])
+    #     ees = np.stack((link1, link2, link3), axis=0).reshape(-1, 2, 3)
+    #     print(ees.shape)
+    #     return ees
+
+    # def forward_kinematics(self, state: NumpyState):
+    #     theta1, theta2, theta3 = state.value
+    #     H_10 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 1.0],
+    #                      [np.sin(theta1), np.cos(theta1),  0.0, 0.0],
+    #                      [0.0,            0.0,             1.0, 0.0],
+    #                      [0.0,            0.0,             0.0, 1.0]])
+
+    #     H_21 = np.array([[np.cos(theta3),  0.0, np.sin(theta3), 1.0],
+    #                      [0.0,             1.0, 0.0,            0.0],
+    #                      [-np.sin(theta3), 0.0, np.cos(theta3), 0.0],
+    #                      [0.0,             0.0, 0.0,            1.0]])
+
+    #     H_32 = np.array([[np.cos(theta3),  0.0, np.sin(theta3), 1.0],
+    #                      [0.0,             1.0, 0.0,            0.0],
+    #                      [-np.sin(theta3), 0.0, np.cos(theta3), 0.0],
+    #                      [0.0,             0.0, 0.0,            1.0]])
+
+    #     homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+    #     # homogenous_ep = np.array([1.0, 0.0, 0.0, 1.0])
+    #     # homogenous_ep2 = np.array([1.0, 0.0, 0.0, 1.0])
+    #     homogenous_ep3 = np.array([1.0, 0.0, 0.0, 1.0])
+
+    #     print(H_32)
+    #     print(H_21)
+
+    #     ee = H_10 @ homogenous_origin
+    #     print(ee)
+    #     ee2 = H_10 @ H_21 @ homogenous_origin
+    #     ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
+
+    #     # ee2 = ee + ee2
+    #     # ee3 = ee2 + ee3
+    #     print("HErE")
+    #     # print(ee)
+    #     # print(ee2)
+    #     # print(ee3)
+
+    #     print(H_32 @ homogenous_origin)
+    #     print(H_21 @ (H_32 @ homogenous_origin))
+    #     print(H_10 @ (H_21 @ (H_32 @ homogenous_origin)))
+    #     # print("Temp", H_21 @ homogenous_ep2)
+    #     # ees = None
+    #     link1 = np.array([[0.0, 0.0, 0.0],
+    #                         ee[:3]])
+    #     link2 = np.array([ee[:3], ee2[:3]])
+    #     link3 = np.array([ee2[:3], ee3[:3]])
+    #     ees = np.stack((link1, link2, link3), axis=0).reshape(-1, 2, 3)
+    #     print(ees.shape)
+    #     return ees
+
     def forward_kinematics(self, state: NumpyState):
-        theta1, theta2, theta3 = state.value
-        print(theta1, theta2)
-        # H_j1f_2_wf
-        H1 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
-                       [np.sin(theta1), np.cos(theta1), 0.0, 0.0],
-                       [0.0, 0.0, 0.0, 0.0],
-                       [0.0, 0.0, 0.0, 1.0]])
-        
-        # H_j2f_2_j1f
-        H2 = np.array([[np.cos(theta2), 0.0, np.sin(theta2), 1.0],
-                       [0.0,            1.0,            0.0, 0.0],
-                       [-np.sin(theta2), 0.0, np.cos(theta2), 1.0],
-                       [0.0,             0.0,            0.0, 1.0]])
-        
-        H3 = np.array([[np.cos(theta3), 0.0, np.sin(theta3), -2.0],
-                       [0.0,            1.0,            0.0, 0.0],
-                       [-np.sin(theta3), 0.0, np.cos(theta3), 1.0],
-                       [0.0,             0.0,            0.0, 1.0]])
-        
+        theta1, theta2, theta3, theta4, *_ = state.value
+        H_10 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
+                         [np.sin(theta1), np.cos(theta1),  0.0, 0.0],
+                         [0.0,            0.0,             1.0, 0.0],
+                         [0.0,            0.0,             0.0, 1.0]])
+
+        H_21 = np.array([[np.cos(theta2),  0.0, np.sin(theta2), 0.0],
+                         [0.0,             1.0, 0.0,            0.0],
+                         [-np.sin(theta2), 0.0, np.cos(theta2), 0.0],
+                         [0.0,             0.0, 0.0,            1.0]])
+
+        H_32 = np.array([[np.cos(theta3),  0.0, np.sin(theta3), 1.0],
+                         [0.0,             1.0, 0.0,            0.0],
+                         [-np.sin(theta3), 0.0, np.cos(theta3), 0.0],
+                         [0.0,             0.0, 0.0,            1.0]])
+
+        H_43 = np.array([[np.cos(theta4),  0.0, np.sin(theta4), 1.0],
+                         [0.0,             1.0, 0.0,            0.0],
+                         [-np.sin(theta4), 0.0, np.cos(theta4), 0.0],
+                         [0.0,             0.0, 0.0,            1.0]])
+
+        H_54 = np.array([[1.0, 0.0, 0.0, 1.0],
+                         [0.0, 1.0, 0.0, 0.0],
+                         [0.0, 0.0, 1.0, 0.0],
+                         [0.0, 0.0, 0.0, 1.0]])
+
         homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+        # homogenous_ep = np.array([1.0, 0.0, 0.0, 1.0])
+        # homogenous_ep2 = np.array([1.0, 0.0, 0.0, 1.0])
+        homogenous_ep3 = np.array([1.0, 0.0, 0.0, 1.0])
 
-        # ee1 = H1 @ H2 @ homogenous_origin
-        # ee2 = H2 @ homogenous_origin
+        print(H_32)
+        print(H_21)
 
-        ee1 = H1 @ H2 @ homogenous_origin
-        ee2 = H1 @ homogenous_origin
+        ee = H_10 @ homogenous_origin
+        print(ee)
+        ee2 = H_10 @ H_21 @ homogenous_origin
+        ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
+        ee4 = H_10 @ H_21 @ H_32 @ H_43 @ homogenous_origin
+        ee5 = H_10 @ H_21 @ H_32 @ H_43 @ H_54 @ homogenous_origin
 
-        ee3 = H1 @ H2 @ H3 @ homogenous_origin
+        # ee2 = ee + ee2
+        # ee3 = ee2 + ee3
+        print("HErE")
+        # print(ee)
+        # print(ee2)
+        # print(ee3)
 
-        # print(ee1)
-        # print(H2 @ homogenous_origin)
-
-        joint_poses = np.stack([np.array([0.0, 0.0, 0.0]),
-                                ee2[:3],
-                                ee1[:3],
-                                ee3[:3]
-                                ], axis=0)
-        print(joint_poses.shape)
-        print(joint_poses)
-
-        ees = np.stack((joint_poses[:-1], joint_poses[1:]), axis=1)
-
-        print(ees.shape, 'here')
-        # print(ees)
-
-        
-
+        print(H_32 @ homogenous_origin)
+        print(H_21 @ (H_32 @ homogenous_origin))
+        print(H_10 @ (H_21 @ (H_32 @ homogenous_origin)))
+        # print("Temp", H_21 @ homogenous_ep2)
+        # ees = None
+        link1 = np.array([[0.0, 0.0, 0.0],
+                            ee[:3]])
+        link2 = np.array([ee[:3], ee2[:3]])
+        link3 = np.array([ee2[:3], ee3[:3]])
+        link4 = np.array([ee3[:3], ee4[:3]])
+        link5 = np.array([ee4[:3], ee5[:3]])
+        ees = np.stack((link1, link2, link3, link4, link5), axis=0).reshape(-1, 2, 3)
+        print(ees.shape)
+        print(ees)
         return ees
     
     def batch_forward_kinematics(self, states: np.ndarray):
@@ -950,6 +1109,7 @@ if __name__ == '__main__':
 
     ## Sphere Robot PRM Search START ##
     # import time
+    # from motion_planning.search import PRM
     # env = SphereRobot()
     # env = ApproximationSpace3D(env)
 
@@ -980,6 +1140,7 @@ if __name__ == '__main__':
     # path_states = np.array([state.value for state in path])
     # print(env.batch_is_valid(path_states))
     # env.animate_path(path, method='rerun')
+    # exit()
 
     ## Sphere Robot PRM Search END ##
 
@@ -1004,8 +1165,9 @@ if __name__ == '__main__':
     env = ApproximationSpace3D(env_base)
 
     # env.draw_environment(None, None, method='rerun')
-
-    state = env.make_state(np.array([np.pi/2, np.pi/4, np.pi/2]))
+    # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/2, np.pi/2]))
+    state = env.sample_point()
+    # state = env.make_state(np.array([np.pi/2, np.pi/4, np.pi/2]))
 
     env.draw_state(None, state, method='rerun')
     # exit()
