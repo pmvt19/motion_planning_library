@@ -31,6 +31,9 @@ class RobotSpace:
         self.state_dims = None
         self.workspace_dims = None
 
+        self.c_space_lower_bound: np.ndarray | None = None
+        self.c_space_upper_bound: np.ndarray | None = None
+
     def is_valid(self, state):
         raise NotImplementedError
 
@@ -140,8 +143,27 @@ class RobotSpace:
         self.boundary = obstacle_set.boundary
 
         x_points, y_points = self.boundary.exterior.xy
-        self.x_range = [min(x_points), max(x_points)]
-        self.y_range = [min(y_points), max(y_points)]
+
+        min_x = min(x_points)
+        max_x = max(x_points)
+        min_y = min(y_points)
+        max_y = max(y_points)
+
+        self.x_range = [min_x, max_x]
+        self.y_range = [min_y, max_y]
+
+        # Some Spaces Don't have Spatial Dimensions
+        # In this case, do not adjust the c space lower and upper bounds
+        # As this would adjust the angular dimensions instead
+        # Example: FixedArm
+        # This assumes the first two dimensions are the X and Y spatial information 
+        # respectively
+        if self.angular_dims_start is None or self.angular_dims_start >= 2:
+            self.c_space_lower_bound[0] = min_x
+            self.c_space_upper_bound[0] = max_x
+
+            self.c_space_lower_bound[1] = min_y
+            self.c_space_upper_bound[1] = max_y
 
     def batch_is_valid(self, states: np.ndarray):
         validities = []
@@ -176,8 +198,10 @@ class RobotSpace:
         edge_validities = np.all(pt_validities, axis=1)
         return edge_validities
 
-    def batch_sample_point(self, num_points):
-        raise NotImplementedError
+    def batch_sample_points(self, num_points):
+        return np.random.uniform(
+            low=self.c_space_lower_bound, high=self.c_space_upper_bound, size=(num_points, self.state_dims)
+        )
 
     def batch_get_robot_representations(self, states: np.ndarray):
         raise NotImplementedError

@@ -43,6 +43,10 @@ class PlanarMobileArm(HolonomicRobot):
         self.obstacle_check_time = 0
         self.generate_state_time = 0
 
+        self.state_dims = 2 + self.num_links # (X, Y, Theta1, Theta2...)
+        self.c_space_lower_bound = np.array([-10, -10] + [0.0] * self.num_links)
+        self.c_space_upper_bound = np.array([10, 10, np.pi] + [2*np.pi] * (self.num_links - 1))
+
     def dist(self, state1: NumpyState, state2: NumpyState) -> float:
         state1 = self.get_state_value(state1)
         state2 = self.get_state_value(state2)
