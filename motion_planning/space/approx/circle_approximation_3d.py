@@ -693,7 +693,8 @@ class UR5(HolonomicRobot):
         aa_rect_prism5 = np.array([2.5,0,2.5,5,5,1])
 
         # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
+        # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
+        prisms = np.array([aa_rect_prism5])
         self.obstacles = prisms
         ### HARD CODED ###
 
@@ -732,150 +733,6 @@ class UR5(HolonomicRobot):
                 point_a = ordered_verts[a]
                 point_b = ordered_verts[b]
                 ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
-    
-    # def forward_kinematics(self, state: NumpyState):
-    #     theta1, theta2, theta3 = state.value
-    #     print(theta1, theta2)
-    #     # H_j1f_2_wf
-    #     H1 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
-    #                    [np.sin(theta1), np.cos(theta1), 0.0, 0.0],
-    #                    [0.0, 0.0, 0.0, 0.0],
-    #                    [0.0, 0.0, 0.0, 1.0]])
-        
-    #     # H_j2f_2_j1f
-    #     H2 = np.array([[np.cos(theta2), 0.0, np.sin(theta2), 1.0],
-    #                    [0.0,            1.0,            0.0, 0.0],
-    #                    [-np.sin(theta2), 0.0, np.cos(theta2), 1.0],
-    #                    [0.0,             0.0,            0.0, 1.0]])
-        
-    #     H3 = np.array([[np.cos(theta3), 0.0, np.sin(theta3), -2.0],
-    #                    [0.0,            1.0,            0.0, 0.0],
-    #                    [-np.sin(theta3), 0.0, np.cos(theta3), 1.0],
-    #                    [0.0,             0.0,            0.0, 1.0]])
-        
-    #     homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
-
-    #     # ee1 = H1 @ H2 @ homogenous_origin
-    #     # ee2 = H2 @ homogenous_origin
-
-    #     ee1 = H1 @ H2 @ homogenous_origin
-    #     ee2 = H1 @ homogenous_origin
-
-    #     ee3 = H1 @ H2 @ H3 @ homogenous_origin
-
-    #     # print(ee1)
-    #     # print(H2 @ homogenous_origin)
-
-    #     joint_poses = np.stack([np.array([0.0, 0.0, 0.0]),
-    #                             ee2[:3],
-    #                             ee1[:3],
-    #                             ee3[:3]
-    #                             ], axis=0)
-    #     print(joint_poses.shape)
-    #     print(joint_poses)
-
-    #     ees = np.stack((joint_poses[:-1], joint_poses[1:]), axis=1)
-
-    #     print(ees.shape, 'here')
-    #     print(ees)
-
-    #     return ees
-
-    # def forward_kinematics(self, state: NumpyState):
-    #     theta1, theta2, theta3 = state.value
-    #     H_10 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
-    #                      [np.sin(theta1), np.cos(theta1),  0.0, 0.0],
-    #                      [0.0,            0.0,             1.0, 0.0],
-    #                      [0.0,            0.0,             0.0, 1.0]])
-
-    #     H_21 = np.array([[np.cos(theta2), -np.sin(theta2), 0.0, 0.0],
-    #                      [0.0,            1.0,             0.0, 0.0],
-    #                      [np.sin(theta2), np.cos(theta2),  0.0, 0.0],
-    #                      [0.0,            0.0,             0.0, 1.0]])
-
-    #     H_32 = np.array([[np.cos(theta3), -np.sin(theta3), 0.0, 0.0],
-    #                      [0.0,            1.0,             0.0, 0.0],
-    #                      [np.sin(theta3), np.cos(theta3),  0.0, 0.0],
-    #                      [0.0,            0.0,             0.0, 1.0]])
-
-    #     homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
-    #     homogenous_ep = np.array([1.0, 0.0, 0.0, 1.0])
-    #     homogenous_ep2 = np.array([1.0, 0.0, 0.0, 1.0])
-    #     homogenous_ep3 = np.array([1.0, 0.0, 0.0, 1.0])
-
-    #     ee = H_10 @ homogenous_ep
-    #     ee2 = H_10 @ H_21 @ homogenous_ep2
-    #     ee3 = H_10 @ H_21 @ H_32 @ homogenous_ep3
-
-    #     ee2 = ee + ee2
-    #     # ee3 = ee2 + ee3
-    #     print("HErE")
-    #     # print(ee)
-    #     # print(ee2)
-    #     # print(ee3)
-
-    #     print(H_32 @ homogenous_ep3)
-    #     print(H_21 @ H_32 @ homogenous_ep3)
-    #     print(H_10 @ H_21 @ H_32 @ homogenous_ep3)
-    #     # print("Temp", H_21 @ homogenous_ep2)
-    #     # ees = None
-    #     link1 = np.array([[0.0, 0.0, 0.0],
-    #                       ee[:3]])
-    #     link2 = np.array([ee[:3], ee2[:3]])
-    #     link3 = np.array([ee2[:3], ee3[:3]])
-    #     ees = np.stack((link1, link2, link3), axis=0).reshape(-1, 2, 3)
-    #     print(ees.shape)
-    #     return ees
-
-    # def forward_kinematics(self, state: NumpyState):
-    #     theta1, theta2, theta3 = state.value
-    #     H_10 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 1.0],
-    #                      [np.sin(theta1), np.cos(theta1),  0.0, 0.0],
-    #                      [0.0,            0.0,             1.0, 0.0],
-    #                      [0.0,            0.0,             0.0, 1.0]])
-
-    #     H_21 = np.array([[np.cos(theta3),  0.0, np.sin(theta3), 1.0],
-    #                      [0.0,             1.0, 0.0,            0.0],
-    #                      [-np.sin(theta3), 0.0, np.cos(theta3), 0.0],
-    #                      [0.0,             0.0, 0.0,            1.0]])
-
-    #     H_32 = np.array([[np.cos(theta3),  0.0, np.sin(theta3), 1.0],
-    #                      [0.0,             1.0, 0.0,            0.0],
-    #                      [-np.sin(theta3), 0.0, np.cos(theta3), 0.0],
-    #                      [0.0,             0.0, 0.0,            1.0]])
-
-    #     homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
-    #     # homogenous_ep = np.array([1.0, 0.0, 0.0, 1.0])
-    #     # homogenous_ep2 = np.array([1.0, 0.0, 0.0, 1.0])
-    #     homogenous_ep3 = np.array([1.0, 0.0, 0.0, 1.0])
-
-    #     print(H_32)
-    #     print(H_21)
-
-    #     ee = H_10 @ homogenous_origin
-    #     print(ee)
-    #     ee2 = H_10 @ H_21 @ homogenous_origin
-    #     ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
-
-    #     # ee2 = ee + ee2
-    #     # ee3 = ee2 + ee3
-    #     print("HErE")
-    #     # print(ee)
-    #     # print(ee2)
-    #     # print(ee3)
-
-    #     print(H_32 @ homogenous_origin)
-    #     print(H_21 @ (H_32 @ homogenous_origin))
-    #     print(H_10 @ (H_21 @ (H_32 @ homogenous_origin)))
-    #     # print("Temp", H_21 @ homogenous_ep2)
-    #     # ees = None
-    #     link1 = np.array([[0.0, 0.0, 0.0],
-    #                         ee[:3]])
-    #     link2 = np.array([ee[:3], ee2[:3]])
-    #     link3 = np.array([ee2[:3], ee3[:3]])
-    #     ees = np.stack((link1, link2, link3), axis=0).reshape(-1, 2, 3)
-    #     print(ees.shape)
-    #     return ees
 
     def forward_kinematics(self, state: NumpyState):
         theta1, theta2, theta3, theta4, *_ = state.value
@@ -909,11 +766,11 @@ class UR5(HolonomicRobot):
         # homogenous_ep2 = np.array([1.0, 0.0, 0.0, 1.0])
         homogenous_ep3 = np.array([1.0, 0.0, 0.0, 1.0])
 
-        print(H_32)
-        print(H_21)
+        # print(H_32)
+        # print(H_21)
 
         ee = H_10 @ homogenous_origin
-        print(ee)
+        # print(ee)
         ee2 = H_10 @ H_21 @ homogenous_origin
         ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
         ee4 = H_10 @ H_21 @ H_32 @ H_43 @ homogenous_origin
@@ -921,14 +778,15 @@ class UR5(HolonomicRobot):
 
         # ee2 = ee + ee2
         # ee3 = ee2 + ee3
-        print("HErE")
+        # print("HErE")
         # print(ee)
         # print(ee2)
         # print(ee3)
 
-        print(H_32 @ homogenous_origin)
-        print(H_21 @ (H_32 @ homogenous_origin))
-        print(H_10 @ (H_21 @ (H_32 @ homogenous_origin)))
+        # print(H_32 @ homogenous_origin)
+        # print(H_21 @ (H_32 @ homogenous_origin))
+        # print(H_10 @ (H_21 @ (H_32 @ homogenous_origin)))
+
         # print("Temp", H_21 @ homogenous_ep2)
         # ees = None
         link1 = np.array([[0.0, 0.0, 0.0],
@@ -938,8 +796,9 @@ class UR5(HolonomicRobot):
         link4 = np.array([ee3[:3], ee4[:3]])
         link5 = np.array([ee4[:3], ee5[:3]])
         ees = np.stack((link1, link2, link3, link4, link5), axis=0).reshape(-1, 2, 3)
-        print(ees.shape)
-        print(ees)
+
+        # print(ees.shape)
+        # print(ees)
         return ees
     
     def batch_forward_kinematics(self, states: np.ndarray):
@@ -1170,6 +1029,18 @@ if __name__ == '__main__':
     # state = env.make_state(np.array([np.pi/2, np.pi/4, np.pi/2]))
 
     env.draw_state(None, state, method='rerun')
+
+    from motion_planning.search import PRM
+    prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
+
+    prm.create_graph()
+    start, target = env.sample_point(), env.sample_point()
+
+    path = prm.search(start, target)
+    path = interpolate_path(path, env, 0.01)
+    print(path.path)
+    env.animate_path(path, method='rerun')
+
     # exit()
 
     # env_base.forward_kinematics(state)
