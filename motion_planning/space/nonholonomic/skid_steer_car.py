@@ -28,6 +28,10 @@ class SkidSteerCar(NonHolonomicRobot):
         self.state_dim = 3
         self.control_dim = 2
 
+        self.state_dims = 2 # (X, Y, theta)
+        self.c_space_lower_bound = np.array([-10, -10, 0.0])
+        self.c_space_upper_bound = np.array([10, 10, 2*np.pi])
+
     def sample_point(self):
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
