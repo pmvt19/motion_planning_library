@@ -32,6 +32,10 @@ class PolygonalRobot(HolonomicRobot):
 
         self.do_boundary_check = True
 
+        self.state_dims = 3 # (X, Y, Theta)
+        self.c_space_lower_bound = np.array([-10, -10, 0.0])
+        self.c_space_upper_bound = np.array([10, 10, 2*np.pi])
+
     def make_state(self, state: np.ndarray):
         return AngularNumpyState(
             value=state, angular_dims_start=self.angular_dims_start

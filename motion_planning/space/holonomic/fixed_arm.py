@@ -19,6 +19,10 @@ class FixedArm(HolonomicRobot):
         self.arm_link_lengths = arm_link_lengths
         self.num_links = len(self.arm_link_lengths)
 
+        self.state_dims = 2 # (Theta1, Theta2)
+        self.c_space_lower_bound = np.array([0.0, 0.0])
+        self.c_space_upper_bound = np.array([2*np.pi, 2*np.pi])
+
     def dist(self, state1, state2) -> float:
         return numpystate_distance(state1, state2)
 
