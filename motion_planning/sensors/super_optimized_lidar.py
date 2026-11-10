@@ -15,7 +15,15 @@ from motion_planning.utils import (
 )
 
 class SuperOptimizedLidar():
-    def __init__(self, noise, angle_range, num_angles, max_dist, obstacle_set=None, verbose=False):
+    def __init__(
+            self,
+            noise,
+            angle_range,
+            num_angles,
+            max_dist,
+            obstacle_set=None,
+            verbose=False
+    ):
         self.engine = PointRobot()
         
         issue_warning(True, "Lidar Noise does not work", 'warning')
@@ -119,8 +127,15 @@ class SuperOptimizedLidar():
                 line_idx = min_idxes[i]
                 intersection_point = points[i, line_idx]
                 my_dist = min_vals[i]
-                readings.append((angles[i], self.engine.make_state(intersection_point), my_dist, self.engine.make_state(fp)))
+                readings.append(
+                    (
+                        angles[i],
+                        self.engine.make_state(intersection_point),
+                        my_dist,
+                        self.engine.make_state(fp)
+                    )
+                )
             else:
                 readings.append((angles[i], None, np.inf, self.engine.make_state(fp)))
 
-        return readings        
+        return readings
