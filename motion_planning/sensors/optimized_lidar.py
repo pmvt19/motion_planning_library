@@ -29,7 +29,9 @@ class OptimizedLidar():
 
         if obstacle_set:
             self.engine.set_obstacles(obstacle_set)
-        self.engine = ApproximationSpace(self.engine, batch_size=1000, do_overapproximation=True)
+        self.engine = ApproximationSpace(
+            self.engine, batch_size=1000, do_overapproximation=True
+        )
 
     def read_sensor(self, sensor_position):
         sensor_position = self.engine.get_state_value(sensor_position)
@@ -41,11 +43,15 @@ class OptimizedLidar():
         dy_sin = np.sin(angles).reshape(-1, 1) * self.max_dist
 
         farthest_points = sensor_position.reshape(-1, 2) * np.hstack((dx_cos, dy_sin)) 
-        sensor_position_repeated = np.repeat(sensor_position.reshape(1, -1), self.num_angles, axis=0)
+        sensor_position_repeated = np.repeat(
+            sensor_position.reshape(1, -1), self.num_angles, axis=0
+        )
 
         B, d = farthest_points.shape
 
-        pts, steps = batch_interpolate_edge(sensor_position_repeated, farthest_points, self.resolution, None)
+        pts, steps = batch_interpolate_edge(
+            sensor_position_repeated, farthest_points, self.resolution, None
+        )
         pts_reshape = pts.reshape(-1, d)
         pt_validities = self.engine.batch_is_valid(pts_reshape).reshape(B, -1)
 
@@ -54,8 +60,25 @@ class OptimizedLidar():
             if len(idx_list) > 0:
                 interest_idx = idx_list[0]
                 obstacle_point = pts[i, :steps[i]][interest_idx]
-                readings.append((angles[i], self.engine.make_state(obstacle_point), self.engine.dist(self.engine.make_state(sensor_position), self.engine.make_state(obstacle_point)), self.engine.make_state(pts[i, :steps[i]][-1])))
+                readings.append(
+                    (
+                        angles[i],
+                        self.engine.make_state(obstacle_point),
+                        self.engine.dist(
+                            self.engine.make_state(sensor_position),
+                            self.engine.make_state(obstacle_point)
+                        ),
+                        self.engine.make_state(pts[i, :steps[i]][-1])
+                    )
+                )
             else:
-                readings.append((angles[i], None, np.inf, self.engine.make_state(pts[i, :steps[i]][-1])))
+                readings.append(
+                    (
+                        angles[i],
+                        None,
+                        np.inf,
+                        self.engine.make_state(pts[i, :steps[i]][-1])
+                    )
+                )
 
         return readings
