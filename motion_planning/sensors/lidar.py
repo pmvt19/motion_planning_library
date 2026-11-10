@@ -46,7 +46,11 @@ class Lidar():
             
             ex, ey = sx + dx, sy + dy
 
-            points = interpolate_edge(self.engine.make_state(sensor_position), self.engine.make_state(np.array([ex,ey])), self.resolution)
+            points = interpolate_edge(
+                self.engine.make_state(sensor_position),
+                self.engine.make_state(np.array([ex,ey])), 
+                self.resolution
+            )
             
 
             obstacle_point = None
@@ -63,9 +67,26 @@ class Lidar():
             angle_noise = 0
             dist_noise = 0
             if obstacle_point:
-                readings.append((angle+angle_noise, obstacle_point, self.engine.dist(self.engine.make_state(sensor_position), obstacle_point)+dist_noise, self.engine.make_state(last_point)))
+                readings.append(
+                    (
+                        angle+angle_noise,
+                        obstacle_point,
+                        self.engine.dist(
+                            self.engine.make_state(sensor_position),
+                            obstacle_point
+                        ) + dist_noise,
+                        self.engine.make_state(last_point)
+                    )
+                )
             else:
-                readings.append((angle+angle_noise, obstacle_point, np.inf, self.engine.make_state(last_point)))
+                readings.append(
+                    (
+                        angle + angle_noise,
+                        obstacle_point,
+                        np.inf,
+                        self.engine.make_state(last_point)
+                    )
+                )
 
         # TODO: Change the return result to only angle, dist
         return readings
@@ -95,7 +116,6 @@ if __name__ == '__main__':
     locs = []
     all_lidar_points = []
     st = time.time()
-    print("Before loops")
     for i in range(10):
         print(f"Running Iteration: {i}")
         loc = lidar.engine.sample_valid_point()
