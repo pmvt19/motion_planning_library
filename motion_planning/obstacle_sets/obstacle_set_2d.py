@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 from motion_planning.obstacle_sets import ObstacleSet
 
 
@@ -5,7 +7,7 @@ class ObstacleSet2d(ObstacleSet):
     def __init__(self, obstacles, boundary):
         super().__init__(obstacles=obstacles, boundary=boundary)
     
-    def draw(self, ax):
+    def draw(self, ax: plt.Axes):
         x_points, y_points = self.boundary.exterior.xy
         x_range = [min(x_points), max(x_points)]
         y_range = [min(y_points), max(y_points)]
