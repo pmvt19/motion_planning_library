@@ -14,8 +14,9 @@ class DualCup(ObstacleSet3D):
 
         prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
         self.obstacles = prisms
+        self.boundary = None # TODO: Complete the Boundary (Not that hard)
 
-        super().__init__(obstacles=self.obstacles, boundary=None)
+        super().__init__(obstacles=self.obstacles, boundary=self.boundary)
 
 
 if __name__ == '__main__':
