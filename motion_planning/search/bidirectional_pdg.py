@@ -44,7 +44,7 @@ class BiDirectionalPDG():
             i -= 1
         return path
 
-    def backtrack(self, forward_pdg: OptimizedPDG, backward_pdg: OptimizedPDG, connection):
+    def backtrack(self, forward_pdg: PDG, backward_pdg: PDG, connection):
         start_time = time.time()
         if connection is None:
             return Path()

@@ -9,7 +9,7 @@ from motion_planning.space import ApproximationSpace
 from motion_planning.obstacle_sets import BiasedPassage
 
 # Search Algorithm Imports
-from motion_planning.search import RRT, PRM, Lightning, OptimizedPDG
+from motion_planning.search import RRT, PRM, Lightning, PDG
 
 def run_experiment(seed, timing_dict: dict[str, list], path_dict: dict[str, list]):
     np.random.seed(seed)
@@ -25,7 +25,7 @@ def run_experiment(seed, timing_dict: dict[str, list], path_dict: dict[str, list
     rrt = RRT(env)
     prm = PRM(env, num_samples=5000, num_neighbors=10, validate_edges=True)
     lightning = Lightning(env, db_path=db_path)
-    optimized_pdg = OptimizedPDG(env=env, db_path=db_path)
+    optimized_pdg = PDG(env=env, db_path=db_path)
 
     prm_create_graph_start = time.time()
     prm.create_graph()
