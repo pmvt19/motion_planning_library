@@ -3,6 +3,7 @@ import time
 
 import numpy as np
 import rerun as rr
+from sklearn.metrics import pairwise_distances
 
 from motion_planning.obstacle_sets import ObstacleSet
 from motion_planning.space import HolonomicRobot, RobotSpace
@@ -494,6 +495,11 @@ class ApproximationSpace3D(RobotSpace):
             rr.init("3D Environment", spawn=True)
             rr.log("Obstacle Spheres", rr.Points3D([self.obstacle_circles[:, :3]], colors=[0, 0, 255], radii=self.obstacle_circles[:, 3]))
 
+            for i, obst in enumerate(self.space.obstacles):
+                centers = obst[:3]
+                half_sizes = obst[3:] / 2
+                rr.log(f"obsts_{i}", rr.Boxes3D(centers=centers, half_sizes=half_sizes, colors=[0, 0, 255], fill_mode=rr.components.FillMode.Solid))
+
     def draw_state_env(self, ax, state, method='o3d'):
         
         if method == 'o3d':
@@ -567,7 +573,8 @@ class ApproximationSpace3D(RobotSpace):
         return self.space.sample_point()
     
     def is_valid(self, state):
-        return self.space.is_valid(state)
+        state = self.get_state_value(state)
+        return self.batch_is_valid(state.reshape(1, -1))
 
     def make_state(self, state):
         return self.space.make_state(state)
@@ -686,19 +693,22 @@ class UR5(HolonomicRobot):
         self.do_boundary_check = True
 
         ### HARD CODED ###
-        aa_rect_prism1 = np.array([0,0,0,1,5,5])
-        aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
-        aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
-        aa_rect_prism4 = np.array([2.5,0,-2.5,5,5,1])
-        aa_rect_prism5 = np.array([2.5,0,2.5,5,5,1])
+        aa_rect_prism1 = np.array([2,0,1,0.2,1,1])
+        aa_rect_prism2 = np.array([1.5,0.5,1,1,0.2,1])
+        aa_rect_prism3 = np.array([1.5,-0.5,1,1,0.2,1])
+        aa_rect_prism4 = np.array([1.5,0,0.5,1,1,0.2])
+        aa_rect_prism5 = np.array([1.5,0,1.5,1,1,0.2])
 
-        # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-        # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
-        prisms = np.array([aa_rect_prism5])
+        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
+        prisms[:, 0] = prisms[:, 0] + 1
         self.obstacles = prisms
         ### HARD CODED ###
 
         self.num_collision_checks = 0
+
+        self.state_dims = 4
+        self.c_space_lower_bound = np.array([0.0, 0.0, 0.0, 0.0])
+        self.c_space_upper_bound = np.array([2*np.pi, 2*np.pi, 2*np.pi, 2*np.pi])
     
     def make_state(self, state):
         return AngularNumpyState(value=state, angular_dims_start=self.angular_dims_start)
@@ -762,61 +772,27 @@ class UR5(HolonomicRobot):
                          [0.0, 0.0, 0.0, 1.0]])
 
         homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
-        # homogenous_ep = np.array([1.0, 0.0, 0.0, 1.0])
-        # homogenous_ep2 = np.array([1.0, 0.0, 0.0, 1.0])
-        homogenous_ep3 = np.array([1.0, 0.0, 0.0, 1.0])
-
-        # print(H_32)
-        # print(H_21)
 
         ee = H_10 @ homogenous_origin
-        # print(ee)
         ee2 = H_10 @ H_21 @ homogenous_origin
         ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
         ee4 = H_10 @ H_21 @ H_32 @ H_43 @ homogenous_origin
         ee5 = H_10 @ H_21 @ H_32 @ H_43 @ H_54 @ homogenous_origin
 
-        # ee2 = ee + ee2
-        # ee3 = ee2 + ee3
-        # print("HErE")
-        # print(ee)
-        # print(ee2)
-        # print(ee3)
-
-        # print(H_32 @ homogenous_origin)
-        # print(H_21 @ (H_32 @ homogenous_origin))
-        # print(H_10 @ (H_21 @ (H_32 @ homogenous_origin)))
-
-        # print("Temp", H_21 @ homogenous_ep2)
-        # ees = None
-        link1 = np.array([[0.0, 0.0, 0.0],
-                            ee[:3]])
-        link2 = np.array([ee[:3], ee2[:3]])
+        # link1 = np.array([[0.0, 0.0, 0.0],
+        #                     ee[:3]])
+        # link2 = np.array([ee[:3], ee2[:3]])
         link3 = np.array([ee2[:3], ee3[:3]])
         link4 = np.array([ee3[:3], ee4[:3]])
         link5 = np.array([ee4[:3], ee5[:3]])
-        ees = np.stack((link1, link2, link3, link4, link5), axis=0).reshape(-1, 2, 3)
+        ees = np.stack((link3, link4, link5), axis=0).reshape(-1, 2, 3)
 
-        # print(ees.shape)
-        # print(ees)
         return ees
     
     def batch_forward_kinematics(self, states: np.ndarray):
         # states: (N, m)
         # returns: (N, m, 2, 3)
         N, m = states.shape
-
-        # H1 = np.array([[np.cos()]])
-
-        # return np.empty((0, m, 2, 3))
-
-        # out1 = np.array([[[[0.0, 0.0, 0.0],
-        #                    [1.0, 1.0, 1.0]],
-        #                   [[1.0, 1.0, 1.0],
-        #                    [0.0, 0.0, 2.0]]]])
-        # print(out1.shape)
-
-        # return out1
 
         fks = []
         for state in states:
@@ -835,6 +811,18 @@ class UR5(HolonomicRobot):
             'points' : np.empty((0, 3)),
             'points_radii' : self.robot_radius
         }
+
+    def sample_configs_ee_target(self, target_ee_position) -> np.ndarray:
+        tolerance = 0.5
+        points = self.batch_sample_points(100000) # (B, n)
+        ees = self.batch_forward_kinematics(points) # (B, 3, 2, 3)
+        ee_positions = ees[:, -1, -1] # (B, 3)
+        
+        dist_mat = pairwise_distances(target_ee_position.reshape(1, -1), ee_positions)
+        dist_array = dist_mat[0]
+        mask = dist_array < tolerance
+        final_qs = points[mask]
+        return final_qs
     
     def batch_sample_points_around_target(self, targets):
         raise NotImplementedError
@@ -931,7 +919,6 @@ if __name__ == '__main__':
 
     ## Batch Commenting out END ##
 
-
     # aa_rect_prism = np.array([0,0,0,2,3,3.1])
     # aa_rect_prism = np.array([0,0,0,2,3.1,3])
 
@@ -1019,27 +1006,48 @@ if __name__ == '__main__':
     #     env.space.draw_environment(ax)
     #     env.space.draw_state(ax, path[i])
     #     plt.pause(0.1)
-
+    from motion_planning.utils import set_numpy_seed
+    # set_numpy_seed(1)
     env_base = UR5()
     env = ApproximationSpace3D(env_base)
+    env.draw_environment(None, None, method='rerun')
+    exit()
 
     # env.draw_environment(None, None, method='rerun')
     # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/2, np.pi/2]))
-    state = env.sample_point()
-    # state = env.make_state(np.array([np.pi/2, np.pi/4, np.pi/2]))
+    # state = env.sample_point()
+    state = env.make_state(np.array([0.0, -np.pi/4, np.pi/5, 0.0]))
+    # env.draw_environment(None, None, method='rerun')
+    # env.draw_state(None, state, method='rerun')
+    # exit()
+    # env.draw_state(None, state, method='rerun')
 
-    env.draw_state(None, state, method='rerun')
+    from motion_planning.search import PRM, RRT
+    # prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
+    prm = PRM(env, num_samples=10000, num_neighbors=10, validate_edges=True)
+    # rrt = RRT(env, delta=1.0)
 
-    from motion_planning.search import PRM
-    prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
+    target_points = env_base.sample_configs_ee_target(np.array([2.5, 0, 1.0]))
+    print(target_points.shape)
 
-    prm.create_graph()
+    prm.create_graph(starting_samples=target_points)
     start, target = env.sample_point(), env.sample_point()
+    target = state
+    start = env.make_state(np.array([0.0, 0.0, 0.0, 0.0]))
 
     path = prm.search(start, target)
-    path = interpolate_path(path, env, 0.01)
-    print(path.path)
+    # path = rrt.search(start, target, max_steps=100000)
+    # path = interpolate_path(path, env, 0.1)
+    # print(path.path)
     env.animate_path(path, method='rerun')
+
+    for state in path.path:
+        print(env.is_valid(state))
+
+    numpy_path = np.array([state.value for state in path.path])
+    
+    path_edges = np.concatenate((numpy_path[:-1], numpy_path[1:]), axis=1)
+    print(env.batch_is_valid_edge(numpy_path[:-1], numpy_path[1:]))
 
     # exit()
 
