@@ -6,7 +6,7 @@ from sklearn.neighbors import KDTree
 
 from motion_planning.space import RobotSpace
 from motion_planning.tools import Path
-from motion_planning.search import OptimizedPDG
+from motion_planning.search import PDG
 
 class BiDirectionalPDG():
     def __init__(self, env: RobotSpace, db_path: str):
@@ -15,8 +15,8 @@ class BiDirectionalPDG():
         self.max_connection_distance: float = 0.5
 
         start_time = time.time()
-        self.forward_pdg = OptimizedPDG(self.env, self.db_path)
-        self.backward_pdg = OptimizedPDG(self.env, self.db_path)
+        self.forward_pdg = PDG(self.env, self.db_path)
+        self.backward_pdg = PDG(self.env, self.db_path)
         end_time = time.time()
         print(f"Time to Instantiate PDGs: {end_time - start_time}")
 
