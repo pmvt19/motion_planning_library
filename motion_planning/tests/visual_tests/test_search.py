@@ -19,7 +19,7 @@ from motion_planning.search import (
     MedialAxisRRT,
     NonUniformPRM,
     BiDirectionalPDG,
-    OptimizedPDG,
+    PDG,
     RRTStar,
 )
 from motion_planning.space import ApproximationSpace, PointRobot, RobotSpace
@@ -166,7 +166,7 @@ class TestDatabaseSearchMethods(unittest.TestCase):
         plt.show()
 
     def test_pdg(self):
-        pdg = OptimizedPDG(env=self.env, db_path=self.db_path)
+        pdg = PDG(env=self.env, db_path=self.db_path)
         pdg.compute_retained_paths(self.target)
         path = pdg.search(self.start, self.target)
 

@@ -9,7 +9,7 @@ from .rsg import RandomSampleGeneration
 from .biased_rrt import BiasedSamplingRRT
 from .medial_axis import MedialAxisRRT, MedialAxisPRM
 from .lightning import Lightning
-from .pdg import OptimizedPDG
+from .pdg import PDG
 from .bidirectional_pdg import BiDirectionalPDG
 from .informed_rrt_star import InformedRRTStar
 from .kinodynamic_rrt import KinodynamicRRT

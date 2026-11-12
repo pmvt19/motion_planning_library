@@ -17,7 +17,13 @@ from motion_planning.search import RRT
 
 from motion_planning.tools.timer import Timer
 
-class OptimizedPDG():
+# This search method used to be called "OptimizedPDG" as there previously was a version
+# of PDG that was not written with as many optimizations as this version. The old 
+# version of PDG has since been deprecated and can be found in the archive/ directory.
+# This will be the only lasting version of PDG (excluding variants) that the motion
+# planning library will support.
+
+class PDG():
     def __init__(self, env, db_path, prevalidate_paths: bool = True):
         self.db: Database = pickle.load(open(db_path, 'rb'))
         self.env: RobotSpace = env
@@ -375,7 +381,7 @@ if __name__ == '__main__':
     timer = Timer()
 
     timer.mark_time("Creating PDG Object")
-    pdg = OptimizedPDG(env, db_save_path)
+    pdg = PDG(env, db_save_path)
 
     
     timer.mark_time("Creating Task")
