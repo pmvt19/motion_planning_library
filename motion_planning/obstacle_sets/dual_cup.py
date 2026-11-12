@@ -2,21 +2,51 @@ import numpy as np
 
 from motion_planning.obstacle_sets.obstacle_set_3d import ObstacleSet3D
 
+
 class DualCup(ObstacleSet3D):
     def __init__(self):
-        
-
         aa_rect_prism1 = np.array([0,0,0,1,5,5])
         aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
         aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
         aa_rect_prism4 = np.array([2.5,0,-2.5,5,5,1])
         aa_rect_prism5 = np.array([2.5,0,2.5,5,5,1])
 
-        prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3, aa_rect_prism4, aa_rect_prism5])
+        prisms = np.array(
+            [
+                aa_rect_prism1,
+                aa_rect_prism2,
+                aa_rect_prism3,
+                aa_rect_prism4,
+                aa_rect_prism5
+            ]
+        )
         self.obstacles = prisms
-        self.boundary = None # TODO: Complete the Boundary (Not that hard)
+        self.boundary = np.array([0,0,0,10,10,10])
 
         super().__init__(obstacles=self.obstacles, boundary=self.boundary)
+
+    def create_single_cup(self, x, y, z, x_angle, y_angle, z_angle):
+        aa_rect_prism1 = np.array([0,0,0,1,5,5])
+        aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
+        aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
+        aa_rect_prism4 = np.array([2.5,0,-2.5,5,5,1])
+        aa_rect_prism5 = np.array([2.5,0,2.5,5,5,1])
+
+        prisms = np.array(
+            [
+                aa_rect_prism1,
+                aa_rect_prism2,
+                aa_rect_prism3,
+                aa_rect_prism4,
+                aa_rect_prism5
+            ]
+        )
+
+        x_axis = np.array([1.0, 0.0, 0.0])
+        y_axis = np.array([0.0, 1.0, 0.0])
+        z_axis = np.array([0.0, 0.0, 1.0])
+
+        coords = prisms[:, :3]
 
 
 if __name__ == '__main__':
