@@ -130,15 +130,12 @@ class PolygonalRobot(HolonomicRobot):
 
         radii = np.ones((B, 1)) * self.robot_width / 2
 
-        # TODO: Standardize the returnable for this function
         return {
             "rectangles": np.empty((0, 4)),
             "segments": segments,
             "points": np.empty((0, 2)),
             "points_radius": 0.0,
             "segments_radii": radii,
-            "line_approx_non_aarect": segments,
-            "line_approx_non_aarect_radii": radii,
         }
 
     def batch_sample_points_around_target(self, targets: np.ndarray):
