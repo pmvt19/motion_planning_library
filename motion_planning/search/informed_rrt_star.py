@@ -21,7 +21,6 @@ class InformedRRTStar(RRTStar):
             max_rewire_neighbors=max_rewire_neighbors,
         )
 
-    # TODO: Potentially Optimize This Loop
     def sample_point_in_ellipse(self, path_length: float) -> NumpyState:
         sampled_point = self.env.sample_valid_point()
 
@@ -34,7 +33,6 @@ class InformedRRTStar(RRTStar):
 
         return sampled_point
 
-    # TODO: Potentially Optimize This Loop
     def compute_path_length(self, path: Path) -> float:
         path_length = 0
         for i in range(len(path) - 1):
