@@ -23,7 +23,6 @@ class DiscRobot(HolonomicRobot):
         return NumpyState(state)
 
     def generate_robot_representation(self, state):
-        # TODO
         state = self.get_state_value(state)
         robot = Point(state).buffer(self.disc_radius)
         return robot
@@ -46,13 +45,11 @@ class DiscRobot(HolonomicRobot):
             return False
 
         for obs in self.obstacles:
-            # if robot.within(obs):
             if obs.intersects(robot):
                 return False
         return True
 
     def draw_state(self, ax, state):
-        # TODO:
         robot = self.generate_robot_representation(state)
         xr, yr = robot.exterior.xy
         ax.fill(xr, yr, color="red")
@@ -66,7 +63,6 @@ class DiscRobot(HolonomicRobot):
     ## ---- Batched Methods ---- ##
 
     def batch_get_robot_representations(self, states: np.ndarray) -> dict:
-        # TODO:
         # states # (B, 2)
         return {
             "rectangles": np.empty((0, 4)),
