@@ -26,9 +26,15 @@ def single_batch_size_run(space: RobotSpace, batch_size: int, sample_sizes: list
         batch_sampled_points = temp_batch_sample_points(approx_space, sample_size)
         et = time.time()
 
+        
+
         print(f"Sample Size: {sample_size}")
 
         print(f"Time to Sample Points: {et - st}")
+        st = time.time()
+        batch_sampled_points = approx_space.batch_sample_points(sample_size)
+        et = time.time()
+        print(f"Time to Batch Sample Points: {et - st}")
 
         st = time.time()
         approx_space.batch_is_valid(batch_sampled_points)

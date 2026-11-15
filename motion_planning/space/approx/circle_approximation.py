@@ -295,6 +295,9 @@ class ApproximationSpace(RobotSpace):
     
     def make_state(self, state):
         return self.space.make_state(state)
+
+    def batch_sample_points(self, num_points):
+        return self.space.batch_sample_points(num_points=num_points)
     
     def batch_sample_points_around_target(self, targets):
         return self.space.batch_sample_points_around_target(targets)
