@@ -53,7 +53,7 @@ class CSpaceVisualizer:
     def _generate_obstacle_points(self, sample_size=100000):
         approx_env = ApproximationSpace(self.env, batch_size=1000)
         start_time = time.time()
-        points = np.array([approx_env.sample_point().value for _ in range(sample_size)])
+        points = approx_env.batch_sample_points(sample_size)
         end_time = time.time()
         print(f"Time to Sample Points: {end_time - start_time}")
 
