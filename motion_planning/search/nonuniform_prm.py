@@ -22,6 +22,7 @@ class NonUniformPRM(PRM):
         self.scale = scale
 
     def batch_generate_sample_points(self, starting_samples=[]):
+        # TODO: Make this use batch sampling
         points = np.array(
             [self.env.sample_point().value for _ in range(self.num_samples)]
             + [sample for sample in starting_samples]
