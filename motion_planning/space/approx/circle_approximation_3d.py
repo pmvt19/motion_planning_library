@@ -402,10 +402,10 @@ class ApproximationSpace3D(RobotSpace):
         rr.init("3D Environment", spawn=True)
         rr.log("Obstacle Spheres", rr.Points3D([self.obstacle_circles[:, :3]], colors=[0, 0, 255], radii=self.obstacle_circles[:, 3]))
 
-        for i, obst in enumerate(self.space.obstacles):
-            centers = obst[:3]
-            half_sizes = obst[3:] / 2
-            rr.log(f"obsts_{i}", rr.Boxes3D(centers=centers, half_sizes=half_sizes, colors=[0, 0, 255], fill_mode=rr.components.FillMode.Solid))
+        # for i, obst in enumerate(self.space.obstacles):
+        #     centers = obst[:3]
+        #     half_sizes = obst[3:] / 2
+        #     rr.log(f"obsts_{i}", rr.Boxes3D(centers=centers, half_sizes=half_sizes, colors=[0, 0, 255], fill_mode=rr.components.FillMode.Solid))
 
     def draw_state_env(self, ax, state, method='rerun'):
         rr.init("3D State & Environment", spawn=True)
@@ -578,21 +578,57 @@ class UR5(HolonomicRobot):
 
     def is_valid(self, state):
         raise NotImplementedError
-    
-    def draw_state(self, ax, state):
-        raise NotImplementedError
 
-    def draw_environment(self, ax):
-        ax.set_xlim(self.x_range[0], self.x_range[1])
-        ax.set_ylim(self.y_range[0], self.y_range[1])
-        ax.set_zlim(self.z_range[0], self.z_range[1])
+    # TODO: Fix the cylinders 
+    def draw_state(self, ax, state, method="rerun"):
+        rr.init("ur5 drawing", spawn=True)
+
+        ees = self.forward_kinematics(state)
+        cylinder_centers = np.mean(ees, axis=1) # (N, 3)
+        direction_vectors = np.diff(ees[:, :, :], axis=1).squeeze() # (N, 3)
+        normalized_direction_vectors = direction_vectors / np.linalg.norm(direction_vectors, axis=1) # (N, 3)
+
+        z = np.array([0.0, 0.0, 1.0])
         
-        for prism in self.obstacles:
-            ordered_verts = xyzwhl_to_ordered_vertices(prism)
-            for a,b in edges:
-                point_a = ordered_verts[a]
-                point_b = ordered_verts[b]
-                ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
+        rotation_axis = np.cross(z, normalized_direction_vectors) # (N, 3)
+
+        # Dot Product Only Preserves the Z Component
+        dot_prods = normalized_direction_vectors[:, 2]
+        
+        rotation_magnitude = np.arccos(dot_prods) # a . b = ||a|| * ||b|| * cos(theta) (N,)
+
+        rotation_axis_angles=[
+            rr.RotationAxisAngle(
+                rotation_axis[i],
+                rr.Angle(rad=rotation_magnitude[i]),
+            )
+            for i in range(len(rotation_axis))
+        ]
+        rr.log(f"links_{0}", rr.Cylinders3D(lengths=1.0, radii=0.1, centers=cylinder_centers, colors=[[255, 0, 0]], rotation_axis_angles=rotation_axis_angles, fill_mode=rr.components.FillMode.Solid))
+        rr.log("ees", rr.Points3D(ees.reshape(-1, 3), colors=[255, 255, 0], radii=0.05))
+
+    def draw_environment(self, ax, method="rerun"):
+        if method == "rerun":
+            rr.init("ur5 drawing", spawn=True)
+            # TODO: Remove this loop, we can do this in one shot
+            for i, obst in enumerate(self.obstacles):
+                centers = obst[:3]
+                half_sizes = obst[3:] / 2
+                rr.log(f"obsts_{i}", rr.Boxes3D(centers=centers, half_sizes=half_sizes, colors=[0, 0, 255], fill_mode=rr.components.FillMode.Solid))
+        elif method == "matplotlib":
+            ax.set_xlim(self.x_range[0], self.x_range[1])
+            ax.set_ylim(self.y_range[0], self.y_range[1])
+            ax.set_zlim(self.z_range[0], self.z_range[1])
+            
+            for prism in self.obstacles:
+                ordered_verts = xyzwhl_to_ordered_vertices(prism)
+                for a,b in edges:
+                    point_a = ordered_verts[a]
+                    point_b = ordered_verts[b]
+                    ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
+        else:
+            raise ValueError("Drawing Method Not Supported")
+        
 
     def forward_kinematics(self, state: NumpyState):
         theta1, theta2, theta3, theta4, *_ = state.value
@@ -860,7 +896,12 @@ if __name__ == '__main__':
     # set_numpy_seed(1)
     env_base = UR5()
     env = ApproximationSpace3D(env_base)
-    env.draw_environment(None, None, method='rerun')
+    # env_base.draw_environment(None, method='rerun')
+    # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/5, 0.0]))
+    state = env.make_state(np.array([np.pi/4, -np.pi/4, np.pi/4, np.pi/4]))
+    env.draw_state(None, state, method="rerun")
+    env_base.draw_state(None, state, method="rerun")
+    
     exit()
 
     # env.draw_environment(None, None, method='rerun')
