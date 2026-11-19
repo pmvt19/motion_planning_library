@@ -29,10 +29,13 @@ class PRM:
         self.cache_graph_edge_validities = False
 
     def batch_generate_sample_points(self, starting_samples=[]):
-        points = np.array(
-            [self.env.sample_point().value for _ in range(self.num_samples)]
-            + [sample for sample in starting_samples]
-        )
+        # points = np.array(
+        #     [self.env.sample_point().value for _ in range(self.num_samples)]
+        #     + [sample for sample in starting_samples]
+        # )
+        starting_samples = np.array(starting_samples)
+        sampled_points = self.env.batch_sample_points(self.num_samples)
+        points = np.concatenate((sampled_points, starting_samples.reshape(-1, self.env.state_dims)), axis=0)
         validities = self.env.batch_is_valid(points)
         return points[validities]
 
