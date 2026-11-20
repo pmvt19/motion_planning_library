@@ -233,7 +233,7 @@ class RobotSpace3D(RobotSpace):
 
 
 class ApproximationSpace3D(RobotSpace):
-    def __init__(self, space : RobotSpace, batch_size=1000, do_overapproximation=False):
+    def __init__(self, space: RobotSpace, batch_size=1000, do_overapproximation=False):
         self.space = space
         self.batch_size = batch_size
         self.do_overapproximation = do_overapproximation
@@ -244,6 +244,10 @@ class ApproximationSpace3D(RobotSpace):
         self.obstacle_circles = self.space_to_circles()
 
         self.num_collision_checks = 0
+
+        self.state_dims = self.space.state_dims
+        self.c_space_lower_bound = self.space.c_space_lower_bound
+        self.c_space_upper_bound = self.space.c_space_upper_bound
     
     def obstacles_to_3d_aabb(self, obstacles): # TODO: Needs to be implemented properly with representations of 3d obsts
         aabbs = []
@@ -898,11 +902,13 @@ if __name__ == '__main__':
     env = ApproximationSpace3D(env_base)
     # env_base.draw_environment(None, method='rerun')
     # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/5, 0.0]))
-    state = env.make_state(np.array([np.pi/4, -np.pi/4, np.pi/4, np.pi/4]))
+    # state = env.make_state(np.array([np.pi/4, -np.pi/4, np.pi/4, np.pi/4]))
+    # state = env.sample_point()
+    state = env.make_state(np.array([0.0, 0.0, -np.pi/4, -np.pi/4]))
     env.draw_state(None, state, method="rerun")
     env_base.draw_state(None, state, method="rerun")
     
-    exit()
+    # exit()
 
     # env.draw_environment(None, None, method='rerun')
     # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/2, np.pi/2]))
