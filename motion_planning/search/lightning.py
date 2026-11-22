@@ -14,11 +14,10 @@ from motion_planning.tools import Path
 from motion_planning.utils import smooth_path, interpolate_path
 
 
-
 class Lightning():
     def __init__(self, env, db_path, max_repair_steps=10000):
-        self.db : Database = pickle.load(open(db_path, 'rb'))
-        self.env : RobotSpace = env
+        self.db: Database = pickle.load(open(db_path, 'rb'))
+        self.env: RobotSpace = env
         self.max_repair_steps : int = max_repair_steps
 
     def count_invalid_segments(self, path_validities):
@@ -29,7 +28,6 @@ class Lightning():
                 num_invalid += 1
             prev = validity
         return num_invalid
-
 
     def compute_candidate_paths(self, start, target, n=5):
 
@@ -103,7 +101,6 @@ class Lightning():
         rrt = RRT(self.env)
 
         for seg_start_idx, seg_end_idx in intervals:
-
             repaired_segment = rrt.search(path[seg_start_idx-1], path[seg_end_idx], max_steps=self.max_repair_steps)
             repaired_segments.append(repaired_segment)
 
@@ -115,7 +112,6 @@ class Lightning():
         path_to_target = rrt.search(path[-1], self.target, max_steps=self.max_repair_steps)
         
         return start_to_path.path + path + path_to_target.path
-
 
     def search(self, start, target, n=10):
         start_time = time.time()
@@ -156,7 +152,6 @@ class Lightning():
             prev = validity
         intervals_segs.append(len(self.path_validity))
         return intervals_segs
-        
     
     def draw(self, ax, path, show_task=True, show_unrepaired_path=True, verbose=True):
         self.env.draw_environment(ax)
@@ -197,7 +192,6 @@ class Lightning():
 
                 ax.scatter(unrepaired_path_states[start_idx:end_idx, 0], unrepaired_path_states[start_idx:end_idx, 1], color='orange', alpha=alpha_val)
                 ax.add_collection(LineCollection(unrepaired_path_edges, color='purple', alpha=alpha_val, zorder=edge_zorder))
-        
 
 
 if __name__ == '__main__':
@@ -222,8 +216,6 @@ if __name__ == '__main__':
     print("start", start.value)
     print("target", target.value)
 
-
-
     lightning = Lightning(env=env, db_path=db_path)
     
     # env.space.draw_environment(plt.gca())
@@ -245,10 +237,3 @@ if __name__ == '__main__':
     path = rrt.search(start, target, max_steps=10000)
 
     print(f"Total Final Collision Checks: {env.num_collision_checks}", env.space.num_collision_checks)
-
-
-
-
-
-        
-
