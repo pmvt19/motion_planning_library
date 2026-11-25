@@ -91,29 +91,6 @@ class UR5(RobotSpace3D, HolonomicRobot):
         )
         rr.log("ees", rr.Points3D(ees.reshape(-1, 3), colors=[255, 255, 0], radii=0.05))
 
-    def draw_environment(self, ax, method="rerun"):
-        if method == "rerun":
-            rr.init("ur5 drawing", spawn=True)
-            # TODO: Remove this loop, we can do this in one shot
-            for i, obst in enumerate(self.obstacles):
-                centers = obst[:3]
-                half_sizes = obst[3:] / 2
-                rr.log(f"obsts_{i}", rr.Boxes3D(centers=centers, half_sizes=half_sizes, colors=[0, 0, 255], fill_mode=rr.components.FillMode.Solid))
-        # elif method == "matplotlib":
-        #     ax.set_xlim(self.x_range[0], self.x_range[1])
-        #     ax.set_ylim(self.y_range[0], self.y_range[1])
-        #     ax.set_zlim(self.z_range[0], self.z_range[1])
-            
-        #     for prism in self.obstacles:
-        #         ordered_verts = xyzwhl_to_ordered_vertices(prism)
-        #         for a,b in edges:
-        #             point_a = ordered_verts[a]
-        #             point_b = ordered_verts[b]
-        #             ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
-        else:
-            raise ValueError("Drawing Method Not Supported")
-        
-
     def forward_kinematics(self, state: NumpyState):
         theta1, theta2, theta3, theta4, *_ = state.value
         H_10 = np.array([[np.cos(theta1), -np.sin(theta1), 0.0, 0.0],
