@@ -3,11 +3,10 @@ import time
 
 import numpy as np
 import rerun as rr
-from sklearn.metrics import pairwise_distances
 
 from motion_planning.obstacle_sets import ObstacleSet
 from motion_planning.space import HolonomicRobot, RobotSpace
-from motion_planning.tools import AngularNumpyState, NumpyState
+from motion_planning.tools import NumpyState
 from motion_planning.utils import numpystate_distance, interpolate_path
 
 
@@ -44,8 +43,11 @@ class SphereRobot(HolonomicRobot):
 
         # TODO: Add CSpace Dimensions
         # TODO: Fix Obstacle Setting
-
         self.num_collision_checks = 0
+
+        self.state_dims = 3
+        self.c_space_lower_bound = np.array([-10.0, -10.0, -10.0])
+        self.c_space_upper_bound = np.array([10.0, 10.0, 10.0])
     
     def make_state(self, state):
         return NumpyState(value=state)
@@ -74,23 +76,24 @@ class SphereRobot(HolonomicRobot):
 
     def is_valid(self, state):
         raise NotImplementedError
-    
-    def draw_state(self, ax, state):
-        cpx, cpy, cpz = self.generate_robot_representation(state)
-        # ax.plot_surface(cpx, cpy, cpz, color="r")
-        ax.plot_wireframe(cpx, cpy, cpz, color="r")
 
-    def draw_environment(self, ax):
-        ax.set_xlim(self.x_range[0], self.x_range[1])
-        ax.set_ylim(self.y_range[0], self.y_range[1])
-        ax.set_zlim(self.z_range[0], self.z_range[1])
+    # TODO: Reimplement with Rerun
+    # def draw_state(self, ax, state):
+    #     cpx, cpy, cpz = self.generate_robot_representation(state)
+    #     # ax.plot_surface(cpx, cpy, cpz, color="r")
+    #     ax.plot_wireframe(cpx, cpy, cpz, color="r")
+
+    # def draw_environment(self, ax):
+    #     ax.set_xlim(self.x_range[0], self.x_range[1])
+    #     ax.set_ylim(self.y_range[0], self.y_range[1])
+    #     ax.set_zlim(self.z_range[0], self.z_range[1])
         
-        for prism in self.obstacles:
-            ordered_verts = xyzwhl_to_ordered_vertices(prism)
-            for a,b in edges:
-                point_a = ordered_verts[a]
-                point_b = ordered_verts[b]
-                ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
+    #     for prism in self.obstacles:
+    #         ordered_verts = xyzwhl_to_ordered_vertices(prism)
+    #         for a,b in edges:
+    #             point_a = ordered_verts[a]
+    #             point_b = ordered_verts[b]
+    #             ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
 
     def batch_get_robot_representations(self, states):
         return {
