@@ -663,15 +663,6 @@ class UR5(HolonomicRobot):
                          [0.0, 0.0, 0.0, 1.0]])
 
         homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
-
-        # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
-        # ee = H_10 @ homogenous_origin
-        # ee2 = H_10 @ H_21 @ homogenous_origin
-        # ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
-        # ee4 = H_10 @ H_21 @ H_32 @ H_43 @ homogenous_origin
-        # ee5 = H_10 @ H_21 @ H_32 @ H_43 @ H_54 @ homogenous_origin
-        # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
-
         transformation_matricies = [H_10, H_21, H_32, H_43, H_54]
 
         # Start the Cumulative Matrix as the identity matrix
@@ -686,12 +677,8 @@ class UR5(HolonomicRobot):
             cum_transformation_matricies.append(cum_mat.copy())
 
         cum_transformation_matricies = np.array(cum_transformation_matricies)
-        print(cum_transformation_matricies.shape)
 
         links = cum_transformation_matricies @ homogenous_origin
-        print(links.shape)
-
-        print(links)
 
         # Convert From Homogenous Coordinates
         links = links / links[:, 3:]
@@ -700,24 +687,7 @@ class UR5(HolonomicRobot):
         # Remove First Link Since it's just a Rotation and will always have endpoints
         # at the origin
         links = links[1:]
-        print(links.shape, links[:-1].shape, links[1:].shape)
         link_ees = np.stack((links[:-1], links[1:]), axis=1)
-        print(link_ees)
-        print(link_ees.shape)
-
-        
-        # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
-        # link1 = np.array([[0.0, 0.0, 0.0],
-        #                     ee[:3]])
-        # link2 = np.array([ee[:3], ee2[:3]])
-        # link3 = np.array([ee2[:3], ee3[:3]])
-        # link4 = np.array([ee3[:3], ee4[:3]])
-        # link5 = np.array([ee4[:3], ee5[:3]])
-        # ees = np.stack((link3, link4, link5), axis=0).reshape(-1, 2, 3)
-        # print(ees)
-        # print(ees.shape)
-        # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
-        # exit()
 
         return link_ees
     
