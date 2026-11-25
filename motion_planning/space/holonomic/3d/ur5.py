@@ -4,11 +4,12 @@ from sklearn.metrics import pairwise_distances
 
 from motion_planning.obstacle_sets import ObstacleSet
 from motion_planning.space import HolonomicRobot, RobotSpace
+from motion_planning.space.approx.circle_approximation_3d import RobotSpace3D
 from motion_planning.tools import NumpyState, AngularNumpyState
 from motion_planning.utils import numpystate_distance, interpolate_path
 
 
-class UR5(HolonomicRobot):
+class UR5(RobotSpace3D, HolonomicRobot):
     def __init__(self):
         super().__init__()
 
@@ -300,3 +301,7 @@ class UR5(HolonomicRobot):
     
     def batch_sample_points_around_target(self, targets):
         raise NotImplementedError
+
+if __name__ == "__main__":
+    env = UR5()
+    env.draw_state(None, env.sample_point())
