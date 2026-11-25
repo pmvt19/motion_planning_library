@@ -231,8 +231,6 @@ class RobotSpace3D(RobotSpace):
 
         mid_x, mid_y, mid_z, x_len, y_len, z_len = self.boundary
 
-        # x_points, y_points = self.boundary.exterior.xy
-
         min_x = mid_x - x_len / 2
         max_x = mid_x + x_len / 2
         min_y = mid_y - y_len / 2
@@ -349,6 +347,28 @@ class RobotSpace3D(RobotSpace):
         points = np.hstack((output, np.ones((output.shape[0],1))*z, np.ones((output.shape[0],1))*zl/2))
 
         return points
+
+    def draw_environment(self, ax, method="rerun"):
+        if method == "rerun":
+            rr.init("3D Environment", spawn=True)
+            # TODO: Remove this loop, we can do this in one shot
+            for i, obst in enumerate(self.obstacles):
+                centers = obst[:3]
+                half_sizes = obst[3:] / 2
+                rr.log(f"obsts_{i}", rr.Boxes3D(centers=centers, half_sizes=half_sizes, colors=[0, 0, 255], fill_mode=rr.components.FillMode.Solid))
+        # elif method == "matplotlib":
+        #     ax.set_xlim(self.x_range[0], self.x_range[1])
+        #     ax.set_ylim(self.y_range[0], self.y_range[1])
+        #     ax.set_zlim(self.z_range[0], self.z_range[1])
+            
+        #     for prism in self.obstacles:
+        #         ordered_verts = xyzwhl_to_ordered_vertices(prism)
+        #         for a,b in edges:
+        #             point_a = ordered_verts[a]
+        #             point_b = ordered_verts[b]
+        #             ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
+        else:
+            raise ValueError("Drawing Method Not Supported")
 
 
 class ApproximationSpace3D(RobotSpace):
