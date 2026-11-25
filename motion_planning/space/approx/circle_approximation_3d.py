@@ -584,7 +584,6 @@ class UR5(HolonomicRobot):
     def is_valid(self, state):
         raise NotImplementedError
 
-    # TODO: Fix the cylinders 
     def draw_state(self, ax, state, method="rerun"):
         rr.init("ur5 drawing", spawn=True)
 
@@ -609,7 +608,18 @@ class UR5(HolonomicRobot):
             )
             for i in range(len(rotation_axis))
         ]
-        rr.log(f"links_{0}", rr.Cylinders3D(lengths=1.0, radii=0.1, centers=cylinder_centers, colors=[[255, 0, 0]], rotation_axis_angles=rotation_axis_angles, fill_mode=rr.components.FillMode.Solid))
+
+        rr.log(
+            "links",
+            rr.Cylinders3D(
+                lengths=1.0,
+                radii=0.1,
+                centers=cylinder_centers,
+                colors=[[255, 0, 0]],
+                rotation_axis_angles=rotation_axis_angles,
+                fill_mode=rr.components.FillMode.Solid
+            )
+        )
         rr.log("ees", rr.Points3D(ees.reshape(-1, 3), colors=[255, 255, 0], radii=0.05))
 
     def draw_environment(self, ax, method="rerun"):
@@ -691,16 +701,111 @@ class UR5(HolonomicRobot):
 
         return link_ees
     
-    def batch_forward_kinematics(self, states: np.ndarray):
+    def batch_forward_kinematics(self, states: np.ndarray, use_optimization: bool = True):
         # states: (N, m)
-        # returns: (N, m, 2, 3)
+        # returns: (N, m-1, 2, 3)
         N, m = states.shape
 
-        fks = []
-        for state in states:
-            fks.append(self.forward_kinematics(self.make_state(state)))
         
-        return np.stack(fks, axis=0)
+
+        if use_optimization:
+            # TODO: Unify theta index with actual array index (i.e. theta0 -> for index 0)
+            # Must be done here and in forward kinematics function as well
+
+            thetas1 = states[:, 0]
+            thetas2 = states[:, 1]
+            thetas3 = states[:, 2]
+            thetas4 = states[:, 3]
+
+            zeros = np.zeros(N)
+            ones = np.ones(N)
+            batch_H_10 = np.array(
+                [
+                    [np.cos(thetas1), -np.sin(thetas1), zeros, zeros],
+                    [np.sin(thetas1), np.cos(thetas1),  zeros, zeros],
+                    [zeros,           zeros,            ones,  zeros],
+                    [zeros,           zeros,            zeros, ones]
+                ]
+            )
+            batch_H_10 = batch_H_10.transpose(2, 0, 1)
+
+            batch_H_21 = np.array(
+                [
+                    [np.cos(thetas2),  zeros, np.sin(thetas2), zeros],
+                    [zeros,            ones,            zeros, zeros],
+                    [-np.sin(thetas2), zeros, np.cos(thetas2), zeros],
+                    [zeros,            zeros,           zeros, ones]
+                ]
+            )
+            batch_H_21 = batch_H_21.transpose(2, 0, 1)
+
+            batch_H_32 = np.array(
+                [
+                    [np.cos(thetas3),  zeros, np.sin(thetas3), ones],
+                    [zeros,            ones,            zeros, zeros],
+                    [-np.sin(thetas3), zeros, np.cos(thetas3), zeros],
+                    [zeros,            zeros,           zeros, ones]
+                ]
+            )
+            batch_H_32 = batch_H_32.transpose(2, 0, 1)
+
+            batch_H_43 = np.array(
+                [
+                    [np.cos(thetas4),  zeros, np.sin(thetas4), ones],
+                    [zeros,            ones,            zeros, zeros],
+                    [-np.sin(thetas4), zeros, np.cos(thetas4), zeros],
+                    [zeros,            zeros,           zeros, ones]
+                ]
+            )
+            batch_H_43 = batch_H_43.transpose(2, 0, 1)
+
+            batch_H_54 = np.array(
+                [
+                    [ones,  zeros, zeros, ones],
+                    [zeros, ones,  zeros, zeros],
+                    [zeros, zeros, ones,  zeros],
+                    [zeros, zeros, zeros, ones]
+                ]
+            )
+            batch_H_54 = batch_H_54.transpose(2, 0, 1)
+
+            transformation_matricies = [batch_H_10, batch_H_21, batch_H_32, batch_H_43, batch_H_54]
+            
+            # Start the Cumulative Matrix as the identity matrix
+            cum_mat = np.eye(4)
+    
+            cum_transformation_matricies: list[np.ndarray] = []
+    
+            for i in range(len(transformation_matricies)):
+                cum_mat = cum_mat @ transformation_matricies[i]
+    
+                # Copy the Cumulative Matrix to avoid overwriting appended results
+                cum_transformation_matricies.append(cum_mat.copy())
+    
+            cum_transformation_matricies = np.array(cum_transformation_matricies)
+            cum_transformation_matricies = cum_transformation_matricies.transpose(1, 0, 2, 3)
+
+            homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+
+            batch_ees = cum_transformation_matricies @ homogenous_origin
+
+            # Convert from homogeneous coordinates
+            batch_ees = batch_ees / batch_ees[:, :, 3:]
+
+            # Remove Scaling Factor
+            batch_ees = batch_ees[:, :, :3]
+
+            # Remove First Link Since it's just a Rotation and will always have endpoints
+            # at the origin
+            batch_ees = batch_ees[:, 1:, :]
+            batch_link_ees = np.stack((batch_ees[:, :-1], batch_ees[:, 1:]), axis=2)
+            return batch_link_ees
+        else:
+            fks = []
+            for state in states:
+                fks.append(self.forward_kinematics(self.make_state(state)))
+            
+            return np.stack(fks, axis=0)
 
     def batch_get_robot_representations(self, states):
 
@@ -914,12 +1019,36 @@ if __name__ == '__main__':
     env = ApproximationSpace3D(env_base)
     # env_base.draw_environment(None, method='rerun')
     # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/5, 0.0]))
-    # state = env.make_state(np.array([np.pi/4, -np.pi/4, np.pi/4, np.pi/4]))
-    state = env.sample_point()
+    state = env.make_state(np.array([np.pi/4, -np.pi/4, np.pi/4, np.pi/4]))
+
+    op_res = env_base.batch_forward_kinematics(state.value.reshape(1, -1), use_optimization=True)
+    unop_res = env_base.batch_forward_kinematics(state.value.reshape(1, -1), use_optimization=False)
+    # print(op_res, unop_res)
+    # exit()
+
+    # state = env.sample_point()
     # state = env.make_state(np.array([0.0, 0.0, -np.pi/4, -np.pi/4]))
-    env.draw_state(None, state, method="rerun")
-    env_base.draw_state(None, state, method="rerun")
-    exit()
+    # env.draw_state(None, state, method="rerun")
+    # env_base.draw_state(None, state, method="rerun")
+    points = env.batch_sample_points(100000)
+    st = time.time()
+    optimized_res = env_base.batch_forward_kinematics(points, use_optimization=True)
+    
+    et = time.time()
+    optimized_time = et-st
+    print(optimized_time)
+
+    st = time.time()
+    unoptimized_res = env_base.batch_forward_kinematics(points, use_optimization=False)
+    et = time.time()
+    unoptimized_time = et - st
+    print(unoptimized_time)
+
+    print((unoptimized_time - optimized_time)/unoptimized_time * 100) 
+
+    print(optimized_res == unoptimized_res)
+    
+    # exit()
     
     # exit()
 
@@ -940,7 +1069,10 @@ if __name__ == '__main__':
     target_points = env_base.sample_configs_ee_target(np.array([2.5, 0, 1.0]))
     print(target_points.shape)
 
+    st = time.time()
     prm.create_graph(starting_samples=target_points)
+    et = time.time()
+    print(et-st, "Time to create prm graph")
     start, target = env.sample_point(), env.sample_point()
     target = state
     start = env.make_state(np.array([0.0, 0.0, 0.0, 0.0]))
