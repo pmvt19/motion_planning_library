@@ -707,7 +707,7 @@ class UR5(HolonomicRobot):
         N, m = states.shape
 
         
-
+        # TODO: Deprecate Unoptimized Version
         if use_optimization:
             # TODO: Unify theta index with actual array index (i.e. theta0 -> for index 0)
             # Must be done here and in forward kinematics function as well
@@ -821,7 +821,7 @@ class UR5(HolonomicRobot):
 
     def sample_configs_ee_target(self, target_ee_position: np.ndarray) -> np.ndarray:
         tolerance = 0.5
-        points = self.batch_sample_points(100000) # (B, n)
+        points = self.batch_sample_points(1000000) # (B, n)
         ees = self.batch_forward_kinematics(points) # (B, 3, 2, 3)
         ee_positions = ees[:, -1, -1] # (B, 3)
         
@@ -1014,7 +1014,7 @@ if __name__ == '__main__':
     #     env.space.draw_state(ax, path[i])
     #     plt.pause(0.1)
     from motion_planning.utils import set_numpy_seed
-    # set_numpy_seed(1)
+    set_numpy_seed(5568)
     env_base = UR5()
     env = ApproximationSpace3D(env_base)
     # env_base.draw_environment(None, method='rerun')
@@ -1043,14 +1043,7 @@ if __name__ == '__main__':
     et = time.time()
     unoptimized_time = et - st
     print(unoptimized_time)
-
     print((unoptimized_time - optimized_time)/unoptimized_time * 100) 
-
-    print(optimized_res == unoptimized_res)
-    
-    # exit()
-    
-    # exit()
 
     # env.draw_environment(None, None, method='rerun')
     # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/2, np.pi/2]))
@@ -1063,7 +1056,8 @@ if __name__ == '__main__':
 
     from motion_planning.search import PRM, RRT
     # prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
-    prm = PRM(env, num_samples=10000, num_neighbors=10, validate_edges=True)
+    # prm = PRM(env, num_samples=10000, num_neighbors=10, validate_edges=True)
+    prm = PRM(env, num_samples=100000, edge_dist_radius=0.5, validate_edges=True)
     # rrt = RRT(env, delta=1.0)
 
     target_points = env_base.sample_configs_ee_target(np.array([2.5, 0, 1.0]))
@@ -1079,7 +1073,7 @@ if __name__ == '__main__':
 
     path = prm.search(start, target)
     # path = rrt.search(start, target, max_steps=100000)
-    # path = interpolate_path(path, env, 0.1)
+    path = interpolate_path(path, env, 0.1)
     # print(path.path)
     env.animate_path(path, method='rerun')
 
