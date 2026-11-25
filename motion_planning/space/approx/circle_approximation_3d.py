@@ -221,15 +221,44 @@ def drawSphere(xCenter, yCenter, zCenter, r):
 
 class RobotSpace3D(RobotSpace):
     def __init__(self):
-        pass
+        self.x_range = [-10, 10]
+        self.y_range = [-10, 10]
+        self.z_range = [-10, 10]
 
     def set_obstacles(self, obstacle_set: ObstacleSet):
         self.obstacles = obstacle_set.obstacles
-        # self.boundary = obstacle_set.boundary
+        self.boundary = obstacle_set.boundary
+
+        mid_x, mid_y, mid_z, x_len, y_len, z_len = self.boundary
 
         # x_points, y_points = self.boundary.exterior.xy
-        # self.x_range = [min(x_points), max(x_points)]
-        # self.y_range = [min(y_points), max(y_points)]
+
+        min_x = mid_x - x_len / 2
+        max_x = mid_x + x_len / 2
+        min_y = mid_y - y_len / 2
+        max_y = mid_y + y_len / 2
+        min_z = mid_z - z_len / 2
+        max_z = mid_z + z_len / 2
+
+        self.x_range = [min_x, max_x]
+        self.y_range = [min_y, max_y]
+        self.z_range = [min_z, max_z]
+
+        # Some Spaces Don't have Spatial Dimensions
+        # In this case, do not adjust the c space lower and upper bounds
+        # As this would adjust the angular dimensions instead
+        # Example: FixedArm
+        # This assumes the first two dimensions are the X and Y spatial information 
+        # respectively
+        if self.angular_dims_start is None or self.angular_dims_start >= 3:
+            self.c_space_lower_bound[0] = min_x
+            self.c_space_upper_bound[0] = max_x
+
+            self.c_space_lower_bound[1] = min_y
+            self.c_space_upper_bound[1] = max_y
+
+            self.c_space_lower_bound[2] = min_z
+            self.c_space_upper_bound[2] = max_z
 
     def rect_prism_to_circles_x_short(self, aa_rect_prism):
         # aa_rect (x,y,z,xl,yl,zl)
