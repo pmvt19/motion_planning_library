@@ -231,6 +231,96 @@ class RobotSpace3D(RobotSpace):
         # self.x_range = [min(x_points), max(x_points)]
         # self.y_range = [min(y_points), max(y_points)]
 
+    def rect_prism_to_circles_x_short(self, aa_rect_prism):
+        # aa_rect (x,y,z,xl,yl,zl)
+
+        radii = aa_rect_prism[3] / 2
+        x, y, z, xl, yl, zl = aa_rect_prism
+
+        segment_lengths = yl - (2*radii)
+        num_points = math.ceil(segment_lengths / (2*radii))
+        delta = segment_lengths / num_points
+
+        ys = [y-yl/2+radii]
+        for i in range(num_points):
+            ys.append(ys[-1] + delta)
+
+        segment_lengths = zl - (2*radii)
+        num_points = math.ceil(segment_lengths / (2*radii))
+        delta = segment_lengths / num_points
+
+        zs = [z-zl/2+radii]
+        for i in range(num_points):
+            zs.append(zs[-1] + delta)
+
+        ys = np.array(ys)
+        zs = np.array(zs)
+
+        output = np.array(np.meshgrid(ys,zs)).T.reshape(-1, 2)
+        points = np.hstack((np.ones((output.shape[0],1))*x, output, np.ones((output.shape[0],1))*xl/2))
+
+        return points
+
+    def rect_prism_to_circles_y_short(self, aa_rect_prism):
+        # aa_rect (x,y,z,xl,yl,zl)
+
+        radii = aa_rect_prism[4] / 2
+        x, y, z, xl, yl, zl = aa_rect_prism
+
+        segment_lengths = xl - (2*radii)
+        num_points = math.ceil(segment_lengths / (2*radii))
+        delta = segment_lengths / num_points
+
+        xs = [x-xl/2+radii]
+        for i in range(num_points):
+            xs.append(xs[-1] + delta)
+
+        segment_lengths = zl - (2*radii)
+        num_points = math.ceil(segment_lengths / (2*radii))
+        delta = segment_lengths / num_points
+
+        zs = [z-zl/2+radii]
+        for i in range(num_points):
+            zs.append(zs[-1] + delta)
+
+        xs = np.array(xs)
+        zs = np.array(zs)
+
+        output = np.array(np.meshgrid(xs,zs)).T.reshape(-1, 2)
+        points = np.hstack((output[:, 0].reshape(-1, 1), np.ones((output.shape[0],1))*y, output[:, 1].reshape(-1, 1), np.ones((output.shape[0],1))*yl/2))
+
+        return points
+
+    def rect_prism_to_circles_z_short(self, aa_rect_prism):
+        # aa_rect (x,y,z,xl,yl,zl)
+
+        radii = aa_rect_prism[5] / 2
+        x, y, z, xl, yl, zl = aa_rect_prism
+
+        segment_lengths = xl - (2*radii)
+        num_points = math.ceil(segment_lengths / (2*radii))
+        delta = segment_lengths / num_points
+
+        xs = [x-xl/2+radii]
+        for i in range(num_points):
+            xs.append(xs[-1] + delta)
+
+        segment_lengths = yl - (2*radii)
+        num_points = math.ceil(segment_lengths / (2*radii))
+        delta = segment_lengths / num_points
+
+        ys = [y-yl/2+radii]
+        for i in range(num_points):
+            ys.append(ys[-1] + delta)
+
+        xs = np.array(xs)
+        ys = np.array(ys)
+
+        output = np.array(np.meshgrid(xs,ys)).T.reshape(-1, 2)
+        points = np.hstack((output, np.ones((output.shape[0],1))*z, np.ones((output.shape[0],1))*zl/2))
+
+        return points
+
 
 class ApproximationSpace3D(RobotSpace):
     def __init__(self, space: RobotSpace, batch_size=1000, do_overapproximation=False):
@@ -268,9 +358,15 @@ class ApproximationSpace3D(RobotSpace):
         representations = self.space.batch_get_robot_representations(states)
         B, *_ = states.shape
 
-        prism_circles = self.prisms_to_circles(representations['prisms']).reshape(B, -1, 4)
-        cylinder_circles = self.cylinders_to_circles(representations['cylinders'], 
-                                                     representations['cylinder_radii']).reshape(B, -1, 4)
+        prism_circles = self.prisms_to_circles(
+            representations['prisms']
+        ).reshape(B, -1, 4)
+
+        cylinder_circles = self.cylinders_to_circles(
+            representations['cylinders'], 
+            representations['cylinder_radii']
+        ).reshape(B, -1, 4)
+
         point_circles = self.points_to_circles(representations['points'], representations['points_radii']).reshape(B, -1, 4)
         # print(prism_circles.shape, cylinder_circles.shape, point_circles.shape)
         state_circles = np.concatenate((prism_circles, cylinder_circles, point_circles), axis=1)
@@ -808,7 +904,6 @@ class UR5(HolonomicRobot):
             return np.stack(fks, axis=0)
 
     def batch_get_robot_representations(self, states):
-
         cylinder_endpoints = self.batch_forward_kinematics(states)
 
         return {
@@ -1014,7 +1109,7 @@ if __name__ == '__main__':
     #     env.space.draw_state(ax, path[i])
     #     plt.pause(0.1)
     from motion_planning.utils import set_numpy_seed
-    set_numpy_seed(5568)
+    # set_numpy_seed(5568)
     env_base = UR5()
     env = ApproximationSpace3D(env_base)
     # env_base.draw_environment(None, method='rerun')
@@ -1056,8 +1151,8 @@ if __name__ == '__main__':
 
     from motion_planning.search import PRM, RRT
     # prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
-    # prm = PRM(env, num_samples=10000, num_neighbors=10, validate_edges=True)
-    prm = PRM(env, num_samples=100000, edge_dist_radius=0.5, validate_edges=True)
+    prm = PRM(env, num_samples=10000, num_neighbors=10, validate_edges=True)
+    # prm = PRM(env, num_samples=100000, edge_dist_radius=0.5, validate_edges=True)
     # rrt = RRT(env, delta=1.0)
 
     target_points = env_base.sample_configs_ee_target(np.array([2.5, 0, 1.0]))
@@ -1072,18 +1167,28 @@ if __name__ == '__main__':
     start = env.make_state(np.array([0.0, 0.0, 0.0, 0.0]))
 
     path = prm.search(start, target)
+    before_path = path
     # path = rrt.search(start, target, max_steps=100000)
     path = interpolate_path(path, env, 0.1)
     # print(path.path)
-    env.animate_path(path, method='rerun')
+    # env.animate_path(path, method='rerun')
 
     for state in path.path:
         print(env.is_valid(state))
 
     numpy_path = np.array([state.value for state in path.path])
+    before_numpy_path = np.array([state.value for state in before_path.path])
     
     path_edges = np.concatenate((numpy_path[:-1], numpy_path[1:]), axis=1)
-    print(env.batch_is_valid_edge(numpy_path[:-1], numpy_path[1:]))
+    print(np.isnan(path_edges).any(), 'here')
+    # print(env.batch_is_valid_edge(numpy_path[:-1], numpy_path[1:]))
+    # print(env.batch_is_valid_edge(numpy_path[:2], numpy_path[1:3]))
+    print(len(numpy_path))
+    print(numpy_path)
+
+    print("-----")
+    print(before_numpy_path)
+    # print(env.batch_is_valid_edge(numpy_path[:3], numpy_path[1:4]))
 
     # exit()
 
