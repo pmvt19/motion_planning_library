@@ -665,11 +665,11 @@ class UR5(HolonomicRobot):
         homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
 
         # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
-        ee = H_10 @ homogenous_origin
-        ee2 = H_10 @ H_21 @ homogenous_origin
-        ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
-        ee4 = H_10 @ H_21 @ H_32 @ H_43 @ homogenous_origin
-        ee5 = H_10 @ H_21 @ H_32 @ H_43 @ H_54 @ homogenous_origin
+        # ee = H_10 @ homogenous_origin
+        # ee2 = H_10 @ H_21 @ homogenous_origin
+        # ee3 = H_10 @ H_21 @ H_32 @ homogenous_origin
+        # ee4 = H_10 @ H_21 @ H_32 @ H_43 @ homogenous_origin
+        # ee5 = H_10 @ H_21 @ H_32 @ H_43 @ H_54 @ homogenous_origin
         # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
 
         transformation_matricies = [H_10, H_21, H_32, H_43, H_54]
@@ -707,15 +707,15 @@ class UR5(HolonomicRobot):
 
         
         # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
-        link1 = np.array([[0.0, 0.0, 0.0],
-                            ee[:3]])
-        link2 = np.array([ee[:3], ee2[:3]])
-        link3 = np.array([ee2[:3], ee3[:3]])
-        link4 = np.array([ee3[:3], ee4[:3]])
-        link5 = np.array([ee4[:3], ee5[:3]])
-        ees = np.stack((link3, link4, link5), axis=0).reshape(-1, 2, 3)
-        print(ees)
-        print(ees.shape)
+        # link1 = np.array([[0.0, 0.0, 0.0],
+        #                     ee[:3]])
+        # link2 = np.array([ee[:3], ee2[:3]])
+        # link3 = np.array([ee2[:3], ee3[:3]])
+        # link4 = np.array([ee3[:3], ee4[:3]])
+        # link5 = np.array([ee4[:3], ee5[:3]])
+        # ees = np.stack((link3, link4, link5), axis=0).reshape(-1, 2, 3)
+        # print(ees)
+        # print(ees.shape)
         # TODO: REMOVE IN FUTURE COMMIT FOR BACKUP SAFETY
         # exit()
 
