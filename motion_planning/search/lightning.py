@@ -18,7 +18,7 @@ class Lightning():
     def __init__(self, env, db_path, max_repair_steps=10000):
         self.db: Database = pickle.load(open(db_path, 'rb'))
         self.env: RobotSpace = env
-        self.max_repair_steps : int = max_repair_steps
+        self.max_repair_steps: int = max_repair_steps
 
     def count_invalid_segments(self, path_validities):
         num_invalid = 0
