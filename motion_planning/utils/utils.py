@@ -7,7 +7,7 @@ from shapely import Polygon
 from motion_planning.tools import AngularNumpyState, NumpyState, Path
 
 
-def set_numpy_seed(seed=None):
+def set_numpy_seed(seed: int | None = None):
     if seed:
         print(f"Setting Numpy Seed to {seed}")
     else:
@@ -16,7 +16,7 @@ def set_numpy_seed(seed=None):
     np.random.seed(seed)
 
 
-def issue_warning(condition, statement, level):
+def issue_warning(condition: bool, statement: str, level: str):
     WARNING = "\033[93m"
     FAIL = "\033[91m"
     ENDC = "\033[0m"
@@ -24,7 +24,7 @@ def issue_warning(condition, statement, level):
         print(f"{FAIL if level == 'fail' else WARNING}{statement}{ENDC}")
 
 
-def smooth_path(env, path_obj: Path):
+def smooth_path(env, path_obj: Path) -> Path:
     path = deepcopy(path_obj.path)  # Do not modify original path
     original_path_length = sum(
         [
@@ -48,12 +48,16 @@ def smooth_path(env, path_obj: Path):
             for i in range(len(path) - 1)
         ]
     )
-    print(f"Smoothed Path from Length {original_path_length} to "
-          f"Length {smoothed_path_length}")
+    print(
+        f"Smoothed Path from Length {original_path_length} to "
+        f"Length {smoothed_path_length}"
+    )
     return Path(path=path)
 
 
-def create_rectangle_geometry(x_loc, y_loc, x_width, y_length):
+def create_rectangle_geometry(
+    x_loc: float, y_loc: float, x_width: float, y_length: float
+):
     shape = Polygon(
         [
             [x_loc - x_width / 2, y_loc - y_length / 2],
@@ -65,7 +69,9 @@ def create_rectangle_geometry(x_loc, y_loc, x_width, y_length):
     return shape
 
 
-def calculate_edge_gradient(start_state: NumpyState, end_state: NumpyState):
+def calculate_edge_gradient(
+    start_state: NumpyState, end_state: NumpyState
+) -> np.ndarray:
     start = start_state.value
     end = end_state.value
     gradient = end - start
@@ -79,7 +85,7 @@ def calculate_edge_gradient(start_state: NumpyState, end_state: NumpyState):
     return gradient
 
 
-def bisect_edge(start: NumpyState, end: NumpyState):
+def bisect_edge(start: NumpyState, end: NumpyState) -> np.ndarray:
     gradient = calculate_edge_gradient(start, end)
     edge_length = np.linalg.norm(gradient)
     gradient /= edge_length
@@ -90,8 +96,7 @@ def bisect_edge(start: NumpyState, end: NumpyState):
     return midpoint
 
 
-def interpolate_edge(start: NumpyState, end: NumpyState, delta: float):
-
+def interpolate_edge(start: NumpyState, end: NumpyState, delta: float) -> np.ndarray:
     gradient = calculate_edge_gradient(start, end)
     edge_length = np.linalg.norm(gradient)
     gradient /= edge_length
@@ -111,8 +116,8 @@ def interpolate_edge(start: NumpyState, end: NumpyState, delta: float):
 
 
 def batch_calculate_gradient(
-    start_states: np.ndarray, end_states: np.ndarray, angular_dims_start
-):
+    start_states: np.ndarray, end_states: np.ndarray, angular_dims_start: int
+) -> np.ndarray:
     # start_states: (B, d), # end_states: (B, d)
     batch_gradient = end_states - start_states
     if angular_dims_start is not None:
@@ -124,15 +129,18 @@ def batch_calculate_gradient(
 
 
 def batch_interpolate_edge(
-    start_states: np.ndarray, end_states: np.ndarray, delta: float, angular_dims_start
-):
+    start_states: np.ndarray,
+    end_states: np.ndarray,
+    delta: float,
+    angular_dims_start: int,
+) -> tuple[np.ndarray, np.ndarray]:
     # (B, d), # (B, d)
     B, d = start_states.shape
     gradients = end_states - start_states
     gradients = batch_calculate_gradient(start_states, end_states, angular_dims_start)
     lengths = np.linalg.norm(gradients, axis=1)
     # TODO: Probably need to reshape # (B, d)
-    normalized_gradients = gradients / lengths.reshape(-1, 1)  
+    normalized_gradients = gradients / lengths.reshape(-1, 1)
 
     num_steps = np.ceil((lengths / delta) + 1).astype(np.int32)
     max_steps = np.max(num_steps).astype(np.int32)
@@ -151,8 +159,11 @@ def batch_interpolate_edge(
 
 
 def batch_interpolate_edge_uniform(
-    start_states: np.ndarray, end_states: np.ndarray, delta: float, angular_dims_start
-):
+    start_states: np.ndarray,
+    end_states: np.ndarray,
+    delta: float,
+    angular_dims_start: int,
+) -> float:
     # (B, d), # (B, d)
     B, d = start_states.shape
     gradients = end_states - start_states
@@ -167,7 +178,7 @@ def batch_interpolate_edge_uniform(
     deltas = (lengths / max_steps).reshape(-1, 1, 1)
 
     # Reshape normalized vectors for repeating function
-    normalized_gradients = normalized_gradients.reshape(-1, 1, d)  
+    normalized_gradients = normalized_gradients.reshape(-1, 1, d)
     scaled_gradients = normalized_gradients * deltas
     edge_states_derivative = np.repeat(
         scaled_gradients.astype(np.float32), (max_steps), axis=1
@@ -176,20 +187,20 @@ def batch_interpolate_edge_uniform(
     edge_states = np.cumsum(edge_states_derivative, axis=1) + (
         start_states.reshape(-1, 1, d)
     )  # (B, max_steps, d) + (B,1,d)
-    edge_states[:, (max_steps - 1), :] = end_states  # DONE
+    edge_states[:, (max_steps - 1), :] = end_states
     return edge_states
 
 
-def euclidean_distance(start, end):
+def euclidean_distance(start: np.ndarray, end: np.ndarray) -> float:
     return np.linalg.norm(end - start)
 
 
-def angular_distance(theta1, theta2):
+def angular_distance(theta1: np.ndarray, theta2: np.ndarray):
     two_pi = np.pi * 2
     return np.minimum((theta1 - theta2) % two_pi, (theta2 - theta1) % two_pi)
 
 
-def numpystate_distance(state1, state2):
+def numpystate_distance(state1: NumpyState, state2: NumpyState) -> float:
     if (
         isinstance(state1, AngularNumpyState)
         and isinstance(state2, AngularNumpyState)
@@ -209,6 +220,7 @@ def numpystate_distance(state1, state2):
     else:
         raise ValueError("Mismatched Types inputed or incorrect angular dims start")
 
+
 def dedup_path_state(path: Path):
     if len(path) < 1:
         return path
@@ -224,6 +236,7 @@ def dedup_path_state(path: Path):
             prev_state = state
     return Path(path=deduped_path)
 
+
 def interpolate_path(path: Path, env, delta: float):
     interpolated_path = []
     for i in range(len(path) - 1):
@@ -232,5 +245,5 @@ def interpolate_path(path: Path, env, delta: float):
     return dedup_path_state(Path(interpolated_path))
 
 
-def rad2deg(rad):
+def rad2deg(rad: float) -> float:
     return rad * (180 / np.pi)
