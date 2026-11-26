@@ -1,5 +1,6 @@
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 from shapely import LineString, affinity
 from sklearn.metrics import pairwise_distances
@@ -19,20 +20,20 @@ class PlanarMobileArm(HolonomicRobot):
         arm_lengths: list[int] | None = None,
     ):
         super().__init__()
-        self.base_width = base_width
-        self.base_length = base_length
+        self.base_width: float = base_width
+        self.base_length: float = base_length
 
-        self.x_range = [-10, 10]
-        self.y_range = [-10, 10]
-        self.theta1_range = [0, np.pi]
-        self.theta_range = [0, 2 * np.pi]
+        self.x_range: list[float] = [-10, 10]
+        self.y_range: list[float] = [-10, 10]
+        self.theta1_range: list[float] = [0, np.pi]
+        self.theta_range: list[float] = [0, 2 * np.pi]
 
-        self.edge_validity_delta = edge_validity_delta
+        self.edge_validity_delta: float = edge_validity_delta
 
         assert num_links > 0, "Num Links Must Be Greater Than Zero"
 
-        self.num_links = num_links
-        self.arm_lengths = np.array([1] * self.num_links)
+        self.num_links: int = num_links
+        self.arm_lengths: np.ndarray = np.array([1] * self.num_links)
 
         if arm_lengths is not None:
             assert num_links == len(arm_lengths), (
@@ -40,12 +41,13 @@ class PlanarMobileArm(HolonomicRobot):
             )
             self.arm_lengths = np.array(arm_lengths)
 
-        self.obstacle_check_time = 0
-        self.generate_state_time = 0
+        # TODO: Remove these
+        self.obstacle_check_time: float = 0
+        self.generate_state_time: float = 0
 
-        self.state_dims = 2 + self.num_links # (X, Y, Theta1, Theta2...)
-        self.c_space_lower_bound = np.array([-10, -10] + [0.0] * self.num_links)
-        self.c_space_upper_bound = np.array([10, 10, np.pi] + [2*np.pi] * (self.num_links - 1))
+        self.state_dims: int = 2 + self.num_links # (X, Y, Theta1, Theta2...)
+        self.c_space_lower_bound: np.ndarray = np.array([-10, -10] + [0.0] * self.num_links)
+        self.c_space_upper_bound: np.ndarray = np.array([10, 10, np.pi] + [2*np.pi] * (self.num_links - 1))
 
     def dist(self, state1: NumpyState, state2: NumpyState) -> float:
         state1 = self.get_state_value(state1)
@@ -145,7 +147,7 @@ class PlanarMobileArm(HolonomicRobot):
         joint_pos = np.cumsum(point_der, axis=0) + arm_base
         return np.vstack((arm_base, joint_pos))
 
-    def generate_robot_representation(self, state):
+    def generate_robot_representation(self, state: NumpyState) -> tuple:
         state = self.get_state_value(state)
         x, y, *thetas = state
 
@@ -179,7 +181,7 @@ class PlanarMobileArm(HolonomicRobot):
 
         return robot, arms, ee
 
-    def draw_state(self, ax, state, color="red"):
+    def draw_state(self, ax: plt.Axes, state: NumpyState, color: str = "red"):
         robot, arms, ee = self.generate_robot_representation(state)
         ax.plot(*robot.exterior.xy, color=color)
 
@@ -200,7 +202,7 @@ class PlanarMobileArm(HolonomicRobot):
                     return True
         return False
 
-    def is_valid(self, state) -> bool:
+    def is_valid(self, state: NumpyState) -> bool:
         start_time = time.time()
         self.num_collision_checks += 1
         robot, arms, ee = self.generate_robot_representation(state)
@@ -221,7 +223,7 @@ class PlanarMobileArm(HolonomicRobot):
 
         return True
 
-    def inverse_kinematics(self, target_ee_position):
+    def inverse_kinematics(self, target_ee_position: np.ndarray) -> NumpyState | None:
         # NEED TO UPDATE TO STOP SAMPLING FROM A RANDOM POINT
         q = self.sample_valid_point().value
 
@@ -275,7 +277,6 @@ class PlanarMobileArm(HolonomicRobot):
 
     def sample_configs_ee_target(self, target_ee_position) -> np.ndarray:
         tolerance = 0.1
-        # q_start = np.array([self.sample_valid_point().value for _ in range(20000)])
         q_start = self.batch_sample_point(100000)
         positions = self.batch_forward_kinematics(q_start)
         ee_positions = positions[:, 3, :]
@@ -448,8 +449,6 @@ class PlanarMobileArm(HolonomicRobot):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     env = PlanarMobileArm()
     state = env.sample_point()
 
