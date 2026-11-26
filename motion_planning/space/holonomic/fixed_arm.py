@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from shapely import LineString
 
@@ -14,16 +15,16 @@ class FixedArm(HolonomicRobot):
         arm_link_lengths: np.ndarray = np.array([2, 2]),
     ):
         super().__init__()
-        self.angular_dims_start = 0
-        self.edge_validity_delta = egde_validity_delta
-        self.arm_link_lengths = arm_link_lengths
-        self.num_links = len(self.arm_link_lengths)
+        self.angular_dims_start: int = 0
+        self.edge_validity_delta: float = egde_validity_delta
+        self.arm_link_lengths: np.ndarray = arm_link_lengths
+        self.num_links: int = len(self.arm_link_lengths)
 
-        self.state_dims = 2 # (Theta1, Theta2)
-        self.c_space_lower_bound = np.array([0.0, 0.0])
-        self.c_space_upper_bound = np.array([2*np.pi, 2*np.pi])
+        self.state_dims: int = 2 # (Theta1, Theta2)
+        self.c_space_lower_bound: np.ndarray = np.array([0.0, 0.0])
+        self.c_space_upper_bound: np.ndarray = np.array([2*np.pi, 2*np.pi])
 
-    def dist(self, state1, state2) -> float:
+    def dist(self, state1: AngularNumpyState, state2: AngularNumpyState) -> float:
         return numpystate_distance(state1, state2)
 
     def sample_point(self) -> AngularNumpyState:
@@ -34,12 +35,14 @@ class FixedArm(HolonomicRobot):
         )
         return self.make_state(thetas)
 
-    def make_state(self, state) -> AngularNumpyState:
+    def make_state(self, state: np.ndarray) -> AngularNumpyState:
         return AngularNumpyState(
             value=state, angular_dims_start=self.angular_dims_start
         )
 
-    def generate_robot_representation(self, state):
+    def generate_robot_representation(
+        self, state: AngularNumpyState
+    ) -> list[LineString]:
         end_points = self.forward_kinematics(state)
         lines = []
         for i in range(len(end_points) - 1):
@@ -47,7 +50,7 @@ class FixedArm(HolonomicRobot):
             lines.append(line)
         return lines
 
-    def is_self_colliding(self, state):
+    def is_self_colliding(self, state: AngularNumpyState) -> bool:
         lines = self.generate_robot_representation(state)
         for i in range(len(lines)):
             for j in range(i + 2, len(lines)):
@@ -55,7 +58,7 @@ class FixedArm(HolonomicRobot):
                     return True
         return False
 
-    def is_valid(self, state) -> bool:
+    def is_valid(self, state: AngularNumpyState) -> bool:
         self.num_collision_checks += 1
         lines = self.generate_robot_representation(state)
 
@@ -69,7 +72,7 @@ class FixedArm(HolonomicRobot):
 
         return True
 
-    def forward_kinematics(self, state) -> np.ndarray:
+    def forward_kinematics(self, state: AngularNumpyState) -> np.ndarray:
         thetas = self.get_state_value(state)
 
         cum_thetas = np.cumsum(thetas)
@@ -83,7 +86,7 @@ class FixedArm(HolonomicRobot):
         end_points = np.cumsum(uncoordinated_points, axis=0)
         return end_points
 
-    def draw_state(self, ax, state):
+    def draw_state(self, ax: plt.Axes, state: AngularNumpyState):
         lines = self.generate_robot_representation(state)
         for line in lines:
             ax.plot(*line.xy, color="blue")
@@ -100,7 +103,7 @@ class FixedArm(HolonomicRobot):
         return np.array([theta1_dot, theta2_dot])
 
     ## ---- Batched Methods ---- ##
-    def batch_forward_kinematics(self, states) -> np.ndarray:
+    def batch_forward_kinematics(self, states: np.ndarray) -> np.ndarray:
         B = states.shape[0]
         states = np.copy(states)
         link_thetas = np.cumsum(states, axis=1)  # (B, num_links)
@@ -115,7 +118,7 @@ class FixedArm(HolonomicRobot):
         joint_pos = np.cumsum(point_der, axis=1)
         return np.concatenate((np.zeros((B, 1, 2)), joint_pos), axis=1)
 
-    def batch_get_robot_representations(self, states) -> dict:
+    def batch_get_robot_representations(self, states: np.ndarray) -> dict:
         segment_points = self.batch_forward_kinematics(states)
         start_points = segment_points[:, :-1, :]
         end_points = segment_points[:, 1:, :]
@@ -134,8 +137,6 @@ class FixedArm(HolonomicRobot):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     env = FixedArm()
     state = env.sample_point()
 
