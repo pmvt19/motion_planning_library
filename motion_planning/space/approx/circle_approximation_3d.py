@@ -56,9 +56,15 @@ class ApproximationSpace3D(RobotSpace3D):
             representations['cylinder_radii']
         ).reshape(B, -1, 4)
 
-        point_circles = self.points_to_circles(representations['points'], representations['points_radii']).reshape(B, -1, 4)
-        # print(prism_circles.shape, cylinder_circles.shape, point_circles.shape)
-        state_circles = np.concatenate((prism_circles, cylinder_circles, point_circles), axis=1)
+        point_circles = self.points_to_circles(
+            representations['points'],
+            representations['points_radii']
+        ).reshape(B, -1, 4)
+
+        state_circles = np.concatenate(
+            (prism_circles, cylinder_circles, point_circles),
+            axis=1
+        )
         return state_circles
 
     def rect_prism_to_circles_x_short(self, aa_rect_prism):
@@ -87,7 +93,13 @@ class ApproximationSpace3D(RobotSpace3D):
         zs = np.array(zs)
 
         output = np.array(np.meshgrid(ys,zs)).T.reshape(-1, 2)
-        points = np.hstack((np.ones((output.shape[0],1))*x, output, np.ones((output.shape[0],1))*xl/2))
+        points = np.hstack(
+            (
+                np.ones((output.shape[0],1))*x,
+                output,
+                np.ones((output.shape[0],1))*xl/2
+            )
+        )
 
         return points
 
@@ -117,7 +129,14 @@ class ApproximationSpace3D(RobotSpace3D):
         zs = np.array(zs)
 
         output = np.array(np.meshgrid(xs,zs)).T.reshape(-1, 2)
-        points = np.hstack((output[:, 0].reshape(-1, 1), np.ones((output.shape[0],1))*y, output[:, 1].reshape(-1, 1), np.ones((output.shape[0],1))*yl/2))
+        points = np.hstack(
+            (
+                output[:, 0].reshape(-1, 1),
+                np.ones((output.shape[0],1))*y,
+                output[:, 1].reshape(-1, 1),
+                np.ones((output.shape[0],1))*yl/2
+            )
+        )
 
         return points
 
@@ -147,7 +166,13 @@ class ApproximationSpace3D(RobotSpace3D):
         ys = np.array(ys)
 
         output = np.array(np.meshgrid(xs,ys)).T.reshape(-1, 2)
-        points = np.hstack((output, np.ones((output.shape[0],1))*z, np.ones((output.shape[0],1))*zl/2))
+        points = np.hstack(
+            (
+                output,
+                np.ones((output.shape[0],1))*z,
+                np.ones((output.shape[0],1))*zl/2
+            )
+        )
 
         return points
 
@@ -279,7 +304,9 @@ class ApproximationSpace3D(RobotSpace3D):
         for i in range(num_batches):
             idx_start = i * self.batch_size
             idx_end = min((i+1)*self.batch_size, B)
-            validities = self.circles_to_validity(self.obstacle_circles, robot_circles[idx_start:idx_end])
+            validities = self.circles_to_validity(
+                self.obstacle_circles, robot_circles[idx_start:idx_end]
+            )
             stacked_validities.append(validities)
         stacked_validities = np.hstack(stacked_validities)
         return stacked_validities
@@ -287,11 +314,25 @@ class ApproximationSpace3D(RobotSpace3D):
     def draw_state(self, ax, state, method='rerun'):
         rr.init("3D Environment", spawn=True)
         state_circles = self.states_to_circles(np.array(state.value).reshape(1, -1))[0]
-        rr.log("State Spheres", rr.Points3D([state_circles[:, :3]], colors=[255, 0, 0], radii=state_circles[:, 3]))
+        rr.log(
+            "State Spheres",
+            rr.Points3D(
+                [state_circles[:, :3]],
+                colors=[255, 0, 0],
+                radii=state_circles[:, 3]
+            )
+        )
 
     def draw_environment(self, ax, method='rerun'):
         rr.init("3D Environment", spawn=True)
-        rr.log("Obstacle Spheres", rr.Points3D([self.obstacle_circles[:, :3]], colors=[0, 0, 255], radii=self.obstacle_circles[:, 3]))
+        rr.log(
+            "Obstacle Spheres",
+            rr.Points3D(
+                [self.obstacle_circles[:, :3]],
+                colors=[0, 0, 255],
+                radii=self.obstacle_circles[:, 3]
+            )
+        )
 
     def sample_point(self):
         return self.space.sample_point()
