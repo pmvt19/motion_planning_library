@@ -14,7 +14,7 @@ class PointRobot(HolonomicRobot):
         self.x_range: list[int] = [-10, 10]
         self.y_range: list[int] = [-10, 10]
 
-        self.state_dims: int = 2 # (X, Y)
+        self.state_dims: int = 2  # (X, Y)
         self.c_space_lower_bound: np.ndarray = np.array([-10, -10])
         self.c_space_upper_bound: np.ndarray = np.array([10, 10])
 
