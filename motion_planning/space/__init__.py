@@ -1,4 +1,5 @@
 from .space import RobotSpace
+from .space_3d import RobotSpace3D
 
 from .holonomic.holonomic_robot import HolonomicRobot
 from .nonholonomic.nonholonomic_robot import NonHolonomicRobot
