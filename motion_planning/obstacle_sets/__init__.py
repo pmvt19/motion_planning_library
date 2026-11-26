@@ -1,5 +1,6 @@
 from .obstacle_sets import ObstacleSet
 from .obstacle_set_2d import ObstacleSet2d
+from .obstacle_set_3d import ObstacleSet3D
 
 from .deterministic_sets.central_obstacle import CentralObstacle
 from .deterministic_sets.parking_space import ParkingSpace
