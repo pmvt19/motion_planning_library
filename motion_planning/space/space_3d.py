@@ -5,13 +5,14 @@ import rerun as rr
 
 from motion_planning.obstacle_sets import ObstacleSet3D
 from motion_planning.space import RobotSpace
+from motion_planning.tools import Path
 
 
 class RobotSpace3D(RobotSpace):
     def __init__(self):
-        self.x_range = [-10, 10]
-        self.y_range = [-10, 10]
-        self.z_range = [-10, 10]
+        self.x_range: list[float] = [-10, 10]
+        self.y_range: list[float] = [-10, 10]
+        self.z_range: list[float] = [-10, 10]
 
         self.workspace_dims: int = 3
 
@@ -95,8 +96,8 @@ class RobotSpace3D(RobotSpace):
         else:
             raise ValueError("Drawing Method Not Supported")
 
-    def animate_path(self, path, method='rerun'):
+    def animate_path(self, path: Path, method='rerun'):
         for state in path:
-            self.draw_environment(None)
-            self.draw_state(None, state)
+            self.draw_environment(None, method=method)
+            self.draw_state(None, state, method=method)
             time.sleep(0.1)
