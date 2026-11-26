@@ -11,30 +11,26 @@ class SphereRobot(RobotSpace3D, HolonomicRobot):
     def __init__(self):
         super().__init__()
 
-        self.edge_validity_delta = 0.1
+        self.edge_validity_delta: float = 0.1
 
-        self.x_range = [-10,10]
-        self.y_range = [-10,10]
-        self.z_range = [-10,10]
+        self.x_range: list[float] = [-10,10]
+        self.y_range: list[float] = [-10,10]
+        self.z_range: list[float] = [-10,10]
 
-        self.angular_dims_start = None
+        self.angular_dims_start: None = None
 
-        self.robot_radius = 0.5
+        self.robot_radius: float = 0.5
 
-        self.obstacles = []
+        self.do_boundary_check: bool = True
 
-        self.do_boundary_check = True
-
-        self.num_collision_checks = 0
-
-        self.state_dims = 3
-        self.c_space_lower_bound = np.array([-10.0, -10.0, -10.0])
-        self.c_space_upper_bound = np.array([10.0, 10.0, 10.0])
+        self.state_dims: int = 3
+        self.c_space_lower_bound: np.ndarray = np.array([-10.0, -10.0, -10.0])
+        self.c_space_upper_bound: np.ndarray = np.array([10.0, 10.0, 10.0])
     
     def make_state(self, state: np.ndarray) -> NumpyState:
         return NumpyState(value=state)
 
-    def sample_point(self):
+    def sample_point(self) -> NumpyState:
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
         z = np.random.uniform(low=self.z_range[0], high=self.z_range[1])
