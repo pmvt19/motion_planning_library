@@ -6,6 +6,7 @@ import numpy as np
 from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.search import RRT
 from motion_planning.space import PointRobot
+from motion_planning.tools import NumpyState
 
 
 class RandomSampleGeneration(RRT):
@@ -17,8 +18,7 @@ class RandomSampleGeneration(RRT):
         self.num_neighbors = num_neighbors
         self.delta = delta
 
-    def expand_node(self, node, sampled_point):
-
+    def expand_node(self, node: NumpyState, sampled_point: NumpyState) -> NumpyState:
         if np.linalg.norm(self.target.value - node.value) < self.delta:
             new_node = self.target
         else:
