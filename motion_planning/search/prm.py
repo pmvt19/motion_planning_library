@@ -12,34 +12,33 @@ class PRM:
     def __init__(
         self,
         env: RobotSpace,
-        num_samples=10,
-        num_neighbors=None,
-        edge_dist_radius=None,
-        validate_edges=False,
+        num_samples: int = 10,
+        num_neighbors: int | None = None,
+        edge_dist_radius: float | None = None,
+        validate_edges: bool = False,
     ):
-        self.env = env
-        self.validate_edges = validate_edges
+        self.env: RobotSpace = env
+        self.validate_edges: bool = validate_edges
 
-        self.num_samples = num_samples
-        self.num_neighbors = num_neighbors
-        self.edge_dist_radius = edge_dist_radius
+        self.num_samples: int = num_samples
+        self.num_neighbors: int | None = num_neighbors
+        self.edge_dist_radius: float | None = edge_dist_radius
 
-        self.edge_validity_cache = {}
+        # TODO: Verify Types of edge validity cache
+        self.edge_validity_cache: dict[tuple[int, int], bool] = {}
 
-        self.cache_graph_edge_validities = False
+        self.cache_graph_edge_validities: bool = False
 
-    def batch_generate_sample_points(self, starting_samples=[]):
-        # points = np.array(
-        #     [self.env.sample_point().value for _ in range(self.num_samples)]
-        #     + [sample for sample in starting_samples]
-        # )
+    def batch_generate_sample_points(self, starting_samples: list = []) -> np.ndarray:
         starting_samples = np.array(starting_samples)
         sampled_points = self.env.batch_sample_points(self.num_samples)
-        points = np.concatenate((sampled_points, starting_samples.reshape(-1, self.env.state_dims)), axis=0)
+        points = np.concatenate(
+            (sampled_points, starting_samples.reshape(-1, self.env.state_dims)), axis=0
+        )
         validities = self.env.batch_is_valid(points)
         return points[validities]
 
-    def create_graph(self, starting_samples=[]):
+    def create_graph(self, starting_samples: list = []) -> None:
         vertices = self.batch_generate_sample_points(starting_samples=starting_samples)
         self.graph = Graph(
             vertices=vertices,
@@ -49,7 +48,7 @@ class PRM:
         if self.validate_edges:
             self.batch_validate_graph_edges()
 
-    def validate_graph_edges(self):
+    def validate_graph_edges(self) -> None:
         self.invalid_edges = []
         for a, neighbors in enumerate(self.graph.edges):
             for i, b in enumerate(neighbors):
@@ -63,13 +62,13 @@ class PRM:
                         (self.graph.vertices[a], self.graph.vertices[b])
                     )
 
-    def batch_validate_graph_edges(self):
+    def batch_validate_graph_edges(self) -> None:
         if self.cache_graph_edge_validities:
             return self.batch_validate_graph_edges_cached()
         else:
             return self.batch_validate_graph_edges_uncached()
 
-    def batch_validate_graph_edges_uncached(self):
+    def batch_validate_graph_edges_uncached(self) -> None:
         """
         use with new, variable number of edges graph representation
         """
@@ -90,14 +89,14 @@ class PRM:
 
         edge_validities = self.env.batch_is_valid_edge(start_states, end_states)
 
-        invalid_edge_mask = edge_validities == False
+        invalid_edge_mask = not edge_validities
         invalid_ids = idx_tracker[invalid_edge_mask]
 
         for parent, child in invalid_ids:
             self.graph.edges[parent].remove(child)
             self.invalid_edges.append((parent, child))
 
-    def batch_validate_graph_edges_cached(self):
+    def batch_validate_graph_edges_cached(self) -> None:
         """
         use with new, variable number of edges graph representation
         """
@@ -114,7 +113,7 @@ class PRM:
                     end_states.append(self.graph.vertices[b])
                     idx_tracker.append((a, b))
                 else:
-                    if self.edge_validity_cache[(a, b)] == False:
+                    if not self.edge_validity_cache[(a, b)]:
                         # self.graph.edges[a].remove(b)
                         to_remove.append(b)
             for b in to_remove:
@@ -126,20 +125,26 @@ class PRM:
 
         edge_validities = self.env.batch_is_valid_edge(start_states, end_states)
 
-        invalid_edge_mask = edge_validities == False
+        invalid_edge_mask = not edge_validities
         invalid_ids = idx_tracker[invalid_edge_mask]
 
         for parent, child in invalid_ids:
             self.graph.edges[parent].remove(child)
             self.edge_validity_cache[(parent, child)] = False
 
-        valid_edge_mask = edge_validities == True
+        valid_edge_mask = edge_validities
         valid_ids = idx_tracker[valid_edge_mask]
 
         for parent, child in valid_ids:
             self.edge_validity_cache[(parent, child)] = True
 
-    def draw(self, ax, path=None, plot_invalid_edges=False, show_task=False):
+    def draw(
+        self,
+        ax: plt.Axes,
+        path: Path | None = None,
+        plot_invalid_edges: bool = False,
+        show_task: bool = False,
+    ) -> None:
         self.graph.draw(ax)
         if plot_invalid_edges:
             invalid_edges = [
@@ -156,7 +161,12 @@ class PRM:
             ]
             ax.add_collection(LineCollection(path, color="red"))
 
-    def search(self, start: NumpyState, target: NumpyState, remove_task: bool = False):
+    def search(
+        self,
+        start: NumpyState,
+        target: NumpyState,
+        remove_task: bool = False,
+    ) -> Path:
         self.start = start
         self.target = target
 
@@ -182,89 +192,40 @@ class PRM:
 if __name__ == "__main__":
     from motion_planning.obstacle_sets import ParkingSpace
     from motion_planning.space import ApproximationSpace, PointRobot
-    from motion_planning.utils import interpolate_path
+    from motion_planning.utils import set_numpy_seed
 
-    seed = np.random.randint(0, 10000)
-    # seed = 15
-    # seed = 37 # Goes through the gap for PolygonRobot and ParkingSpace
-    # seed = 41
-    # seed = 91
-    # seed = 83
-    # seed = 46
-    # seed = 3
-    print(f"Seed: {seed}")
-    np.random.seed(seed)
+    set_numpy_seed()
 
     env = PointRobot()
-    # env = PolygonalRobot()
-    # env = PlanarMobileArm()
-
     env.set_obstacles(ParkingSpace())
-    # env.set_obstacles(WeavingPassage())
-    # env.set_obstacles(RandomSamplePassage(gap_width=1.1))
-    # env.set_obstacles(BiasedPassage(num_walls=3))
-    # env.set_obstacles(CentralObstacle())
-    # env.set_obstacles(TestSet())
 
     start, target = env.sample_task()
+
+    # PRM with Standard Space
+    prm = PRM(env=env, num_samples=5000, num_neighbors=10, validate_edges=True)
+
+    st = time.time()
+    prm.create_graph()
+    et = time.time()
+
+    print(f"Time to Create PRM Graph with Standard Environment: {et - st} seconds")
+    path = prm.search(start, target)
+    env.draw_environment(plt.gca())
+    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
+    plt.show()
+
+    # PRM with ApproximationSpace
     env = ApproximationSpace(env, batch_size=1000, do_overapproximation=False)
-    # env = ApproximationSpaceTorch(env, batch_size=10000, do_overapproximation=False)
+
     start_time = time.time()
     prm = PRM(env=env, num_samples=5000, num_neighbors=10, validate_edges=True)
-    # prm = PRM(env=env, num_samples=20000, num_neighbors=10, validate_edges=True)
-    # prm = PRM(env=env, num_samples=1000, edge_dist_radius=2.4, validate_edges=True)
-    # prm = PRM(env=env, num_samples=5000, edge_dist_radius=0.5, validate_edges=True)
-    # prm = NonUniformPRM(env=env, num_samples=10000, num_neighbors=10, validate_edges=True)
-    # prm = LazyPRM(env=env, num_samples=1000, num_neighbors=10)
 
-    # prm = IncrementalPRM(env=env, num_samples=10000, num_neighbors=5)
-    # prm = IncrementalPRM(env=env, num_samples=50, edge_dist_radius=5)
+    st = time.time()
     prm.create_graph()
+    et = time.time()
 
-    # plt.clf()
-    # env.draw_environment(plt.gca())
-    # prm.draw(plt.gca())
-    # plt.show()
-
-    # start = (0,0)
-    # target = (9,9)
-    # start = env.make_state(np.array([0,0]))
-    # target = env.make_state(np.array([9,9]))
-
-    # start = env.make_state(np.array([2.0, 2.75, 0]))
-    # target = env.make_state(np.array([-3.0, -2.25, 0]))
-
+    print(f"Time to Create PRM Graph with Approx Environment: {et - st} seconds")
     path = prm.search(start, target)
-    print(f"PRM Num Nodes: {len(prm.graph.vertices)}")
-    # for p in path:
-    #     print(p.value)
-
-    end_time = time.time()
-    print(
-        f"Search Time: {end_time - start_time}",
-        f"Num Collision Checks: {env.num_collision_checks}",
-    )
-
-    # # PLOTTING
-
-    plt.clf()
     env.draw_environment(plt.gca())
-    # env.space.draw_environment(plt.gca())
-    # space.draw_environment(plt.gca())
-    prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
-    # env.space.draw_environment(plt.gca())
-    # env.draw_environment(plt.gca())
-    plt.show()
-    interpolated_path = []
-    # path = smooth_path(env, path)
-    plt.clf()
-    env.draw_environment(plt.gca())
-    # env.space.draw_environment(plt.gca())
     prm.draw(plt.gca(), path=path, show_task=True, plot_invalid_edges=False)
     plt.show()
-
-    # # PLOTTING
-
-    path = interpolate_path(path, env, 0.1)
-    # env.space.animate_path(path, frame_delay=0.001)
-    # env.animate_path(path, frame_delay=0.001)
