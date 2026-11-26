@@ -11,26 +11,24 @@ class UR5(RobotSpace3D, HolonomicRobot):
     def __init__(self):
         super().__init__()
 
-        self.edge_validity_delta = 0.1
+        self.edge_validity_delta: float = 0.1
 
-        self.x_range = [-10,10]
-        self.y_range = [-10,10]
-        self.z_range = [-10,10]
+        self.x_range: list[float] = [-10,10]
+        self.y_range: list[float] = [-10,10]
+        self.z_range: list[float] = [-10,10]
 
-        self.theta_range = [0, 2*np.pi]
-        self.angular_dims_start = 0
+        self.theta_range: list[float] = [0, 2*np.pi]
+        self.angular_dims_start: int = 0
 
-        self.robot_radius = 0.5
+        self.robot_radius: float = 0.5
 
-        self.obstacles = []
+        self.do_boundary_check: bool = True
 
-        self.do_boundary_check = True
+        self.num_collision_checks: int = 0
 
-        self.num_collision_checks = 0
-
-        self.state_dims = 4
-        self.c_space_lower_bound = np.array([0.0, 0.0, 0.0, 0.0])
-        self.c_space_upper_bound = np.array([2*np.pi, 2*np.pi, 2*np.pi, 2*np.pi])
+        self.state_dims: int = 4
+        self.c_space_lower_bound: np.ndarray = np.array([0.0, 0.0, 0.0, 0.0])
+        self.c_space_upper_bound: np.ndarray = np.array([2*np.pi, 2*np.pi, 2*np.pi, 2*np.pi])
     
     def make_state(self, state: np.ndarray) -> AngularNumpyState:
         return AngularNumpyState(
@@ -44,9 +42,6 @@ class UR5(RobotSpace3D, HolonomicRobot):
         theta_2 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         theta_3 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         return self.make_state(np.array([theta_0, theta_1, theta_2, theta_3]))
-    
-    def generate_robot_representation(self, state: AngularNumpyState):
-        raise NotImplementedError
 
     def dist(self, state1: AngularNumpyState, state2: AngularNumpyState) -> float:
         return numpystate_distance(state1, state2)
@@ -226,7 +221,7 @@ class UR5(RobotSpace3D, HolonomicRobot):
         # Start the Cumulative Matrix as the identity matrix
         cum_mat = np.eye(4)
 
-        cum_transformation_matricies: list[np.ndarray] = []
+        cum_transformation_matricies = []
 
         for i in range(len(transformation_matricies)):
             cum_mat = cum_mat @ transformation_matricies[i]
