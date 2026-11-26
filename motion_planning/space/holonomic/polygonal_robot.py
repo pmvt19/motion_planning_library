@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from shapely import affinity
 
@@ -16,32 +17,30 @@ class PolygonalRobot(HolonomicRobot):
     ):
         super().__init__()
 
-        self.edge_validity_delta = edge_validity_delta
+        self.edge_validity_delta: float = edge_validity_delta
 
-        self.x_range = [-10, 10]
-        self.y_range = [-10, 10]
+        self.x_range: list[int] = [-10, 10]
+        self.y_range: list[int] = [-10, 10]
 
-        self.theta_range = [0, 2 * np.pi]
+        self.theta_range: list[float] = [0, 2 * np.pi]
 
-        self.angular_dims_start = 2
+        self.angular_dims_start: int = 2
 
-        self.robot_width = robot_width
-        self.robot_length = robot_length
+        self.robot_width: float = robot_width
+        self.robot_length: float = robot_length
 
-        self.obstacles = []
+        self.do_boundary_check: float = True
 
-        self.do_boundary_check = True
+        self.state_dims: int = 3 # (X, Y, Theta)
+        self.c_space_lower_bound: np.ndarray = np.array([-10, -10, 0.0])
+        self.c_space_upper_bound: np.ndarray = np.array([10, 10, 2*np.pi])
 
-        self.state_dims = 3 # (X, Y, Theta)
-        self.c_space_lower_bound = np.array([-10, -10, 0.0])
-        self.c_space_upper_bound = np.array([10, 10, 2*np.pi])
-
-    def make_state(self, state: np.ndarray):
+    def make_state(self, state: np.ndarray) -> AngularNumpyState:
         return AngularNumpyState(
             value=state, angular_dims_start=self.angular_dims_start
         )
 
-    def generate_robot_representation(self, state):
+    def generate_robot_representation(self, state: AngularNumpyState):
         x, y, theta = self.get_state_value(state)
         robot = create_rectangle_geometry(
             x_loc=x, y_loc=y, x_width=self.robot_width, y_length=self.robot_length
@@ -49,16 +48,16 @@ class PolygonalRobot(HolonomicRobot):
         robot = affinity.rotate(robot, angle=theta, use_radians=True, origin=(x, y))
         return robot
 
-    def sample_point(self):
+    def sample_point(self) -> AngularNumpyState:
         x = np.random.uniform(low=self.x_range[0], high=self.x_range[1])
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
         theta = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         return self.make_state(np.array([x, y, theta]))
 
-    def dist(self, state1: AngularNumpyState, state2: AngularNumpyState):
+    def dist(self, state1: AngularNumpyState, state2: AngularNumpyState) -> float:
         return numpystate_distance(state1, state2)
 
-    def is_valid(self, state):
+    def is_valid(self, state: AngularNumpyState) -> bool:
         self.num_collision_checks += 1
         robot = self.generate_robot_representation(state)
 
@@ -70,11 +69,11 @@ class PolygonalRobot(HolonomicRobot):
                 return False
         return True
 
-    def draw_state(self, ax, state):
+    def draw_state(self, ax: plt.Axes, state: AngularNumpyState):
         robot = self.generate_robot_representation(state)
         ax.plot(*robot.exterior.xy, color="red")
 
-    def input_to_x_dot(self, inputs) -> np.ndarray:
+    def input_to_x_dot(self, inputs: list) -> np.ndarray:
         dt = 0.1
         x_dot = inputs[XboxController.XboxControls.LTHUMBX] * dt
         y_dot = -inputs[XboxController.XboxControls.LTHUMBY] * dt
@@ -83,7 +82,7 @@ class PolygonalRobot(HolonomicRobot):
 
     ### ---- Batched Methods ---- ###
 
-    def batch_get_robot_representations(self, states: np.ndarray):
+    def batch_get_robot_representations(self, states: np.ndarray) -> np.ndarray:
         # states : (B, 3)
         B, d = states.shape
 
@@ -138,7 +137,7 @@ class PolygonalRobot(HolonomicRobot):
             "segments_radii": radii,
         }
 
-    def batch_sample_points_around_target(self, targets: np.ndarray):
+    def batch_sample_points_around_target(self, targets: np.ndarray) -> np.ndarray:
         B, _ = targets.shape
 
         num_thetas_per_target = 20
@@ -154,8 +153,6 @@ class PolygonalRobot(HolonomicRobot):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     env = PolygonalRobot()
     state = env.sample_point()
 
