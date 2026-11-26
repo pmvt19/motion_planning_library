@@ -90,7 +90,7 @@ class SphereRobot(RobotSpace3D, HolonomicRobot):
 
 if __name__ == "__main__":
     env = SphereRobot()
-    from motion_planning.obstacle_sets.single_cup import SingleCup
+    from motion_planning.obstacle_sets import SingleCup
     env.set_obstacles(SingleCup())
     env.draw_state(None, env.sample_point())
     env.draw_environment(None)

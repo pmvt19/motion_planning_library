@@ -280,5 +280,8 @@ class UR5(RobotSpace3D, HolonomicRobot):
         raise NotImplementedError
 
 if __name__ == "__main__":
+    from motion_planning.obstacle_sets import SingleCup
     env = UR5()
+    env.set_obstacles(SingleCup())
     env.draw_state(None, env.sample_point())
+    env.draw_environment(None)
