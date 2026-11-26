@@ -209,13 +209,27 @@ def numpystate_distance(state1, state2):
     else:
         raise ValueError("Mismatched Types inputed or incorrect angular dims start")
 
+def dedup_path_state(path: Path):
+    if len(path) < 1:
+        return path
+
+    deduped_path = [path.path[0]]
+    prev_state = path.path[0]
+    for i in range(1, len(path)):
+        state = path.path[i]
+        if np.all(prev_state.value == state.value):
+            continue
+        else:
+            deduped_path.append(state)
+            prev_state = state
+    return Path(path=deduped_path)
 
 def interpolate_path(path: Path, env, delta: float):
     interpolated_path = []
     for i in range(len(path) - 1):
         interpolated_edge = interpolate_edge(path[i], path[i + 1], delta)
         interpolated_path.extend([env.make_state(state) for state in interpolated_edge])
-    return Path(interpolated_path)
+    return dedup_path_state(Path(interpolated_path))
 
 
 def rad2deg(rad):
