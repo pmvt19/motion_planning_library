@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
 from sklearn.neighbors import KDTree
@@ -11,10 +12,10 @@ class PRMRRT(PRM):
     def __init__(
         self,
         env: RobotSpace,
-        num_samples=10,
-        num_neighbors=None,
-        edge_dist_radius=None,
-        validate_edges=False,
+        num_samples: int = 10,
+        num_neighbors: int = None,
+        edge_dist_radius: float = None,
+        validate_edges: bool = False,
     ):
         super().__init__(
             env=env,
@@ -24,9 +25,9 @@ class PRMRRT(PRM):
             validate_edges=validate_edges,
         )
 
-        self.tree = Tree()
+        self.tree: Tree = Tree()
 
-    def select_node(self, goal_bias=0.1):
+    def select_node(self, goal_bias: float = 0.1) -> tuple[NumpyState, NumpyState]:
         if np.random.random() < goal_bias:
             sampled_point = self.target
         else:
@@ -38,7 +39,7 @@ class PRMRRT(PRM):
         idx = ind[0][0]
         return self.env.make_state(nodes[idx]), sampled_point
 
-    def step_search(self, iteration: int):
+    def step_search(self, iteration: int) -> NumpyState | None:
         # Sample Point
         node, sampled_point = self.select_node()
 
@@ -60,9 +61,9 @@ class PRMRRT(PRM):
             self.tree.add_node(parent_node=node, child_node=potential_new_child)
             return potential_new_child
 
-    def init_search(self, start: NumpyState, target: NumpyState):
-        self.start = start
-        self.target = target
+    def init_search(self, start: NumpyState, target: NumpyState) -> None:
+        self.start: NumpyState = start
+        self.target: NumpyState = target
 
         self.tree.init_tree(self.start)
 
@@ -76,7 +77,7 @@ class PRMRRT(PRM):
         target: NumpyState,
         max_steps: int = 1000,
         animate_search_tree: bool = False,
-    ):
+    ) -> Path:
         self.init_search(start, target)
 
         step_num = 0
@@ -96,7 +97,9 @@ class PRMRRT(PRM):
         reversed_path = self.tree.backtrack(target)
         return Path(reversed_path[::-1])
 
-    def draw(self, ax, path: Path | None = None, show_task: bool = True):
+    def draw(
+        self, ax: plt.Axes, path: Path | None = None, show_task: bool = True
+    ) -> None:
         self.env.draw_environment(ax)
 
         self.graph.draw(ax)
