@@ -151,22 +151,17 @@ class ApproximationSpace3D(RobotSpace3D):
 
         return points
 
-    def rect_prism_to_circles(self, aa_rect_prisms):
+    def rect_prism_to_circles(self, aa_rect_prism):
         # Work in progress
         # Need to handle multiple prism sizes
-        """
-        aa_rect_prisms: (B, 6)
-        """
 
-        if len(aa_rect_prisms) == 0:
-            return np.empty((0, 4))
-
-        B, _ = aa_rect_prisms.shape
+        # B, _ = aa_rect_prisms.shape
         
-        dim_sizes = aa_rect_prisms[:, 3:6]
-        min_dims = np.argmin(dim_sizes, axis=1)
+        # dim_sizes = aa_rect_prisms[:, 3:6]
+        # min_dims = np.argmin(dim_sizes, axis=1)
 
-        radii = dim_sizes[np.arange(B), min_dims]
+        # radii = dim_sizes[np.arange(B), min_dims]
+        pass
 
     def prisms_to_circles(self, aa_rect_prisms):
         """
@@ -333,163 +328,6 @@ if __name__ == '__main__':
         [3,7], # Mid Faces
     ])
 
-    # vertices = np.array([
-    #     [1,1,-1], # 0
-    #     [1,-1,-1], # 1
-    #     [-1,-1,-1], # 2
-    #     [-1,1,-1], # 3 
-    #     [1,1,1], # 4 
-    #     [1,-1,1], # 5
-    #     [-1,-1,1], # 6 
-    #     [-1,1,1], # 7
-    # ])
-
-    # ax = plt.axes(projection='3d')
-    # for a,b in edges:
-    #     point_a = vertices[a]
-    #     point_b = vertices[b]
-
-    #     ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
-    # plt.show()
-
-    # aa_rect_prism1 = np.array([0,0,0,1,5,5])
-    # aa_rect_prism2 = np.array([0,2.5,2.5,5,1,5])
-    # aa_rect_prism3 = np.array([0,-2.5,2.5,5,1,5])
-
-    ## Batch Commenting out START ##
-
-    # aa_rect_prism1 = np.array([0,0,0,1,5,5])
-    # aa_rect_prism2 = np.array([2.5,2.5,0,5,1,5])
-    # aa_rect_prism3 = np.array([2.5,-2.5,0,5,1,5])
-
-    # # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-    # prisms = np.array([aa_rect_prism1, aa_rect_prism2, aa_rect_prism3])
-    # circles = rect_prisms_to_circles(prisms)
-    # # print(circles.shape)
-
-    # ax = plt.axes(projection='3d')
-    # for prism in prisms:
-    #     ordered_verts = xyzwhl_to_ordered_vertices(prism)
-    #     for a,b in edges:
-    #         point_a = ordered_verts[a]
-    #         point_b = ordered_verts[b]
-    #         ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
-    #     ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
-    #     # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
-    #     ax.set_box_aspect([1,1,1])
-    #     amin = -11
-    #     amax = 11
-    #     ax.set_xlim(amin, amax)
-    #     ax.set_ylim(amin, amax)
-    #     ax.set_zlim(amin, amax)
-    
-    # for x,y,z,r in circles:
-    #     # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
-    #     cpx, cpy, cpz = drawSphere(x,y,z,r)
-    #     # ax.plot_wireframe(cpx, cpy, cpz, color="r")
-    #     ax.plot_surface(cpx, cpy, cpz, color="r")
-    # plt.show()
-
-    # visualize(prisms, edges, circles)
-    # viz_cylinder()
-
-    # end_points = np.array([[[0.0,0.0,0.0],
-    #                        [3.8,0.0,0.0]]])
-    # print(f"End Points: {end_points.shape}")
-    # cirs = cylinder_to_circles(end_points, 0.3)
-    # viz_circles(cirs)
-    # print(circles.shape, cirs.shape)
-    # print(circles_to_validity(circles, cirs.reshape(1, -1, 4)))
-
-    ## Batch Commenting out END ##
-
-    # aa_rect_prism = np.array([0,0,0,2,3,3.1])
-    # aa_rect_prism = np.array([0,0,0,2,3.1,3])
-
-    # aa_rect_prism = np.array([0,0,0,2,11.34,21.67])
-
-
-    # aa_rect_prism = np.array([0,0,0,20.82,2,21.67])
-
-
-    # aa_rect_prism = np.array([0,0,0,20.82,21.67,2])
-    # ordered_verts = xyzwhl_to_ordered_vertices(aa_rect_prism)
-
-    # ax = plt.axes(projection='3d')
-    # for a,b in edges:
-    #     point_a = ordered_verts[a]
-    #     point_b = ordered_verts[b]
-    #     ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]])
-    # ax.scatter(circles[:, 0], circles[:, 1], circles[:, 2])
-    # # ax.set_box_aspect([[-5,5],[-5,5],[-5,5]])
-    # ax.set_box_aspect([1,1,1])
-    # amin = -11
-    # amax = 11
-    # ax.set_xlim(amin, amax)
-    # ax.set_ylim(amin, amax)
-    # ax.set_zlim(amin, amax)
-
-    # for x,y,z,r in circles:
-    #     # cpx, cpy, cpz = drawSphere(x,y,z,1*math.sqrt(3))
-    #     cpx, cpy, cpz = drawSphere(x,y,z,r)
-    #     # ax.plot_wireframe(cpx, cpy, cpz, color="r")
-    #     ax.plot_surface(cpx, cpy, cpz, color="r")
-
-    # plt.show()
-
-    ## Sphere Robot PRM Search START ##
-    # import time
-    # from motion_planning.search import PRM
-    # env = SphereRobot()
-    # env = ApproximationSpace3D(env)
-
-    # env.draw_environment(None, None, method='rerun')
-
-    # prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
-    
-    # start_time = time.time()
-    # prm.create_graph()
-    # end_time = time.time()
-    # print(f"Time to create graph: {end_time - start_time}")
-    # # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([5.0,5.0,5.0]))
-    # # start, target = env.make_state(np.array([1.0,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
-    # start, target = env.make_state(np.array([1.5,1.0,1.0])), env.make_state(np.array([-2.0,1.0,1.0]))
-
-    # start, target = env.make_state(np.array([2.5, 0.0, 0.0])), env.make_state(np.array([-2.5, 0.0, 0.0]))
-    # start_time = time.time()
-    # path = prm.search(start, target)
-    # # path = prm.search(target, start)
-    # end_time = time.time()
-    # print(f"Time to Search: {end_time - start_time}")
-    # print(path.path)
-
-    # print([state.value for state in path])
-    # path_states = np.array([state.value for state in path])
-    # print(env.batch_is_valid(path_states))
-    # path = interpolate_path(path, env, 0.1)
-    # path_states = np.array([state.value for state in path])
-    # print(env.batch_is_valid(path_states))
-    # env.animate_path(path, method='rerun')
-    # exit()
-
-    ## Sphere Robot PRM Search END ##
-
-    # prm.draw(plt.gca())
-    # plt.show()
-
-    # plt.clf()
-    # ax = plt.axes(projection='3d')
-    # env.space.draw_environment(ax)
-    # env.space.draw_state(ax, path[0])
-    # plt.show()
-
-    # plt.clf()
-    # path = interpolate_path(path, env, 0.1)
-    # for i in range(len(path)):
-    #     ax = plt.axes(projection='3d')
-    #     env.space.draw_environment(ax)
-    #     env.space.draw_state(ax, path[i])
-    #     plt.pause(0.1)
     from motion_planning.utils import set_numpy_seed
     from motion_planning.space.holonomic._3d.ur5 import UR5
     from motion_planning.obstacle_sets import SingleCup
@@ -497,42 +335,13 @@ if __name__ == '__main__':
     env_base = UR5()
     env_base.set_obstacles(SingleCup())
     env = ApproximationSpace3D(env_base)
-    # env_base.draw_environment(None, method='rerun')
     # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/5, 0.0]))
     state = env.make_state(np.array([np.pi/4, -np.pi/4, np.pi/4, np.pi/4]))
-
-    op_res = env_base.batch_forward_kinematics(state.value.reshape(1, -1), use_optimization=True)
-    unop_res = env_base.batch_forward_kinematics(state.value.reshape(1, -1), use_optimization=False)
-    # print(op_res, unop_res)
-    # exit()
-
-    # state = env.sample_point()
-    # state = env.make_state(np.array([0.0, 0.0, -np.pi/4, -np.pi/4]))
-    # env.draw_state(None, state, method="rerun")
-    # env_base.draw_state(None, state, method="rerun")
-    points = env.batch_sample_points(100000)
-    st = time.time()
-    optimized_res = env_base.batch_forward_kinematics(points, use_optimization=True)
-    
-    et = time.time()
-    optimized_time = et-st
-    print(optimized_time)
-
-    st = time.time()
-    unoptimized_res = env_base.batch_forward_kinematics(points, use_optimization=False)
-    et = time.time()
-    unoptimized_time = et - st
-    print(unoptimized_time)
-    print((unoptimized_time - optimized_time)/unoptimized_time * 100) 
 
     # env.draw_environment(None, None, method='rerun')
     # state = env.make_state(np.array([0.0, -np.pi/4, np.pi/2, np.pi/2]))
     # state = env.sample_point()
     state = env.make_state(np.array([0.0, -np.pi/4, np.pi/5, 0.0]))
-    # env.draw_environment(None, None, method='rerun')
-    # env.draw_state(None, state, method='rerun')
-    # exit()
-    # env.draw_state(None, state, method='rerun')
 
     from motion_planning.search import PRM, RRT
     # prm = PRM(env, num_samples=1000, num_neighbors=5, validate_edges=True)
@@ -555,7 +364,6 @@ if __name__ == '__main__':
     before_path = path
     # path = rrt.search(start, target, max_steps=100000)
     path = interpolate_path(path, env, 0.1)
-    # print(path.path)
     env.animate_path(path, method='rerun')
 
     for state in path.path:
@@ -565,22 +373,3 @@ if __name__ == '__main__':
     before_numpy_path = np.array([state.value for state in before_path.path])
     
     path_edges = np.concatenate((numpy_path[:-1], numpy_path[1:]), axis=1)
-    print(np.isnan(path_edges).any(), 'here')
-    # print(env.batch_is_valid_edge(numpy_path[:-1], numpy_path[1:]))
-    # print(env.batch_is_valid_edge(numpy_path[:2], numpy_path[1:3]))
-    print(len(numpy_path))
-    print(numpy_path)
-
-    print("-----")
-    print(before_numpy_path)
-    print(env.batch_is_valid_edge(numpy_path[:3], numpy_path[1:4]))
-
-    # exit()
-
-    # env_base.forward_kinematics(state)
-    # state_circles = env.states_to_circles(np.array(state.value).reshape(1, -1))[0]
-    # print(state_circles)
-
-    # env.draw_state(None, state, method='rerun')
-
-    
