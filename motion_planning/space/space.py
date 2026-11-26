@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from shapely import Polygon
 
 from motion_planning.obstacle_sets import ObstacleSet
-from motion_planning.tools import NumpyState
+from motion_planning.tools import NumpyState, Path
 from motion_planning.utils import (
     batch_interpolate_edge,
     batch_interpolate_edge_uniform,
@@ -13,31 +14,30 @@ from motion_planning.utils import (
 
 class RobotSpace:
     def __init__(self):
-        self.num_collision_checks = 0
+        self.num_collision_checks: int = 0
         self.obstacles = []
-        self.edge_validity_delta = 0.5
+        self.edge_validity_delta: float = 0.5
 
-        self.x_range = [-10, 10]
-        self.y_range = [-10, 10]
-        self.boundary = create_rectangle_geometry(
+        self.x_range: list[float] = [-10, 10]
+        self.y_range: list[float] = [-10, 10]
+        self.boundary: Polygon = create_rectangle_geometry(
             x_loc=((self.x_range[0] + self.x_range[1]) / 2),
             y_loc=((self.y_range[0] + self.y_range[1]) / 2),
             x_width=self.x_range[1] - self.x_range[0],
             y_length=self.y_range[1] - self.y_range[0],
         )
 
-        self.angular_dims_start = None
+        self.angular_dims_start: int | None = None
+        self.workspace_dims: int = 2
 
-        self.state_dims = None
-        self.workspace_dims = None
-
+        self.state_dims: int = None
         self.c_space_lower_bound: np.ndarray | None = None
         self.c_space_upper_bound: np.ndarray | None = None
 
-    def is_valid(self, state):
+    def is_valid(self, state: NumpyState) -> bool:
         raise NotImplementedError
 
-    def is_valid_edge(self, start, end):
+    def is_valid_edge(self, start: NumpyState, end: NumpyState) -> bool:
         edge_states = interpolate_edge(start, end, self.edge_validity_delta)
 
         for state in edge_states:
@@ -45,25 +45,25 @@ class RobotSpace:
                 return False
         return True
 
-    def make_state(self, state):
+    def make_state(self, state: np.ndarray) -> NumpyState:
         raise NotImplementedError
 
-    def sample_point(self):
+    def sample_point(self) -> NumpyState:
         raise NotImplementedError
 
-    def dist(self, state1, state2):
+    def dist(self, state1: NumpyState, state2: NumpyState) -> float:
         raise NotImplementedError
 
-    def generate_robot_representation(self, state):
+    def generate_robot_representation(self, state: NumpyState):
         raise NotImplementedError
 
-    def sample_valid_point(self):
+    def sample_valid_point(self) -> NumpyState:
         point = self.sample_point()
         while not self.is_valid(point):
             point = self.sample_point()
         return point
 
-    def draw_state(self, ax, state):
+    def draw_state(self, ax: plt.Axes, state: NumpyState):
         raise NotImplementedError
 
     # def draw_state(self, ax, state):
@@ -75,7 +75,7 @@ class RobotSpace:
     #     for point in robot.points:
     #         ax.plot(*point.xy, color='red')
 
-    def draw_environment(self, ax):
+    def draw_environment(self, ax: plt.Axes):
         containers = []
         ax.set_xlim(self.x_range[0], self.x_range[1])
         ax.set_ylim(self.y_range[0], self.y_range[1])
@@ -84,7 +84,7 @@ class RobotSpace:
             containers.extend(ax.plot(x, y, color="black"))
         return containers
 
-    def animate_path(self, path, frame_delay=0.1):
+    def animate_path(self, path: Path, frame_delay: float = 0.1) -> None:
         for state in path:
             plt.clf()
             self.draw_environment(plt.gca())
@@ -172,7 +172,9 @@ class RobotSpace:
         validities = np.array(validities)
         return validities
 
-    def batch_is_valid_edge(self, start_states: np.ndarray, end_states: np.ndarray):
+    def batch_is_valid_edge(
+        self, start_states: np.ndarray, end_states: np.ndarray
+    ) -> np.ndarray:
         B, d = start_states.shape
         # start_states: (B, d), end_states: (B, d)
         pts, steps = batch_interpolate_edge(
@@ -187,7 +189,7 @@ class RobotSpace:
 
     def batch_is_valid_edge_uniform(
         self, start_states: np.ndarray, end_states: np.ndarray
-    ):
+    ) -> np.ndarray:
         B, d = start_states.shape
         # start_states: (B, d), end_states: (B, d)
         pts = batch_interpolate_edge_uniform(
@@ -198,9 +200,11 @@ class RobotSpace:
         edge_validities = np.all(pt_validities, axis=1)
         return edge_validities
 
-    def batch_sample_points(self, num_points):
+    def batch_sample_points(self, num_points: int) -> np.ndarray:
         return np.random.uniform(
-            low=self.c_space_lower_bound, high=self.c_space_upper_bound, size=(num_points, self.state_dims)
+            low=self.c_space_lower_bound,
+            high=self.c_space_upper_bound,
+            size=(num_points, self.state_dims)
         )
 
     def batch_get_robot_representations(self, states: np.ndarray):

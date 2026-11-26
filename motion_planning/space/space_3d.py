@@ -13,6 +13,8 @@ class RobotSpace3D(RobotSpace):
         self.y_range = [-10, 10]
         self.z_range = [-10, 10]
 
+        self.workspace_dims: int = 3
+
     def set_obstacles(self, obstacle_set: ObstacleSet3D):
         self.obstacles = obstacle_set.obstacles
         self.boundary = obstacle_set.boundary
