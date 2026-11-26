@@ -31,7 +31,7 @@ class SphereRobot(RobotSpace3D, HolonomicRobot):
         self.c_space_lower_bound = np.array([-10.0, -10.0, -10.0])
         self.c_space_upper_bound = np.array([10.0, 10.0, 10.0])
     
-    def make_state(self, state):
+    def make_state(self, state: np.ndarray) -> NumpyState:
         return NumpyState(value=state)
 
     def sample_point(self):
@@ -40,7 +40,7 @@ class SphereRobot(RobotSpace3D, HolonomicRobot):
         z = np.random.uniform(low=self.z_range[0], high=self.z_range[1])
         return self.make_state(np.array([x, y, z]))
     
-    def generate_robot_representation(self, state, r):
+    def generate_robot_representation(self, state: NumpyState, r: float):
         xCenter, yCenter, zCenter = self.get_state_value(state)
 
         u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
@@ -53,10 +53,10 @@ class SphereRobot(RobotSpace3D, HolonomicRobot):
         z = r*z + zCenter
         return (x,y,z)
 
-    def dist(self, state1, state2):
+    def dist(self, state1: NumpyState, state2: NumpyState) -> float:
         return numpystate_distance(state1, state2)
 
-    def is_valid(self, state):
+    def is_valid(self, state: NumpyState) -> float:
         raise NotImplementedError
 
     def draw_state(self, ax, state, method='rerun'):
@@ -71,7 +71,9 @@ class SphereRobot(RobotSpace3D, HolonomicRobot):
             )
         )
 
-    def batch_get_robot_representations(self, states):
+    def batch_get_robot_representations(
+        self, states: np.ndarray
+    ) -> dict[str, np.ndarray]:
         return {
             'prisms' : np.empty((0, 6)),
             'cylinders' : np.empty((0, 0, 2, 3)), 
@@ -80,7 +82,7 @@ class SphereRobot(RobotSpace3D, HolonomicRobot):
             'points_radii' : self.robot_radius
         }
     
-    def batch_sample_points_around_target(self, targets):
+    def batch_sample_points_around_target(self, targets: np.ndarray) -> np.ndarray:
         validities = self.batch_is_valid(targets)
         return targets[validities]
 
