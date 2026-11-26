@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from shapely import Point
 
@@ -8,19 +9,19 @@ from motion_planning.tools import NumpyState
 class PointRobot(HolonomicRobot):
     def __init__(self, edge_validity_delta: float = 0.5):
         super().__init__()
-        self.edge_validity_delta = edge_validity_delta
+        self.edge_validity_delta: float = edge_validity_delta
 
-        self.x_range = [-10, 10]
-        self.y_range = [-10, 10]
+        self.x_range: list[int] = [-10, 10]
+        self.y_range: list[int] = [-10, 10]
 
-        self.state_dims = 2 # (X, Y)
-        self.c_space_lower_bound = np.array([-10, -10])
-        self.c_space_upper_bound = np.array([10, 10])
+        self.state_dims: int = 2 # (X, Y)
+        self.c_space_lower_bound: np.ndarray = np.array([-10, -10])
+        self.c_space_upper_bound: np.ndarray = np.array([10, 10])
 
-    def make_state(self, state) -> NumpyState:
+    def make_state(self, state: np.ndarray) -> NumpyState:
         return NumpyState(state)
 
-    def generate_robot_representation(self, state):
+    def generate_robot_representation(self, state: NumpyState) -> Point:
         state = self.get_state_value(state)
         robot = Point(state)
         return robot
@@ -30,12 +31,12 @@ class PointRobot(HolonomicRobot):
         y = np.random.uniform(low=self.y_range[0], high=self.y_range[1])
         return self.make_state(np.array([x, y]))
 
-    def dist(self, state1, state2) -> float:
+    def dist(self, state1: NumpyState, state2: NumpyState) -> float:
         return np.linalg.norm(
             self.get_state_value(state1) - self.get_state_value(state2)
         )
 
-    def is_valid(self, state) -> bool:
+    def is_valid(self, state: NumpyState) -> bool:
         self.num_collision_checks += 1
         robot = self.generate_robot_representation(state)
 
@@ -48,12 +49,12 @@ class PointRobot(HolonomicRobot):
                 return False
         return True
 
-    def draw_state(self, ax, state):
+    def draw_state(self, ax: plt.Axes, state: NumpyState) -> None:
         robot = self.generate_robot_representation(state)
         return [ax.scatter(*robot.xy, color="red")]
 
     ## ---- Batched Methods ---- ##
-    def batch_get_robot_representations(self, states: np.ndarray) -> dict:
+    def batch_get_robot_representations(self, states: np.ndarray) -> dict[np.ndarray]:
         # states # (B, 2)
         return {
             "rectangles": np.empty((0, 4)),
@@ -69,8 +70,6 @@ class PointRobot(HolonomicRobot):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     env = PointRobot()
     state = env.sample_point()
 
