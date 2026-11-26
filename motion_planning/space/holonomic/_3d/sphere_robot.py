@@ -2,8 +2,7 @@
 import numpy as np
 import rerun as rr
 
-from motion_planning.space import HolonomicRobot
-from motion_planning.space.approx.circle_approximation_3d import RobotSpace3D
+from motion_planning.space import HolonomicRobot, RobotSpace3D
 from motion_planning.tools import NumpyState
 from motion_planning.utils import numpystate_distance
 

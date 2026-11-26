@@ -14,3 +14,4 @@ from .nonholonomic.dubins_car import DubinsCar
 from .nonholonomic.skid_steer_car import SkidSteerCar
 
 from .approx.circle_approximation import ApproximationSpace
+from .approx.circle_approximation_3d import ApproximationSpace3D

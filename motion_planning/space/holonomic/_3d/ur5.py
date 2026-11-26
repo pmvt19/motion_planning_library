@@ -2,11 +2,9 @@ import numpy as np
 import rerun as rr
 from sklearn.metrics import pairwise_distances
 
-from motion_planning.obstacle_sets import ObstacleSet
-from motion_planning.space import HolonomicRobot, RobotSpace
-from motion_planning.space.approx.circle_approximation_3d import RobotSpace3D
+from motion_planning.space import HolonomicRobot, RobotSpace3D
 from motion_planning.tools import NumpyState, AngularNumpyState
-from motion_planning.utils import numpystate_distance, interpolate_path
+from motion_planning.utils import numpystate_distance
 
 
 class UR5(RobotSpace3D, HolonomicRobot):
@@ -158,7 +156,9 @@ class UR5(RobotSpace3D, HolonomicRobot):
 
         return link_ees
     
-    def batch_forward_kinematics(self, states: np.ndarray, use_optimization: bool = True):
+    def batch_forward_kinematics(
+        self, states: np.ndarray, use_optimization: bool = True
+    ) -> np.ndarray:
         # states: (N, m)
         # returns: (N, m-1, 2, 3)
         N, m = states.shape
@@ -265,7 +265,9 @@ class UR5(RobotSpace3D, HolonomicRobot):
             
             return np.stack(fks, axis=0)
 
-    def batch_get_robot_representations(self, states):
+    def batch_get_robot_representations(
+        self, states: np.ndarray
+    ) -> dict[str, np.ndarray]:
         cylinder_endpoints = self.batch_forward_kinematics(states)
 
         return {
