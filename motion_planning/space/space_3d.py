@@ -46,7 +46,7 @@ class RobotSpace3D(RobotSpace):
             self.c_space_lower_bound[2] = min_z
             self.c_space_upper_bound[2] = max_z
 
-    def xyzwhl_to_ordered_vertices(aa_rect_prism):
+    def xyzwhl_to_ordered_vertices(aa_rect_prism: np.ndarray):
         # aa_rect (x,y,z,xl,yl,zl)
         x, y, z, xl, yl, zl = aa_rect_prism
         vertices = np.array([

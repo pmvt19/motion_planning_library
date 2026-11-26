@@ -32,26 +32,26 @@ class UR5(RobotSpace3D, HolonomicRobot):
         self.c_space_lower_bound = np.array([0.0, 0.0, 0.0, 0.0])
         self.c_space_upper_bound = np.array([2*np.pi, 2*np.pi, 2*np.pi, 2*np.pi])
     
-    def make_state(self, state):
+    def make_state(self, state: np.ndarray) -> AngularNumpyState:
         return AngularNumpyState(
             value=state, 
             angular_dims_start=self.angular_dims_start
         )
 
-    def sample_point(self):
+    def sample_point(self) -> AngularNumpyState:
         theta_0 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         theta_1 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         theta_2 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         theta_3 = np.random.uniform(low=self.theta_range[0], high=self.theta_range[1])
         return self.make_state(np.array([theta_0, theta_1, theta_2, theta_3]))
     
-    def generate_robot_representation(self, state):
+    def generate_robot_representation(self, state: AngularNumpyState):
         raise NotImplementedError
 
-    def dist(self, state1, state2):
+    def dist(self, state1: AngularNumpyState, state2: AngularNumpyState) -> float:
         return numpystate_distance(state1, state2)
 
-    def is_valid(self, state):
+    def is_valid(self, state: AngularNumpyState) -> bool:
         raise NotImplementedError
 
     def draw_state(self, ax, state, method="rerun"):
@@ -100,7 +100,7 @@ class UR5(RobotSpace3D, HolonomicRobot):
             )
         )
 
-    def forward_kinematics(self, state: NumpyState):
+    def forward_kinematics(self, state: NumpyState) -> np.ndarray:
         theta0, theta1, theta2, theta3, *_ = state.value
         H_10 = np.array([[np.cos(theta0), -np.sin(theta0), 0.0, 0.0],
                          [np.sin(theta0), np.cos(theta0),  0.0, 0.0],
