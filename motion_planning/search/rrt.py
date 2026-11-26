@@ -8,19 +8,19 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 from sklearn.neighbors import KDTree
 
 from motion_planning.space import RobotSpace
-from motion_planning.tools import Path
+from motion_planning.tools import NumpyState, Path
 
 
 class RRT:
-    def __init__(self, env, delta=0.5):
+    def __init__(self, env: RobotSpace, delta: float = 0.5):
         self.env: RobotSpace = env
         self.tree = defaultdict(list)
         self.child_to_parent = {}
-        self.delta = delta
+        self.delta: float = delta
 
-        self.animation_delay = 0.01
+        self.animation_delay: float = 0.01
 
-    def select_node(self, goal_bias=0):
+    def select_node(self, goal_bias: float = 0) -> tuple[NumpyState, NumpyState]:
         if np.random.random() < goal_bias:
             sampled_point = self.target
         else:
@@ -31,18 +31,15 @@ class RRT:
         idx = ind[0][0]
         return self.env.make_state(nodes[idx]), sampled_point
 
-    def expand_node(self, node, sampled_point):
+    def expand_node(self, node: NumpyState, sampled_point: NumpyState) -> NumpyState:
         if np.linalg.norm(self.target.value - node.value) < self.delta:
             new_node = self.target
         else:
-            # print(np.linalg.norm(sampled_point.value - node.value), 'dist')
-            # new_node = self.env.shoot_ray(node, sampled_point, self.delta)
             new_node = self.env.shoot_ray(
                 node,
                 sampled_point,
                 min(self.delta, np.linalg.norm(sampled_point.value - node.value)),
             )
-            # assert(new_node.value[1] < 10), "ERROR EXPAND NODE"
         if new_node != node:
             self.tree[node].append(new_node)
             self.tree[new_node]
@@ -50,7 +47,9 @@ class RRT:
 
         return new_node
 
-    def draw_tree(self, ax, path: Path = None, show_task=True):
+    def draw_tree(
+        self, ax: plt.Axes, path: Path | None = None, show_task: bool = True
+    ) -> None:
         self.env.draw_environment(ax)
         nodes = np.array([node.value for node in self.tree.keys()])
 
@@ -80,7 +79,7 @@ class RRT:
             ]
             ax.add_collection(LineCollection(path, color="red"))
 
-    def draw_voronoi_diagram(self):
+    def draw_voronoi_diagram(self) -> None:
         nodes = np.array([node.value for node in self.tree.keys()])
         vor = Voronoi(nodes)
         fig = voronoi_plot_2d(
@@ -104,7 +103,7 @@ class RRT:
             node = self.child_to_parent[node]
         return Path(path=path[::-1])
 
-    def init_search(self, start, target, starting_tree_info=None):
+    def init_search(self, start: NumpyState, target: NumpyState, starting_tree_info=None):
         self.start = start
         self.target = target
 
@@ -120,7 +119,7 @@ class RRT:
             self.tree = starting_tree_info[0]
             self.child_to_parent = starting_tree_info[1]
 
-    def step_search(self, goal_bias):
+    def step_search(self, goal_bias: float) -> NumpyState:
         exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
         cur_node = self.expand_node(exp_node, sampled_point)
         return cur_node
@@ -133,7 +132,7 @@ class RRT:
         goal_bias=0.1,
         animate_search_tree=False,
         starting_tree_info=None,
-    ):
+    ) -> Path:
         self.init_search(start, target, starting_tree_info)
 
         cur_node = start
