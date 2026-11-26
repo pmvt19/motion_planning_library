@@ -34,7 +34,7 @@ class RobotSpace3D(RobotSpace):
         # In this case, do not adjust the c space lower and upper bounds
         # As this would adjust the angular dimensions instead
         # Example: FixedArm
-        # This assumes the first two dimensions are the X and Y spatial information 
+        # This assumes the first two dimensions are the X and Y spatial information
         # respectively
         if self.angular_dims_start is None or self.angular_dims_start >= 3:
             self.c_space_lower_bound[0] = min_x
@@ -64,11 +64,15 @@ class RobotSpace3D(RobotSpace):
     def draw_environment(self, ax, method="rerun"):
         if method == "rerun":
             rr.init("3D Environment", spawn=True)
-            # TODO: Remove this loop, we can do this in one shot
-            for i, obst in enumerate(self.obstacles):
-                centers = obst[:3]
-                half_sizes = obst[3:] / 2
-                rr.log(f"obsts_{i}", rr.Boxes3D(centers=centers, half_sizes=half_sizes, colors=[0, 0, 255], fill_mode=rr.components.FillMode.Solid))
+            rr.log(
+                "Box Obstacles",
+                rr.Boxes3D(
+                    centers=self.obstacles[:, :3],
+                    half_sizes=self.obstacles[:, 3:] / 2,
+                    colors=[0, 0, 255],
+                    fill_mode=rr.components.FillMode.Solid
+                )
+            )
         elif method == "matplotlib":
             raise NotImplementedError
             # ax.set_xlim(self.x_range[0], self.x_range[1])
@@ -80,7 +84,12 @@ class RobotSpace3D(RobotSpace):
             #     for a,b in edges:
             #         point_a = ordered_verts[a]
             #         point_b = ordered_verts[b]
-            #         ax.plot3D([point_a[0], point_b[0]],[point_a[1], point_b[1]],[point_a[2], point_b[2]], color='blue')
+            #         ax.plot3D(
+            #             [point_a[0], point_b[0]],
+            #             [point_a[1], point_b[1]],
+            #             [point_a[2], point_b[2]],
+            #             color='blue'
+            #         )
         else:
             raise ValueError("Drawing Method Not Supported")
 
