@@ -1068,6 +1068,7 @@ if __name__ == '__main__':
     #     env.space.draw_state(ax, path[i])
     #     plt.pause(0.1)
     from motion_planning.utils import set_numpy_seed
+    from motion_planning.space.holonomic._3d.ur5 import UR5
     # set_numpy_seed(5568)
     env_base = UR5()
     env = ApproximationSpace3D(env_base)
@@ -1147,7 +1148,7 @@ if __name__ == '__main__':
 
     print("-----")
     print(before_numpy_path)
-    # print(env.batch_is_valid_edge(numpy_path[:3], numpy_path[1:4]))
+    print(env.batch_is_valid_edge(numpy_path[:3], numpy_path[1:4]))
 
     # exit()
 
