@@ -490,7 +490,7 @@ if __name__ == '__main__':
     #     plt.pause(0.1)
     from motion_planning.utils import set_numpy_seed
     from motion_planning.space.holonomic._3d.ur5 import UR5
-    from motion_planning.obstacle_sets.single_cup import SingleCup
+    from motion_planning.obstacle_sets import SingleCup
     # set_numpy_seed(5568)
     env_base = UR5()
     env_base.set_obstacles(SingleCup())
