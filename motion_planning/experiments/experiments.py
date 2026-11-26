@@ -20,7 +20,7 @@ def run_experiment(seed, timing_dict: dict[str, list], path_dict: dict[str, list
     start, target = env.sample_valid_point(), env.sample_valid_point()
 
 
-    db_path = "saves/database_v1_bpe3.pickle"
+    db_path = "saves/database_pr_bp3.pickle"
 
     rrt = RRT(env)
     prm = PRM(env, num_samples=5000, num_neighbors=10, validate_edges=True)
@@ -34,9 +34,6 @@ def run_experiment(seed, timing_dict: dict[str, list], path_dict: dict[str, list
     optimized_pdg_compute_retained_start = time.time()
     optimized_pdg.compute_retained_paths(target)
     optimized_pdg_compute_retained_end = time.time()
-
-
-
 
     rrt_start_time = time.time()
     rrt_path = rrt.search(start, target)
@@ -69,8 +66,19 @@ def run_experiment(seed, timing_dict: dict[str, list], path_dict: dict[str, list
 
 
 def analyze_results(timing_dict, path_dict):
-    for key in timing_dict:
-        print(f"{key}:", np.mean(timing_dict[key]), np.median(timing_dict[key]), np.mean(np.sort(timing_dict[key])[:60]))
+
+    num_decimals = 4
+    for method in timing_dict:
+        search_times = timing_dict[method]
+        sorted_search_times = np.sort(search_times)      
+
+        print(
+            f"{method}:",
+            f"Mean: {np.round(np.mean(search_times), num_decimals)}",
+            f"Mean of Best 60: {np.round(np.mean(sorted_search_times[:60]), num_decimals)}",
+            f"Median: {np.round(np.median(search_times), num_decimals)}",
+            f"Median of Best 60: {np.round(np.median(sorted_search_times[:60]), num_decimals)}"
+        )
 
     for key in path_dict:
         lens = []
@@ -87,15 +95,18 @@ if __name__ == "__main__":
     timing_dict = defaultdict(list)
     path_dict = defaultdict(list)
 
-    # for i in range(64):
-    #     run_experiment(i, timing_dict, path_dict)
-
 
     timing_dict_path = "saves/timing_dict.pickle"
     path_dict_path = "saves/path_dict.pickle"
 
-    # pickle.dump(timing_dict, open(timing_dict_path, 'wb'))
-    # pickle.dump(path_dict, open(path_dict_path, 'wb'))
+    recompute_search_results = False
+
+    if recompute_search_results:
+        for i in range(64):
+            run_experiment(i, timing_dict, path_dict)
+
+        pickle.dump(timing_dict, open(timing_dict_path, 'wb'))
+        pickle.dump(path_dict, open(path_dict_path, 'wb'))
 
     timing_dict = pickle.load(open(timing_dict_path, 'rb'))
     path_dict = pickle.load(open(path_dict_path, 'rb'))
