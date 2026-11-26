@@ -1,26 +1,31 @@
-import time
-
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.neighbors import KDTree
 
 from motion_planning.search import RRT
-from motion_planning.tools import Path
+from motion_planning.space import RobotSpace
+from motion_planning.tools import NumpyState, Path
 
 
 class RRTStar(RRT):
-    def __init__(self, env, delta=0.5, rewire_radius=1, max_rewire_neighbors=20):
+    def __init__(
+        self,
+        env: RobotSpace,
+        delta: float = 0.5,
+        rewire_radius: float = 1.0,
+        max_rewire_neighbors: int = 20,
+    ):
         super().__init__(env=env, delta=delta)
-        self.rewire_radius = rewire_radius
-        self.max_rewire_neighbors = max_rewire_neighbors
+        self.rewire_radius: float = rewire_radius
+        self.max_rewire_neighbors: int = max_rewire_neighbors
 
-    def init_search(self, start, target):
-        self.start = start
-        self.target = target
+    def init_search(self, start: NumpyState, target: NumpyState):
+        self.start: NumpyState = start
+        self.target: NumpyState = target
         self.tree[self.start] = []
         self.child_to_parent[self.start] = (None, 0)
 
-    def expand_node(self, node, sampled_point):
+    def expand_node(self, node: NumpyState, sampled_point: NumpyState) -> NumpyState:
         if (
             self.target not in self.tree
             and self.env.dist(self.target, node) < self.delta
@@ -38,13 +43,13 @@ class RRTStar(RRT):
             )
         return new_node
 
-    def dfs_update(self, parent, cost):
+    def dfs_update(self, parent: NumpyState, cost: float) -> None:
         for child in self.tree[parent]:
             child_cost = cost + self.env.dist(parent, child)
             self.child_to_parent[child] = (parent, child_cost)
             self.dfs_update(child, child_cost)
 
-    def update_child_nodes(self, parent, child):
+    def update_child_nodes(self, parent: NumpyState, child: NumpyState) -> None:
         # Delete child from its current parent
         old_parent, _ = self.child_to_parent[child]
         self.tree[old_parent].remove(child)
@@ -57,7 +62,7 @@ class RRTStar(RRT):
         # Update Descendant Cost
         self.dfs_update(child, child_cost)
 
-    def rewire(self, q_new):
+    def rewire(self, q_new: NumpyState) -> None:
         k = min(int(len(self.tree) * 1), self.max_rewire_neighbors)
 
         nodes = np.array([node.value for node in self.tree.keys()])
@@ -84,14 +89,14 @@ class RRTStar(RRT):
                     # optimal path to q_new passes through q
                     self.update_child_nodes(parent=q, child=q_new)
 
-    def step_search(self, rewire, goal_bias):
+    def step_search(self, rewire: bool, goal_bias: float) -> NumpyState:
         exp_node, sampled_point = self.select_node(goal_bias=goal_bias)
         cur_node = self.expand_node(exp_node, sampled_point)
         if rewire:
             self.rewire(cur_node)
         return cur_node
 
-    def backtrack(self, end=None):
+    def backtrack(self, end: NumpyState | None = None) -> Path:
         if end is None or end not in self.child_to_parent:
             return Path()
 
@@ -104,17 +109,16 @@ class RRTStar(RRT):
 
     def search(
         self,
-        start,
-        target,
-        max_steps=10000,
-        goal_bias=0.1,
-        do_rewire=True,
-        animate_search_tree=False,
-    ):
+        start: NumpyState,
+        target: NumpyState,
+        max_steps: int = 10000,
+        goal_bias: float = 0.1,
+        do_rewire: bool = True,
+        animate_search_tree: bool = False,
+    ) -> Path:
         self.init_search(start, target)
 
         num_steps = 0
-        start_time = time.time()
         while num_steps < max_steps:
             print(f"Searching Step: {num_steps}", end="\r")
             self.step_search(rewire=do_rewire, goal_bias=goal_bias)
@@ -124,10 +128,6 @@ class RRTStar(RRT):
                 plt.pause(self.animation_delay)
                 plt.clf()
 
-        search_time = time.time() - start_time
-        print(
-            f"Search Time: {search_time}, Collision Checks: {self.env.num_collision_checks}"
-        )
         path = self.backtrack(end=target)
         return path
 
