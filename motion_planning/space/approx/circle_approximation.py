@@ -16,6 +16,11 @@ class ApproximationSpace(RobotSpace):
         self.do_overapproximation: bool = do_overapproximation
         self.batch_size: int = batch_size
         self.obstacle_circles: np.ndarray = self.space_to_circles()
+
+        # Set Parameters from Base Environment
+        self.state_dims = self.space.state_dims
+        self.c_space_lower_bound = self.space.c_space_lower_bound
+        self.c_space_upper_bound = self.space.c_space_upper_bound
         
     def dist(self, state1, state2):
         return self.space.dist(state1, state2)
