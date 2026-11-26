@@ -152,6 +152,8 @@ class ApproximationSpace3D(RobotSpace3D):
         return points
 
     def rect_prism_to_circles(self, aa_rect_prisms):
+        # Work in progress
+        # Need to handle multiple prism sizes
         """
         aa_rect_prisms: (B, 6)
         """
