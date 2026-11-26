@@ -156,114 +156,104 @@ class UR5(RobotSpace3D, HolonomicRobot):
 
         return link_ees
     
-    def batch_forward_kinematics(
-        self, states: np.ndarray, use_optimization: bool = True
-    ) -> np.ndarray:
+    def batch_forward_kinematics(self, states: np.ndarray) -> np.ndarray:
         # states: (N, m)
         # returns: (N, m-1, 2, 3)
         N, m = states.shape
 
         
-        # TODO: Deprecate Unoptimized Version
-        if use_optimization:
-            thetas0 = states[:, 0]
-            thetas1 = states[:, 1]
-            thetas2 = states[:, 2]
-            thetas3 = states[:, 3]
+        thetas0 = states[:, 0]
+        thetas1 = states[:, 1]
+        thetas2 = states[:, 2]
+        thetas3 = states[:, 3]
 
-            zeros = np.zeros(N)
-            ones = np.ones(N)
-            batch_H_10 = np.array(
-                [
-                    [np.cos(thetas0), -np.sin(thetas0), zeros, zeros],
-                    [np.sin(thetas0), np.cos(thetas0),  zeros, zeros],
-                    [zeros,           zeros,            ones,  zeros],
-                    [zeros,           zeros,            zeros, ones]
-                ]
-            )
-            batch_H_10 = batch_H_10.transpose(2, 0, 1)
-
-            batch_H_21 = np.array(
-                [
-                    [np.cos(thetas1),  zeros, np.sin(thetas1), zeros],
-                    [zeros,            ones,            zeros, zeros],
-                    [-np.sin(thetas1), zeros, np.cos(thetas1), zeros],
-                    [zeros,            zeros,           zeros, ones]
-                ]
-            )
-            batch_H_21 = batch_H_21.transpose(2, 0, 1)
-
-            batch_H_32 = np.array(
-                [
-                    [np.cos(thetas2),  zeros, np.sin(thetas2), ones],
-                    [zeros,            ones,            zeros, zeros],
-                    [-np.sin(thetas2), zeros, np.cos(thetas2), zeros],
-                    [zeros,            zeros,           zeros, ones]
-                ]
-            )
-            batch_H_32 = batch_H_32.transpose(2, 0, 1)
-
-            batch_H_43 = np.array(
-                [
-                    [np.cos(thetas3),  zeros, np.sin(thetas3), ones],
-                    [zeros,            ones,            zeros, zeros],
-                    [-np.sin(thetas3), zeros, np.cos(thetas3), zeros],
-                    [zeros,            zeros,           zeros, ones]
-                ]
-            )
-            batch_H_43 = batch_H_43.transpose(2, 0, 1)
-
-            batch_H_54 = np.array(
-                [
-                    [ones,  zeros, zeros, ones],
-                    [zeros, ones,  zeros, zeros],
-                    [zeros, zeros, ones,  zeros],
-                    [zeros, zeros, zeros, ones]
-                ]
-            )
-            batch_H_54 = batch_H_54.transpose(2, 0, 1)
-
-            transformation_matricies = [
-                batch_H_10, batch_H_21, batch_H_32, batch_H_43, batch_H_54
+        zeros = np.zeros(N)
+        ones = np.ones(N)
+        batch_H_10 = np.array(
+            [
+                [np.cos(thetas0), -np.sin(thetas0), zeros, zeros],
+                [np.sin(thetas0), np.cos(thetas0),  zeros, zeros],
+                [zeros,           zeros,            ones,  zeros],
+                [zeros,           zeros,            zeros, ones]
             ]
-            
-            # Start the Cumulative Matrix as the identity matrix
-            cum_mat = np.eye(4)
-    
-            cum_transformation_matricies: list[np.ndarray] = []
-    
-            for i in range(len(transformation_matricies)):
-                cum_mat = cum_mat @ transformation_matricies[i]
-    
-                # Copy the Cumulative Matrix to avoid overwriting appended results
-                cum_transformation_matricies.append(cum_mat.copy())
-    
-            cum_transformation_matricies = np.array(cum_transformation_matricies)
-            cum_transformation_matricies = cum_transformation_matricies.transpose(
-                1, 0, 2, 3
-            )
+        )
+        batch_H_10 = batch_H_10.transpose(2, 0, 1)
 
-            homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+        batch_H_21 = np.array(
+            [
+                [np.cos(thetas1),  zeros, np.sin(thetas1), zeros],
+                [zeros,            ones,            zeros, zeros],
+                [-np.sin(thetas1), zeros, np.cos(thetas1), zeros],
+                [zeros,            zeros,           zeros, ones]
+            ]
+        )
+        batch_H_21 = batch_H_21.transpose(2, 0, 1)
 
-            batch_ees = cum_transformation_matricies @ homogenous_origin
+        batch_H_32 = np.array(
+            [
+                [np.cos(thetas2),  zeros, np.sin(thetas2), ones],
+                [zeros,            ones,            zeros, zeros],
+                [-np.sin(thetas2), zeros, np.cos(thetas2), zeros],
+                [zeros,            zeros,           zeros, ones]
+            ]
+        )
+        batch_H_32 = batch_H_32.transpose(2, 0, 1)
 
-            # Convert from homogeneous coordinates
-            batch_ees = batch_ees / batch_ees[:, :, 3:]
+        batch_H_43 = np.array(
+            [
+                [np.cos(thetas3),  zeros, np.sin(thetas3), ones],
+                [zeros,            ones,            zeros, zeros],
+                [-np.sin(thetas3), zeros, np.cos(thetas3), zeros],
+                [zeros,            zeros,           zeros, ones]
+            ]
+        )
+        batch_H_43 = batch_H_43.transpose(2, 0, 1)
 
-            # Remove Scaling Factor
-            batch_ees = batch_ees[:, :, :3]
+        batch_H_54 = np.array(
+            [
+                [ones,  zeros, zeros, ones],
+                [zeros, ones,  zeros, zeros],
+                [zeros, zeros, ones,  zeros],
+                [zeros, zeros, zeros, ones]
+            ]
+        )
+        batch_H_54 = batch_H_54.transpose(2, 0, 1)
 
-            # Remove First Link Since it's just a Rotation and will always have
-            # endpoints at the origin
-            batch_ees = batch_ees[:, 1:, :]
-            batch_link_ees = np.stack((batch_ees[:, :-1], batch_ees[:, 1:]), axis=2)
-            return batch_link_ees
-        else:
-            fks = []
-            for state in states:
-                fks.append(self.forward_kinematics(self.make_state(state)))
-            
-            return np.stack(fks, axis=0)
+        transformation_matricies = [
+            batch_H_10, batch_H_21, batch_H_32, batch_H_43, batch_H_54
+        ]
+        
+        # Start the Cumulative Matrix as the identity matrix
+        cum_mat = np.eye(4)
+
+        cum_transformation_matricies: list[np.ndarray] = []
+
+        for i in range(len(transformation_matricies)):
+            cum_mat = cum_mat @ transformation_matricies[i]
+
+            # Copy the Cumulative Matrix to avoid overwriting appended results
+            cum_transformation_matricies.append(cum_mat.copy())
+
+        cum_transformation_matricies = np.array(cum_transformation_matricies)
+        cum_transformation_matricies = cum_transformation_matricies.transpose(
+            1, 0, 2, 3
+        )
+
+        homogenous_origin = np.array([0.0, 0.0, 0.0, 1.0])
+
+        batch_ees = cum_transformation_matricies @ homogenous_origin
+
+        # Convert from homogeneous coordinates
+        batch_ees = batch_ees / batch_ees[:, :, 3:]
+
+        # Remove Scaling Factor
+        batch_ees = batch_ees[:, :, :3]
+
+        # Remove First Link Since it's just a Rotation and will always have
+        # endpoints at the origin
+        batch_ees = batch_ees[:, 1:, :]
+        batch_link_ees = np.stack((batch_ees[:, :-1], batch_ees[:, 1:]), axis=2)
+        return batch_link_ees
 
     def batch_get_robot_representations(
         self, states: np.ndarray
