@@ -3,20 +3,19 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 
-from motion_planning.obstacle_sets import BiasedPassage
 from motion_planning.search import RRT
-from motion_planning.space import PointRobot
+from motion_planning.space import RobotSpace
 from motion_planning.tools import NumpyState
 
 
 class RandomSampleGeneration(RRT):
-    def __init__(self, env, num_neighbors=5, delta=0.5):
+    def __init__(self, env: RobotSpace, num_neighbors: int = 5, delta: float = 0.5):
         super().__init__(env, delta=delta)
-        self.env = env
-        self.tree = defaultdict(list)
-        self.child_to_parent = {}
-        self.num_neighbors = num_neighbors
-        self.delta = delta
+        self.env: RobotSpace = env
+        self.tree: dict[list] = defaultdict(list)
+        self.child_to_parent: dict[NumpyState, NumpyState] = {}
+        self.num_neighbors: int = num_neighbors
+        self.delta: float = delta
 
     def expand_node(self, node: NumpyState, sampled_point: NumpyState) -> NumpyState:
         if np.linalg.norm(self.target.value - node.value) < self.delta:
@@ -54,10 +53,11 @@ class RandomSampleGeneration(RRT):
 
 
 if __name__ == "__main__":
-    seed = np.random.randint(0, 10000)
-    seed = 54
-    print(f"Setting Seed: {seed}")
-    np.random.seed(seed)
+    from motion_planning.obstacle_sets import BiasedPassage
+    from motion_planning.space import PointRobot
+    from motion_planning.utils import set_numpy_seed
+
+    set_numpy_seed()
 
     env = PointRobot()
     env.set_obstacles(BiasedPassage())
