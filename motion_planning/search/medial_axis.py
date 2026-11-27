@@ -8,7 +8,7 @@ from skimage.morphology import medial_axis
 from motion_planning.search import PRM, BiasedSamplingRRT
 from motion_planning.space import ApproximationSpace
 
-# Medial Axis Can Either Guide PRM (Use as starting vertices) or RRT (Biased Sampling)
+# Medial Axis Can Either Guide PRM (With starting vertices) or RRT (Biased Sampling)
 
 
 class MedialAxis:
@@ -19,13 +19,15 @@ class MedialAxis:
 
         ma_points, ma_img = self.compute_medial_axis_points(env, percent_kept=0.1)
 
-        self.ma_img = ma_img
-        self.ma_points = ma_points
+        self.ma_img: np.ndarray = ma_img
+        self.ma_points: np.ndarray = ma_points
 
         # MEDIAL AXIS POINTS TO ENV SPECFIC CONFIGURATIONS
-        self.configs = env.batch_sample_points_around_target(ma_points)
+        self.configs: np.ndarray = env.batch_sample_points_around_target(ma_points)
 
-    def compute_medial_axis_points(self, env: ApproximationSpace, percent_kept=0.1):
+    def compute_medial_axis_points(
+        self, env: ApproximationSpace, percent_kept: float = 0.1
+    ) -> tuple[np.ndarray, np.ndarray]:
         plt.axis("off")
         env.space.draw_environment(plt.gca())
 
@@ -78,7 +80,7 @@ class MedialAxis:
         plt.close()
         return ma_points, ma_img
 
-    def show_medial_axis(self):
+    def show_medial_axis(self) -> None:
         plt.clf()
         plt.imshow(self.ma_img)
         plt.gca().invert_yaxis()
@@ -86,7 +88,9 @@ class MedialAxis:
 
 
 class MedialAxisRRT(MedialAxis, BiasedSamplingRRT):
-    def __init__(self, env, points_bias=0.4, delta=0.5):
+    def __init__(
+        self, env: ApproximationSpace, points_bias: float = 0.4, delta: float = 0.5
+    ):
         MedialAxis.__init__(self, env)
         BiasedSamplingRRT.__init__(
             self,
@@ -98,7 +102,13 @@ class MedialAxisRRT(MedialAxis, BiasedSamplingRRT):
 
 
 class MedialAxisPRM(MedialAxis, PRM):
-    def __init__(self, env, num_samples=1000, num_neighbors=10, edge_dist_radius=None):
+    def __init__(
+        self,
+        env: ApproximationSpace,
+        num_samples: int = 1000,
+        num_neighbors: int | None = 10,
+        edge_dist_radius: float | None = None,
+    ):
         MedialAxis.__init__(self, env)
         PRM.__init__(
             self,
@@ -109,10 +119,40 @@ class MedialAxisPRM(MedialAxis, PRM):
             validate_edges=True,
         )
 
-    def create_graph(self, starting_samples=[]):
+    def create_graph(self, starting_samples: list = []) -> None:
         num_samples = len(starting_samples)
         starting_samples = np.array(starting_samples).reshape(
             num_samples, self.configs.shape[1]
         )
         starting_samples = np.concatenate((starting_samples, self.configs))
         super().create_graph(starting_samples=starting_samples)
+
+if __name__ == "__main__":
+    from motion_planning.obstacle_sets import BiasedPassage
+    from motion_planning.space import PointRobot
+
+    env = PointRobot()
+    env.set_obstacles(BiasedPassage(num_walls=3))
+
+    env = ApproximationSpace(env, do_overapproximation=True)
+
+    # MedialAxisPRM
+    prm = MedialAxisPRM(env, num_samples=100, num_neighbors=10)
+    prm.create_graph()
+
+    start = env.make_state(np.array([5.0, 5.0]))
+    target = env.make_state(np.array([35.0, 5.0]))
+
+    path = prm.search(start, target)
+
+    prm.draw(plt.gca(), path, show_task=True)
+    env.draw_environment(plt.gca())
+    plt.show()
+    plt.clf()
+
+    # MedialAxisRRT
+    rrt = MedialAxisRRT(env)
+    path = rrt.search(start, target)
+
+    rrt.draw_tree(plt.gca(), path, show_task=True)
+    plt.show()
