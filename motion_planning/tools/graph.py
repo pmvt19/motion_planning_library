@@ -68,14 +68,14 @@ class Graph():
     def backtrack(self, visited, end):
         path_idxs = []
         node = end
-        while node:
+        while node is not None:
             path_idxs.append(node)
             node = visited[node]
 
         path = [self.vertices[idx] for idx in path_idxs]
         return path[::-1]
     
-    def dijkstra_search(self, start : tuple, end : tuple):
+    def dijkstra_search(self, start: tuple, end: tuple):
         q = []
         start_idx = self.vertex_to_idx[tuple(start)]
         end_idx = self.vertex_to_idx[tuple(end)]
