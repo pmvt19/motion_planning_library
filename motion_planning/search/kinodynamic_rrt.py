@@ -6,28 +6,30 @@ import numpy as np
 from motion_planning.obstacle_sets import ParkingSpace
 from motion_planning.search import RRT
 from motion_planning.space import NonHolonomicRobot
-from motion_planning.tools import KinodynamicPath
+from motion_planning.tools import KinodynamicPath, NumpyState
 
 
 class KinodynamicRRT(RRT):
     def __init__(
         self,
-        env,
-        goal_radius=0.5,
-        max_time_horizon=4,
-        expansion_strategy="single",
-        expansion_attempts=10,
+        env: NonHolonomicRobot,
+        goal_radius: float = 0.5,
+        max_time_horizon: float = 4.0,
+        expansion_strategy: str = "single",
+        expansion_attempts: int = 10,
     ):
         super().__init__(env=env)
         self.env: NonHolonomicRobot = env
         self.tree = defaultdict(list)
         self.child_to_parent = {}
-        self.goal_radius = goal_radius
-        self.max_time_horizon = max_time_horizon
-        self.expansion_strategy = expansion_strategy  # 'single' or 'sampled_point_bias'
-        self.expansion_attempts = expansion_attempts
+        self.goal_radius: float = goal_radius
+        self.max_time_horizon: float = max_time_horizon
 
-    def expand_node(self, node, sampled_point):
+        # expansion_strategy: 'single' or 'sampled_point_bias'
+        self.expansion_strategy: str = expansion_strategy
+        self.expansion_attempts: int = expansion_attempts
+
+    def expand_node(self, node: NumpyState, sampled_point: NumpyState) -> NumpyState:
         if self.env.dist(node.value, self.target.value) < self.goal_radius:
             new_node = self.target
             controls = self.env.make_control(np.zeros(self.env.control_dim))
@@ -59,7 +61,7 @@ class KinodynamicRRT(RRT):
 
         return new_node
 
-    def backtrack(self, end):
+    def backtrack(self, end: NumpyState) -> KinodynamicPath:
         if end not in self.child_to_parent:
             return KinodynamicPath()
 
@@ -78,7 +80,9 @@ class KinodynamicRRT(RRT):
             path=path[::-1][:-1], controls=control_seq[::-1][1:-1], dt=self.env.dt
         )
 
-    def init_search(self, start, target, starting_tree_info=None):
+    def init_search(
+        self, start: NumpyState, target: NumpyState, starting_tree_info=None
+    ) -> None:
         super().init_search(start, target, starting_tree_info)
         self.tree[self.start] = []
         self.child_to_parent[self.start] = (None, None, None)
