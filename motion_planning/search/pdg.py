@@ -1,20 +1,16 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import pickle
 import time
-
 from collections import defaultdict
+
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.collections import LineCollection
 from sklearn.neighbors import KDTree
 
-from motion_planning.space import PointRobot, RobotSpace
+from motion_planning.database import Database
 from motion_planning.obstacle_sets import BiasedPassage
-from motion_planning.database import Database, ClusteredDatabase
-from motion_planning.tools import Path
-from motion_planning.space import ApproximationSpace
-from motion_planning.utils import interpolate_path, smooth_path
 from motion_planning.search import RRT
-from motion_planning.tools import NumpyState
+from motion_planning.space import ApproximationSpace, PointRobot, RobotSpace
+from motion_planning.tools import NumpyState, Path
 from motion_planning.tools.timer import Timer
 from motion_planning.utils import pairwise_distances
 
@@ -37,7 +33,7 @@ class PDG():
         self.path_to_target_threshold: float = 1.0
         self.max_path_node_to_tree_node_threshold: float = 5.0
     
-    def compute_retained_paths(self, target: NumpyState):
+    def compute_retained_paths(self, target: NumpyState) -> None:
         path_lengths = [0] + [len(path) for path in self.db.paths]
         path_idxes = np.cumsum(path_lengths)
 
@@ -55,7 +51,10 @@ class PDG():
         )
         closest_idxes_flattened = closest_idxes + path_idxes[:-1]
 
-        kept_paths_mask = state_dists_to_target[closest_idxes_flattened] < self.path_to_target_threshold
+        kept_paths_mask = (
+            state_dists_to_target[closest_idxes_flattened]
+            < self.path_to_target_threshold
+        )
 
         retained_paths = []
         for i, path in enumerate(self.db.paths):
@@ -119,7 +118,7 @@ class PDG():
 
         return c2g_estimates
     
-    def get_tree_path_state_info(self):
+    def get_tree_path_state_info(self) -> np.ndarray:
         path_starting_idxes = np.array([len(path) for path in self.validated_paths])
         self.path_starting_idxes = np.cumsum(
             (np.concatenate(([0], path_starting_idxes)))
@@ -129,15 +128,18 @@ class PDG():
     def filter_connection_attempts(self, c2g_estimates, tree_states, path_states):
         potential_connection_edges_idxes = np.where(c2g_estimates != np.inf)
 
-        vals = c2g_estimates[potential_connection_edges_idxes[0], potential_connection_edges_idxes[1]]
+        r_idxes = potential_connection_edges_idxes[0]
+        c_idxes = potential_connection_edges_idxes[1]
+
+        vals = c2g_estimates[r_idxes, c_idxes]
 
         argsorted_vals = np.argsort(vals)
 
         best_n_connections = argsorted_vals[:self.num_connections_to_keep]
         other_n_connections = argsorted_vals[self.num_connections_to_keep:]
 
-        edge_starts = tree_states[potential_connection_edges_idxes[0][best_n_connections]]
-        edge_ends = path_states[potential_connection_edges_idxes[1][best_n_connections]]
+        edge_starts = tree_states[r_idxes[best_n_connections]]
+        edge_ends = path_states[c_idxes[best_n_connections]]
 
         edge_validities = self.env.batch_is_valid_edge_uniform(edge_starts, edge_ends)
 
@@ -157,7 +159,8 @@ class PDG():
             np.argmin(c2g_estimates), c2g_estimates.shape
         )
         path_starting_idx = np.where(path_state_idx < path_starting_idxes)[0][0] - 1
-        following_path = path_states[path_state_idx:path_starting_idxes[path_starting_idx+1]]
+        stop_idx = path_starting_idxes[path_starting_idx+1]
+        following_path = path_states[path_state_idx:stop_idx]
         return tree_state_idx, following_path, path_starting_idx, path_state_idx
 
     def validate_follow_path(self, following_path):
@@ -177,7 +180,9 @@ class PDG():
         path_validity = np.logical_and(path_state_validities, path_edge_validities)
         return path_validity
 
-    def filter_invalid_segments_of_follow_path(self, following_path, path_validity, path_starting_idx, path_state_idx):
+    def filter_invalid_segments_of_follow_path(
+        self, following_path, path_validity, path_starting_idx, path_state_idx
+    ):
         invalid_idxes = np.where(path_validity == False)[0]
         if len(invalid_idxes) == 0:
             add_to_tree_segment = following_path
@@ -194,7 +199,11 @@ class PDG():
                     self.path_states[path_state_idx+invalid_idx+deletion_offset:]
                 )
             )
-            self.path_state_path_idxes = np.hstack((self.path_state_path_idxes[:si], self.path_state_path_idxes[path_state_idx+invalid_idx+deletion_offset:]))
+
+            stop_idx = path_state_idx+invalid_idx+deletion_offset
+            self.path_state_path_idxes = np.hstack(
+                (self.path_state_path_idxes[:si], self.path_state_path_idxes[stop_idx:])
+            )
             self.flattened_c2gs = np.concatenate(
                 (
                     self.flattened_c2gs[:si],
@@ -412,7 +421,7 @@ class PDG():
 
         return Path([])
 
-    def backtrack(self, end=None):
+    def backtrack(self, end: NumpyState = None) -> Path:
         if end is None or end not in self.child_to_parent:
             return Path()
 
@@ -458,34 +467,7 @@ class PDG():
                 (path[j].value[:2], path[j + 1].value[:2]) for j in range(len(path) - 1)
             ]
             ax.add_collection(LineCollection(path_edges, color=cmap(i)))
-        
-    # def select_node(self, goal_bias=0):
-    #     if np.random.random() < goal_bias:
-    #         sampled_point = self.target
-    #     else:
-    #         sampled_point = self.env.sample_valid_point()
-    #     nodes = np.array([node.value for node in self.tree.keys()])
-    #     kdt = KDTree(nodes)
-    #     _, ind = kdt.query(np.array([sampled_point.value]), k=1)
-    #     idx = ind[0][0]
-    #     return self.env.make_state(nodes[idx]), sampled_point
 
-    # def expand_node(self, node: NumpyState, sampled_point: NumpyState) -> NumpyState:
-    #     if np.linalg.norm(self.target.value - node.value) < self.delta:
-    #         new_node = self.target
-    #     else:
-    #         new_node = self.env.shoot_ray(
-    #             node,
-    #             sampled_point,
-    #             min(self.delta, np.linalg.norm(sampled_point.value - node.value))
-    #         )
-
-    #     if new_node != node:
-    #         self.tree[node].append(new_node)
-    #         self.tree[new_node]
-    #         self.child_to_parent[new_node] = node
-
-    #     return new_node
 
 if __name__ == '__main__':
     from motion_planning.utils import set_numpy_seed
