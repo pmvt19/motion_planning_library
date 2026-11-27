@@ -89,7 +89,7 @@ class PRM:
 
         edge_validities = self.env.batch_is_valid_edge(start_states, end_states)
 
-        invalid_edge_mask = not edge_validities
+        invalid_edge_mask = edge_validities == False
         invalid_ids = idx_tracker[invalid_edge_mask]
 
         for parent, child in invalid_ids:
@@ -125,7 +125,7 @@ class PRM:
 
         edge_validities = self.env.batch_is_valid_edge(start_states, end_states)
 
-        invalid_edge_mask = not edge_validities
+        invalid_edge_mask = edge_validities == False
         invalid_ids = idx_tracker[invalid_edge_mask]
 
         for parent, child in invalid_ids:
