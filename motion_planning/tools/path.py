@@ -1,7 +1,9 @@
+from motion_planning.tools import NumpyState
+
 class Path:
-    def __init__(self, path: list = []):
+    def __init__(self, path: list[NumpyState] = []):
         assert isinstance(path, list), "Path must be of type list"
-        self.path: list = path
+        self.path: list[NumpyState] = path
 
     def __len__(self):
         return len(self.path)
