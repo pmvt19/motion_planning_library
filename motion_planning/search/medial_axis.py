@@ -127,6 +127,7 @@ class MedialAxisPRM(MedialAxis, PRM):
         starting_samples = np.concatenate((starting_samples, self.configs))
         super().create_graph(starting_samples=starting_samples)
 
+
 if __name__ == "__main__":
     from motion_planning.obstacle_sets import BiasedPassage
     from motion_planning.space import PointRobot
