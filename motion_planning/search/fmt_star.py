@@ -11,16 +11,12 @@ from motion_planning.tools import NumpyState, Path, Tree
 class FastMarchingTreeStar:
     def __init__(self, env: RobotSpace, query_radius: float = 0.5):
         self.env: RobotSpace = env
-        self.query_radius = query_radius
+        self.query_radius: float = query_radius
 
-        self.tree = Tree()
+        self.tree: Tree = Tree()
         self.neighbor_cache: dict[NumpyState, set[NumpyState]] = {}
 
-    def generate_batch_points(self, num_points: int = 10000):
-        batch_points = [self.env.sample_valid_point() for _ in range(num_points)]
-        return batch_points
-
-    def precompute_neighbors(self, batch_points: list[NumpyState]):
+    def precompute_neighbors(self, batch_points: list[NumpyState]) -> None:
         self.batch_points_numpy = np.array([node.value for node in batch_points])
 
         N, d = self.batch_points_numpy.shape
@@ -49,12 +45,12 @@ class FastMarchingTreeStar:
         target: NumpyState,
         max_steps: int = 10000,
         batch_size: int = 4000,
-        animate_search_tree: bool = False
-    ):
-        self.start = start
-        self.target = target
+        animate_search_tree: bool = False,
+    ) -> Path:
+        self.start: NumpyState = start
+        self.target: NumpyState = target
 
-        batch_points = self.generate_batch_points(batch_size)
+        batch_points = self.env.batch_sample_points(num_points=batch_size)
         batch_points_with_task = batch_points + [self.start, self.target]
         self.precompute_neighbors(batch_points_with_task)
 
@@ -105,7 +101,9 @@ class FastMarchingTreeStar:
         ordered_path = backtracked_path[::-1]
         return Path(path=ordered_path)
 
-    def draw_tree(self, ax, path: Path | None = None, show_task: bool = True):
+    def draw_tree(
+        self, ax: plt.Axes, path: Path | None = None, show_task: bool = True
+    ) -> None:
         self.env.draw_environment(ax)
         self.tree.draw_tree(ax)
         ax.scatter(
