@@ -13,10 +13,10 @@ class ClusteredDatabase(Database):
     def __init__(self):
         super().__init__()
 
-        self.clusters = None
-        self.clustered_threshold = None
+        self.clusters: dict[int, list] | None = None
+        self.clustered_threshold: float | None = None
 
-    def _path_to_numpy_path(self, path):
+    def _path_to_numpy_path(self, path: Path) -> list[np.ndarray]:
         states = []
         for state in path:
             states.append(state.value)
@@ -30,8 +30,8 @@ class ClusteredDatabase(Database):
         for cluster_id in self.clusters:
             path_idx_representative_for_cluster_id = self.clusters[cluster_id][0]
             rp_numpy_path = self._path_to_numpy_path(
-                                self[path_idx_representative_for_cluster_id]
-                            )
+                self[path_idx_representative_for_cluster_id]
+            )
             dtw_distance, _ = fastdtw(numpy_path, rp_numpy_path, dist=2)
 
             dists.append(dtw_distance)
@@ -42,7 +42,7 @@ class ClusteredDatabase(Database):
         else:
             self.clusters[len(self.clusters)].append(path_idx)
 
-    def cluster(self, threshold=10):
+    def cluster(self, threshold: float = 10.0) -> None:
         self.clustered_threshold = threshold
 
         self.clusters = defaultdict(list)
@@ -57,16 +57,16 @@ class ClusteredDatabase(Database):
             self.cluster_single_path(i)
         print(f"Num Clusters Generated: {len(self.clusters)}")
 
-    def erase_clustering(self):
+    def erase_clustering(self) -> None:
         self.clusters = None
         self.clustered_threshold = None
 
-    def add_path(self, path):
+    def add_path(self, path: Path) -> None:
         path_idx = super().add_path(path)
         if self.clusters is not None:
             self.cluster_single_path(path_idx)
     
-    def merge_dbs(self, other_db: Database):
+    def merge_dbs(self, other_db: Database) -> None:
         if self.clusters is None:
             super().merge_dbs(other_db)
         else:
@@ -85,10 +85,11 @@ class ClusteredDatabase(Database):
         for cluster_id in self.clusters:
             cluster = self.clusters[cluster_id]
             cluster_size = len(cluster)
-            kept_cluster_paths_idxes = np.random.randint(low=0, 
-                                                         high=cluster_size, 
-                                                         size=(min(cluster_size, 
-                                                                   num_paths_per_cluster),))
+            kept_cluster_paths_idxes = np.random.randint(
+                low=0,
+                high=cluster_size,
+                size=(min(cluster_size, num_paths_per_cluster),)
+            )
 
             for kept_path_idx in kept_cluster_paths_idxes:
                 path_idx = cluster[kept_path_idx]
@@ -97,11 +98,11 @@ class ClusteredDatabase(Database):
         db.batch_add_paths(kept_paths)
         return db
     
-    def print_cluster_info(self):
+    def print_cluster_info(self) -> None:
         for cluster_id in self.clusters:
             print(f"Cluster: {cluster_id}, Size: {len(self.clusters[cluster_id])}")
 
-    def draw_clusters(self, ax):
+    def draw_clusters(self, ax: plt.Axes) -> None:
         for cluster_id in self.clusters:
             cmap = plt.get_cmap('tab10', len(self.clusters))
             for _, path_idx in enumerate(self.clusters[cluster_id]):
@@ -119,7 +120,7 @@ class ClusteredDatabase(Database):
                 ]
                 ax.add_collection(LineCollection(path_edges, color=cmap(cluster_id)))
 
-    def draw_cluster(self, ax, cluster_id, color='blue'):
+    def draw_cluster(self, ax: plt.Axes, cluster_id: int, color: str = 'blue') -> None:
         for _, path_idx in enumerate(self.clusters[cluster_id]):
             path = self[path_idx]
             path_states = np.array([state.value for state in path.path])
