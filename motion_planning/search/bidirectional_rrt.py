@@ -1,23 +1,24 @@
-import time
-
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.neighbors import KDTree
 
 from motion_planning.search import RRT
 from motion_planning.space import RobotSpace
-from motion_planning.tools import Path
+from motion_planning.tools import NumpyState, Path
 
 
 class BiDirectionalRRT:
-    def __init__(self, env: RobotSpace, delta: float = 0.5, max_connection_distance: int = 1):
+    def __init__(
+        self, env: RobotSpace, delta: float = 0.5, max_connection_distance: int = 1
+    ):
         self.env: RobotSpace = env
         self.delta: float = delta
         self.max_connection_distance: int = max_connection_distance
-
         self.animation_delay: float = 0.01
 
-    def attempt_tree_connection(self, forward_rrt, backward_rrt):
+    def attempt_tree_connection(
+        self, forward_rrt: RRT, backward_rrt: RRT
+    ) -> tuple[bool, tuple[NumpyState, NumpyState]]:
         forward_tree_nodes = np.array([node.value for node in forward_rrt.tree.keys()])
         backward_tree_nodes = np.array(
             [node.value for node in backward_rrt.tree.keys()]
@@ -40,7 +41,12 @@ class BiDirectionalRRT:
             )
         return False, None
 
-    def backtrack(self, forward_rrt, backward_rrt, connection):
+    def backtrack(
+        self,
+        forward_rrt: RRT,
+        backward_rrt: RRT,
+        connection: tuple[NumpyState, NumpyState],
+    ) -> Path:
         if connection is None:
             return Path()
         forward_end_state, backward_end_state = connection
@@ -52,17 +58,21 @@ class BiDirectionalRRT:
         return Path(path=joined_path)
 
     def search(
-        self, start, target, max_steps=10000, goal_bias=0.1, animate_search_tree=False
-    ):
-        self.forward_rrt = RRT(env=self.env, delta=self.delta)
-        self.backward_rrt = RRT(env=self.env, delta=self.delta)
+        self,
+        start: NumpyState,
+        target: NumpyState,
+        max_steps: int = 10000,
+        goal_bias: float = 0.1,
+        animate_search_tree: bool = False,
+    ) -> Path:
+        self.forward_rrt: RRT = RRT(env=self.env, delta=self.delta)
+        self.backward_rrt: RRT = RRT(env=self.env, delta=self.delta)
 
         self.forward_rrt.init_search(start, target)
         self.backward_rrt.init_search(target, start)
 
         num_steps = 0
         is_connected = False
-        start_time = time.time()
 
         while not is_connected and num_steps < max_steps:
             print(f"Searching Step: {num_steps}", end="\r")
@@ -78,11 +88,6 @@ class BiDirectionalRRT:
                 plt.pause(self.animation_delay)
                 plt.clf()
 
-        search_time = time.time() - start_time
-        print(
-            f"Search Time: {search_time}, Collision Checks: {self.env.num_collision_checks}"
-        )
-
         path = self.backtrack(
             forward_rrt=self.forward_rrt,
             backward_rrt=self.backward_rrt,
@@ -90,7 +95,9 @@ class BiDirectionalRRT:
         )
         return path
 
-    def draw_tree(self, ax, path: Path = None, hold=False, show_task=True):
+    def draw_tree(
+        self, ax: plt.Axes, path: Path = None, show_task: bool = True
+    ) -> None:
         self.env.draw_environment(ax)
         self.backward_rrt.draw_tree(ax, show_task=False)
         self.forward_rrt.draw_tree(ax, path=path, show_task=show_task)
