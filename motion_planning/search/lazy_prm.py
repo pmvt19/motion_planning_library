@@ -8,13 +8,15 @@ from motion_planning.tools import NumpyState, Path
 class LazyPRM(PRM):
     def __init__(self, env: RobotSpace, num_samples: int = 10, num_neighbors: int = 10):
         super().__init__(
-            env,
+            env=env,
             num_samples=num_samples,
             num_neighbors=num_neighbors,
             validate_edges=False,
         )
 
-    def lazy_search(self, start: NumpyState, target: NumpyState, max_iter: int = 1000):
+    def lazy_search(
+        self, start: NumpyState, target: NumpyState, max_iter: int = 1000
+    ) -> list[np.ndarray] | None:
         i = 0
 
         while i < max_iter:
@@ -45,7 +47,7 @@ class LazyPRM(PRM):
 
             i += 1
 
-    def search(self, start, target):
+    def search(self, start: NumpyState, target: NumpyState) -> Path:
         self.start = start
         self.target = target
 
@@ -57,6 +59,8 @@ class LazyPRM(PRM):
         path = self.lazy_search(start=start, target=target)
         if path:
             path = Path([self.env.make_state(p) for p in path])
+        else:
+            path = Path([])
 
         # Return final Path
         return path
