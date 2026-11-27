@@ -14,7 +14,7 @@ def populate_db(
     prm_num_samples: int = 1000,
     prm_num_neighbors: int = 5,
     retry_empty_paths: bool = False,
-):
+) -> None:
     for i in range(num_envs):
         env = mp_sampler.sample_env()
         prm = IncrementalPRM(
