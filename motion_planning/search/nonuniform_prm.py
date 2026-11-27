@@ -8,10 +8,10 @@ class NonUniformPRM(PRM):
     def __init__(
         self,
         env: RobotSpace,
-        num_samples=10,
-        num_neighbors=10,
-        validate_edges=False,
-        scale=1,
+        num_samples: int = 10,
+        num_neighbors: int = 10,
+        validate_edges: bool = False,
+        scale: float = 1.0,
     ):
         super().__init__(
             env=env,
@@ -19,13 +19,15 @@ class NonUniformPRM(PRM):
             num_neighbors=num_neighbors,
             validate_edges=validate_edges,
         )
-        self.scale = scale
+        self.scale: float = scale
 
-    def batch_generate_sample_points(self, starting_samples=[]):
-        # TODO: Make this use batch sampling
-        points = np.array(
-            [self.env.sample_point().value for _ in range(self.num_samples)]
-            + [sample for sample in starting_samples]
+    def batch_generate_sample_points(
+        self, starting_samples: list[np.ndarray] = []
+    ) -> np.ndarray:
+        starting_samples: np.ndarray = np.array(starting_samples)
+        sampled_points = self.env.batch_sample_points(self.num_samples)
+        points = np.concatenate(
+            (sampled_points, starting_samples.reshape(-1, self.env.state_dims)), axis=0
         )
         offset_points = points + np.random.normal(scale=self.scale, size=points.shape)
         points_validities = self.env.batch_is_valid(points)
@@ -48,7 +50,7 @@ if __name__ == "__main__":
     from motion_planning.space import PolygonalRobot
     from motion_planning.utils import set_numpy_seed
 
-    set_numpy_seed()
+    set_numpy_seed(7903)
 
     env = PolygonalRobot()
     env.set_obstacles(RandomSamplePassage(num_walls=3, gap_width=2))
