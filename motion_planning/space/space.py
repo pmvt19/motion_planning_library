@@ -63,6 +63,9 @@ class RobotSpace:
             point = self.sample_point()
         return point
 
+    def sample_task(self, task_type: str = "random") -> tuple[NumpyState, NumpyState]:
+        raise NotImplementedError
+
     def draw_state(self, ax: plt.Axes, state: NumpyState):
         raise NotImplementedError
 
