@@ -1,17 +1,18 @@
 import numpy as np
 
 from motion_planning.search import PRM
+from motion_planning.space import RobotSpace
 from motion_planning.tools import Graph, NumpyState, Path
 
 
 class IncrementalPRM(PRM):
     def __init__(
         self,
-        env,
-        num_samples=100,
-        num_neighbors=None,
-        edge_dist_radius=None,
-        cache_edge_validities=True,
+        env: RobotSpace,
+        num_samples: int = 100,
+        num_neighbors: int = None,
+        edge_dist_radius: float = None,
+        cache_edge_validities: bool = True,
     ):
         super().__init__(
             env=env,
@@ -19,9 +20,9 @@ class IncrementalPRM(PRM):
             num_neighbors=num_neighbors,
             edge_dist_radius=edge_dist_radius,
         )
-        self.cache_graph_edge_validities = cache_edge_validities
+        self.cache_graph_edge_validities: bool = cache_edge_validities
 
-    def extend_graph(self):
+    def extend_graph(self) -> None:
         old_vertices = self.graph.vertices
         new_vertices = self.batch_generate_sample_points()
         vertices = np.vstack((old_vertices, new_vertices))
@@ -31,7 +32,7 @@ class IncrementalPRM(PRM):
             edge_dist_radius=self.edge_dist_radius,
         )
 
-    def _dfs_iterative(self, start, target):
+    def _dfs_iterative(self, start: NumpyState, target: NumpyState) -> bool:
         start_idx = self.graph.vertex_to_idx[tuple(start.value)]
         target_idx = self.graph.vertex_to_idx[tuple(target.value)]
         s = [start_idx]
@@ -51,7 +52,7 @@ class IncrementalPRM(PRM):
                 s.append(nbr)
         return False
 
-    def _bfs_iterative(self, start, target):
+    def _bfs_iterative(self, start: NumpyState, target: NumpyState) -> bool:
         start_idx = self.graph.vertex_to_idx[tuple(start.value)]
         target_idx = self.graph.vertex_to_idx[tuple(target.value)]
         q = [start_idx]
@@ -71,13 +72,13 @@ class IncrementalPRM(PRM):
                 q.append(nbr)
         return False
 
-    def is_nodes_connected(self, start, target):
+    def is_nodes_connected(self, start: NumpyState, target: NumpyState) -> bool:
         # return self._dfs_iterative(start, target)
         return self._bfs_iterative(start, target)
 
-    def search(self, start: NumpyState, target: NumpyState):
-        self.start = start
-        self.target = target
+    def search(self, start: NumpyState, target: NumpyState) -> Path:
+        self.start: NumpyState = start
+        self.target: NumpyState = target
 
         # Attach Start and Target to the graph
         self.graph.add_vertex(start.value)
