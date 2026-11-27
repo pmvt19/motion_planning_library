@@ -39,7 +39,7 @@ class InformedRRTStar(RRTStar):
             path_length += self.env.dist(path[i], path[i + 1])
         return path_length
 
-    def select_node(self, goal_bias=0):
+    def select_node(self, goal_bias: float = 0) -> tuple[NumpyState, NumpyState]:
         path = self.backtrack(end=target)
         if len(path) > 0:
             path_length = self.compute_path_length(path)
