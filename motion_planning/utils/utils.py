@@ -69,6 +69,20 @@ def create_rectangle_geometry(
     return shape
 
 
+def create_rectangle_geometry_anchored(
+    x_loc: float, y_loc: float, x_width: float, y_length: float
+):
+    shape = Polygon(
+        [
+            [x_loc, y_loc],
+            [x_loc, y_loc + y_length],
+            [x_loc + x_width, y_loc + y_length],
+            [x_loc + x_width, y_loc],
+        ]
+    )
+    return shape
+
+
 def calculate_edge_gradient(
     start_state: NumpyState, end_state: NumpyState
 ) -> np.ndarray:
