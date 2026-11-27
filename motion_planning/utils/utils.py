@@ -243,3 +243,14 @@ def interpolate_path(path: Path, env, delta: float):
         interpolated_edge = interpolate_edge(path[i], path[i + 1], delta)
         interpolated_path.extend([env.make_state(state) for state in interpolated_edge])
     return dedup_path_state(Path(interpolated_path))
+
+
+def pairwise_distances(points1: np.ndarray, points2: np.ndarray) -> np.ndarray:
+    dist_mat = np.sqrt(
+        (
+            np.sum(points1**2, axis=1, keepdims=True)
+            + np.sum(points2**2, axis=1, keepdims=True).T
+            + (-2 * (points1 @ points2.T))
+        )
+    )
+    return dist_mat
