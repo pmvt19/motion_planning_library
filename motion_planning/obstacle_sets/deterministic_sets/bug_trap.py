@@ -20,6 +20,8 @@ class BugTrap(ObstacleSet2d):
 
         super().__init__(obstacles=obstacles, boundary=boundary)
         # TODO: Make Gap Width Configurable
+        # TODO: Migrate to anchored geometry configuration
+        # TODO: Add ability to rotate and offset the bugtrap
 
         # Top & Bottom Walls
         self.obstacles.append(
