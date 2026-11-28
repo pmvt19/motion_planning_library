@@ -103,14 +103,14 @@ class RRT:
             node = self.child_to_parent[node]
         return Path(path=path[::-1])
 
-    def init_search(self, start: NumpyState, target: NumpyState, starting_tree_info=None):
-        self.start = start
-        self.target = target
+    def init_search(
+            self, start: NumpyState, target: NumpyState, starting_tree_info=None
+        ) -> None:
+        self.start: NumpyState = start
+        self.target: NumpyState = target
 
-        # TODO: Clean This up with constructor (Semi-HACK)
-        self.tree = defaultdict(list)
-        self.child_to_parent = {}
-        # TODO: Clean This up with constructor (Semi-HACK)
+        self.tree: dict[NumpyState, list] = defaultdict(list)
+        self.child_to_parent: dict[NumpyState, NumpyState] = {}
 
         self.tree[self.start] = []
         self.child_to_parent[self.start] = None
